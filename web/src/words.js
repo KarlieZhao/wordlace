@@ -1,3 +1,5 @@
+import nlp from 'compromise/two';
+
 //   // nouns
 //   "noun":                        "NN",
 //   "noun, singular":              "NN",
@@ -78,7 +80,7 @@ export const POS_TRANSITIONS = {
   PRP$: ["NN", "NNS", "NNP", "JJ", "JJR"],
 
   // Modal: before base verb or adverb
-  MD:  ["VB", "RB", "VBN", "VBG"],
+  MD: ["VB", "VBP", "VBZ", "RB", "VBN", "VBG"],
 
   // Base verb: before noun, det, prep, adverb, particle, pronoun
   VB:  ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VB"],
@@ -100,8 +102,8 @@ export const POS_TRANSITIONS = {
 
   // Adjective: before noun, another adj, or coordinating conj
   JJ:  ["NN", "NNS", "NNP", "NNPS", "JJ", "JJR", "JJS", "CC"],
-  JJR: ["NN", "NNS", "CC", "IN"],   // comparative (darker)
-  JJS: ["NN", "NNS", "CC"],          // superlative (darkest)
+  JJR: ["NN", "NNS", "CC", "IN"],   // comparative
+  JJS: ["NN", "NNS", "CC"],          // superlative
 
   // Singular noun: before verb, prep, conj, another noun, or modal
   NN:  ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "NN", "NNS", "POS"],
@@ -145,217 +147,8 @@ export const POS_TRANSITIONS = {
   POS: ["NN", "NNS", "JJ", "NNP"],
 };
 
-export const POS_MAP = {
-  // pronouns
-  i: "PRP",
-  you: "PRP",
-  he: "PRP",
-  she: "PRP",
-  we: "PRP",
-  they: "PRP",
-  it: "PRP",
-  me: "PRP",
-  him: "PRP",
-  her: "PRP",
-  us: "PRP",
-  them: "PRP",
-  // modal / aux verbs
-  must: "MD",
-  should: "MD",
-  can: "MD",
-  could: "MD",
-  would: "MD",
-  will: "MD",
-  shall: "MD",
-  may: "MD",
-  might: "MD",
-  // copula / aux
-  be: "VB",
-  is: "VB",
-  are: "VB",
-  was: "VB",
-  were: "VB",
-  been: "VB",
-  am: "VB",
-  being: "VB",
-  // "to be" special
-  to: "TO",
-  // conjunctions
-  when: "CC",
-  but: "CC",
-  and: "CC",
-  or: "CC",
-  yet: "CC",
-  so: "CC",
-  for: "CC",
-  // common adverbs
-  even: "RB",
-  first: "RB",
-  then: "RB",
-  always: "RB",
-  never: "RB",
-  often: "RB",
-  just: "RB",
-  only: "RB",
-  also: "RB",
-  still: "RB",
-  again: "RB",
-  finally: "RB",
-  simply: "RB",
-  truly: "RB",
-  deeply: "RB",
-  // prepositions
-  in: "IN",
-  on: "IN",
-  at: "IN",
-  by: "IN",
-  with: "IN",
-  from: "IN",
-  of: "IN",
-  about: "IN",
-  through: "IN",
-  into: "IN",
-  over: "IN",
-  under: "IN",
-  between: "IN",
-  among: "IN",
-  // articles / determiners
-  the: "DT",
-  a: "DT",
-  an: "DT",
-  this: "DT",
-  that: "DT",
-  these: "DT",
-  those: "DT",
-  my: "DT",
-  your: "DT",
-  his: "DT",
-  its: "DT",
-  our: "DT",
-  their: "DT",
-  // common adjectives
-  unknown: "JJ",
-  gorgeous: "JJ",
-  beautiful: "JJ",
-  terrible: "JJ",
-  wonderful: "JJ",
-  small: "JJ",
-  big: "JJ",
-  large: "JJ",
-  good: "JJ",
-  bad: "JJ",
-  new: "JJ",
-  old: "JJ",
-  young: "JJ",
-  free: "JJ",
-  real: "JJ",
-  true: "JJ",
-  false: "JJ",
-  hard: "JJ",
-  soft: "JJ",
-  dark: "JJ",
-  bright: "JJ",
-  wild: "JJ",
-  quiet: "JJ",
-  silent: "JJ",
-  open: "JJ",
-  // past participles / passive
-  seen: "VBN",
-  hunted: "VBN",
-  known: "VBN",
-  loved: "VBN",
-  found: "VBN",
-  lost: "VBN",
-  given: "VBN",
-  taken: "VBN",
-  made: "VBN",
-  done: "VBN",
-  called: "VBN",
-  used: "VBN",
-  allowed: "VBN",
-  broken: "VBN",
-  born: "VBN",
-  shown: "VBN",
-  written: "VBN",
-  spoken: "VBN",
-  hidden: "VBN",
-  forgotten: "VBN",
-  gone: "VBN",
-  // verbs
-  allows: "VB",
-  allow: "VB",
-  see: "VB",
-  look: "VB",
-  go: "VB",
-  come: "VB",
-  make: "VB",
-  think: "VB",
-  know: "VB",
-  want: "VB",
-  need: "VB",
-  feel: "VB",
-  seem: "VB",
-  appear: "VB",
-  become: "VB",
-  stay: "VB",
-  leave: "VB",
-  move: "VB",
-  turn: "VB",
-  show: "VB",
-  tell: "VB",
-  ask: "VB",
-  take: "VB",
-  give: "VB",
-  find: "VB",
-  keep: "VB",
-  call: "VB",
-  try: "VB",
-  let: "VB",
-  put: "VB",
-  run: "VB",
-  walk: "VB",
-  stand: "VB",
-  sit: "VB",
-  hold: "VB",
-  live: "VB",
-  work: "VB",
-  play: "VB",
-  stop: "VB",
-  start: "VB",
-  begin: "VB",
-  end: "VB",
-  close: "VB",
-  believe: "VB",
-  forget: "VB",
-  remember: "VB",
-  understand: "VB",
-  touch: "VB",
-  reach: "VB",
-  catch: "VB",
-  release: "VB",
-  escape: "VB",
-  breathe: "VB",
-  watch: "VB",
-  listen: "VB",
-  speak: "VB",
-  //nouns
-  truth: "NN",
-};
 
-export const COL_ORDER = [
-  "PRP",
-  "TO",
-  "DT",
-  "IN",
-  "MD",
-  "RB",
-  "CC",
-  "VB",
-  "VBN",
-  "JJ",
-  "NN",
-  "FW",
-];
+export const COL_ORDER = ["PRP", "NN", "TO", "DT", "IN", "MD", "RB", "CC", "VB", "VBN", "JJ", "FW"];
 
 export const COL_LABELS = {
   PRP: "pronoun",
@@ -371,3 +164,29 @@ export const COL_LABELS = {
   NN: "noun",
   FW: "other",
 };
+
+export const normalize = (str) => nlp(str).out('normal').trim();
+
+
+/**
+ * given a raw word, return its normalized followers as surface forms.
+ * e.g. queryFollowers("hates") → ["this", "that"]
+ */
+export function queryFollowers(word) {
+  const norm = normalize(word);
+  const followers = bigramIndex.get(norm);
+  if (!followers) return [];
+  return [...followers].map(n => surfaceMap.get(n) || n);
+}
+
+/**
+ * return the full bigram index as a plain object, for debugging
+ */
+export function getIndex() {
+  const out = {};
+  bigramIndex.forEach((followers, word) => {
+    const surfaceWord = surfaceMap.get(word) || word;
+    out[surfaceWord] = [...followers].map(n => surfaceMap.get(n) || n);
+  });
+  return out;
+}

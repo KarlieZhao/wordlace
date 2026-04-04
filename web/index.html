@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Sentence Diagram</title>
+  <title>Wordlace</title>
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&display=swap"
     rel="stylesheet" />
@@ -16,13 +16,13 @@
 
   <div id="topbar">
     <h1>Wordlace</h1>
-    <div class="view-tab " id="tab-linear">Linear</div>
-    <div class="view-tab active" id="tab-column">Column</div>
+    <div class="view-tab active" id="tab-pos">Part of Speech</div>
+    <div class="view-tab " id="tab-ngram">N-gram</div>
   </div>
 
   <div id="inputbar">
     <input id="sentence-input" type="text" placeholder="Type a sentence…" />
-    <button class="go-btn" id="draw">Draw</button>
+    <button class="go-btn" id="draw">Weave</button>
     <!-- <button class="demo-btn" onclick="loadDemo(0)">demo 1</button>
     <button class="demo-btn" onclick="loadDemo(1)">demo 2</button> -->
   </div>
@@ -31,7 +31,11 @@
 
   <div id="canvas-wrap">
     <svg id="svg"></svg>
-    <div id="empty">type a sentence above<br />then press draw</div>
+    <div id="writer-container" class="">
+      <div id="display"></div>
+      <div id="writer"></div>
+      <div id="enter-key" class="go-btn">Enter ↵</div>
+    </div>
   </div>
 </body>
 

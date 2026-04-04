@@ -1,10 +1,9 @@
-
-/* ── SVG HELPERS ── */
 export function mkDefs(svg) {
   const d = document.createElementNS("http://www.w3.org/2000/svg", "defs");
   svg.appendChild(d);
   return d;
 }
+
 export function mkArrowMarker(defs, id, color) {
   const m = document.createElementNS("http://www.w3.org/2000/svg", "marker");
   m.setAttribute("id", id);
@@ -19,6 +18,8 @@ export function mkArrowMarker(defs, id, color) {
   m.appendChild(p);
   defs.appendChild(m);
 }
+
+
 export function line(svg, x1, y1, x2, y2, stroke, sw, marker) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
   el.setAttribute("x1", x1);
@@ -31,6 +32,7 @@ export function line(svg, x1, y1, x2, y2, stroke, sw, marker) {
   svg.appendChild(el);
   return el;
 }
+
 export function text(svg, x, y, str, size, weight, fill, anchor, family) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
   el.setAttribute("x", x);
