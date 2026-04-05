@@ -129,7 +129,7 @@ function initSVG() {
   const W = svg.clientWidth || 600;
   // const stepY = 58;
   // const startY = 60;
-  const H = window.innerHeight * 0.9 || 600; //startY + tokens.length * stepY + 60;
+  const H = window.innerHeight * 0.87 || 600; //startY + tokens.length * stepY + 60;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = H + "px";
 }
