@@ -1,9 +1,11 @@
-import { text, line, mkDefs, mkArrowMarker } from "./svgutils";
+import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS } from "./words";
 import { normalize } from "./words";
+
 const PAD_L = 60, PAD_R = 60, PAD_T = 60, PAD_B = 40;
 const LIGHT_BLUE = "#b9d1e3";
 const BLACK = "#111111"
+const LIGHT_GRAY = "#b0b0b0"
 
 
 export function drawColumn(tokens, bigramIndex) {
@@ -39,10 +41,46 @@ export function drawColumn(tokens, bigramIndex) {
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
   // column headers
+  const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
-    text(svg, colX[p], 30, COL_LABELS[p] || p, 11, 400, "#b0b0b0", "middle", "IBM Plex Mono");
+    drawText(headerGroup, `colheader-${p}`, colX[p], 30, COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "middle", "IBM Plex Mono");
+  });
+  svg.appendChild(headerGroup);
+
+  // hit rect
+  const hitrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  hitrect.setAttribute("fill", "transparent");
+  requestAnimationFrame(() => {
+    const pad = { x: 12, y: 8 };
+    const bbox = headerGroup.getBBox();
+    hitrect.setAttribute("x", bbox.x - pad.x);
+    hitrect.setAttribute("y", bbox.y - pad.y);
+    hitrect.setAttribute("width", bbox.width + pad.x * 2);
+    hitrect.setAttribute("height", bbox.height + pad.y * 2);
+  });
+  svg.appendChild(hitrect);
+  hitrect.addEventListener("mousemove", (e) => {
+    const svgRect = svg.getBoundingClientRect();
+    const mouseX = e.clientX - svgRect.left;
+
+    // find closest column
+    const p = COL_ORDER.reduce((best, col) =>
+      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best
+    );
+
+    setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "0.08");
+    setTextNodetatus(nodeEls, "#ccc");
+    headerGroup.querySelectorAll(`text`).forEach(ele => ele.setAttribute("fill", LIGHT_GRAY))
+    headerGroup.querySelector(`#colheader-${p}`).setAttribute("fill", BLACK)
+    tokens.forEach(t => { if (t.pos === p) nodeEls[t.id].textEl.setAttribute("fill", BLACK) });
   });
 
+  hitrect.addEventListener("mouseleave", () => {
+    headerGroup.querySelectorAll(`text`).forEach(ele => ele.setAttribute("fill", LIGHT_GRAY))
+    setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "1.0");
+    setTextNodetatus(nodeEls, BLACK);
+  });
 
   const edgeGroupBlue = document.createElementNS("http://www.w3.org/2000/svg", "g");
   edgeGroupBlue.setAttribute("class", "edge-layer edge-layer-blue");
@@ -56,7 +94,6 @@ export function drawColumn(tokens, bigramIndex) {
   const outgoingEdges = {};
   tokens.forEach((t) => { outgoingEdges[t.id] = []; });
 
-  // Build a lookup: normWord → token ids that share that norm
   const normToIds = new Map();
   tokens.forEach((t) => {
     const n = normalize(t.word);
@@ -101,7 +138,7 @@ export function drawColumn(tokens, bigramIndex) {
           a.y + ny * GAP,
           b.x - nx * (GAP + 6),
           b.y - ny * (GAP + 6),
-          color, 1, marker,
+          color, isImmediate ? 1 : 0.7, marker,
         );
         lineEl.style.transition = "opacity 0.2s ease, stroke 0.2s ease";
         lineEl.dataset.fromId = fromTok.id;
@@ -170,18 +207,14 @@ export function drawColumn(tokens, bigramIndex) {
 
     // === HOVER ===
     g.addEventListener("mouseenter", () => {
-      const myEdges = outgoingEdges[t.id];
 
-      svg.querySelectorAll(".edge-layer line").forEach((el) => {
-        el.style.opacity = "0.08";
-      });
-      Object.values(nodeEls).forEach(({ textEl: te }) => {
-        te.setAttribute("fill", "#cccccc");
-      });
+      setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "0.08")
+      setTextNodetatus(nodeEls, "#ccc")
 
       // highlight reachable nodes
+      const highlightEdges = outgoingEdges[t.id];
       const reachableIds = new Set([t.id]);
-      myEdges.forEach(({ lineEl, targetId }) => {
+      highlightEdges.forEach(({ lineEl, targetId }) => {
         lineEl.style.opacity = "1";
         reachableIds.add(targetId);
       });
@@ -192,16 +225,8 @@ export function drawColumn(tokens, bigramIndex) {
     });
 
     g.addEventListener("mouseleave", () => {
-      svg.querySelectorAll(".edge-layer line").forEach((el) => {
-        el.style.opacity = "";
-        el.style.strokeWidth = "";
-        const isImmediate = el.dataset.immediate === "1";
-        el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
-        el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
-      });
-      Object.values(nodeEls).forEach(({ textEl: te }) => {
-        te.setAttribute("fill", BLACK);
-      });
+      setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "")
+      setTextNodetatus(nodeEls, BLACK)
     });
 
     g.addEventListener("click", () => {
@@ -211,26 +236,17 @@ export function drawColumn(tokens, bigramIndex) {
   });
 }
 
-export function drawLinear(tokens) {
-  const startY = 60;
-  const stepY = 58;
-  const svg = document.getElementById("svg");
-  svg.innerHTML = "";
-
-  const W = svg.clientWidth || 600;
-  const cx = W / 2;
-
-  const defs = mkDefs(svg);
-  mkArrowMarker(defs, "arr", BLACK);
-
-  tokens.forEach((t, i) => {
-    const y = startY + i * stepY;
-    if (i < tokens.length - 1) {
-      const arrowY1 = y + 14;
-      const arrowY2 = y + stepY - 14;
-      line(svg, cx, arrowY1, cx, arrowY2, BLACK, 1, "url(#arr)");
-    }
-    text(svg, cx, y, t.word, 18, 400, BLACK, "middle");
+function setTextNodetatus(nodeEls, color) {
+  Object.values(nodeEls).forEach(({ textEl: te }) => {
+    te.setAttribute("fill", color);
   });
+}
 
+function setArrowOpacity(arrows, opacity) {
+  arrows.forEach((el) => {
+    el.style.opacity = opacity;
+    const isImmediate = el.dataset.immediate === "1";
+    el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
+    el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
+  });
 }

@@ -13,7 +13,8 @@
 
 
 import "./style.css";
-import { drawColumn, drawLinear } from "./weave";
+import { drawColumn } from "./weave";
+import { drawLinear } from "./drawlinear";
 import { POS_TRANSITIONS } from "./words";
 import nlp from "compromise/two";
 

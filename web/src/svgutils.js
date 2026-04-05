@@ -33,17 +33,38 @@ export function line(svg, x1, y1, x2, y2, stroke, sw, marker) {
   return el;
 }
 
-export function text(svg, x, y, str, size, weight, fill, anchor, family) {
+export function drawText(group, id = null, x, y, str, size, weight, fill, anchor, family) {
+  // hit area
+  const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  hitArea.setAttribute("fill", "transparent");
+
   const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
   el.setAttribute("x", x);
   el.setAttribute("y", y);
   el.setAttribute("text-anchor", anchor || "middle");
   el.setAttribute("dominant-baseline", "middle");
   el.setAttribute("font-size", size || 16);
+  el.setAttribute("pointer-events", "none");
   el.setAttribute("font-weight", weight || 400);
   el.setAttribute("fill", fill || "#111111");
   el.setAttribute("font-family", family || "IBM Plex Sans, sans-serif");
   el.textContent = str;
-  svg.appendChild(el);
-  return el;
+
+  if (id) {
+    el.setAttribute("id", id)
+  }
+
+  group.appendChild(hitArea);
+  group.appendChild(el);
+
+  requestAnimationFrame(() => {
+    const pad = { x: 12, y: 8 };
+    const bbox = el.getBBox();
+    hitArea.setAttribute("x", bbox.x - pad.x);
+    hitArea.setAttribute("y", bbox.y - pad.y);
+    hitArea.setAttribute("width", bbox.width + pad.x * 2);
+    hitArea.setAttribute("height", bbox.height + pad.y * 2);
+  });
+
+  return hitArea;
 }
