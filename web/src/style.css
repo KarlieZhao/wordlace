@@ -235,13 +235,21 @@
     color: #999 !important;
     border: 0.75px solid #999 !important;
   }
+  #clear-key{
+    position: absolute;
+    right: 130px;
+    top:30vh;
+    color: #999 !important;
+    border: 0.75px solid #999 !important;
+  }
 
-  #enter-key:hover{
+  #enter-key:hover, #clear-key:hover{
     color:#627380 !important;
     background-color: #eaeaea !important
   }
 
-  #enter-key:active{
+    #enter-key:active,
+    #clear-key:active {
     color:#fff !important;
     background-color:#575757 !important;
   }

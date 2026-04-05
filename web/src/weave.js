@@ -1,37 +1,84 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
-import { COL_ORDER, COL_LABELS } from "./words";
-import { normalize } from "./words";
+import { COL_ORDER, COL_LABELS, normalize } from "./words";
 
 const PAD_L = 60, PAD_R = 60, PAD_T = 60, PAD_B = 40;
 const LIGHT_BLUE = "#b9d1e3";
-const BLACK = "#111111"
-const LIGHT_GRAY = "#b0b0b0"
+const BLACK = "#111111";
+const LIGHT_GRAY = "#b0b0b0";
+const RED = "#955151";
 
+
+
+// 1. if a node is clicked => add to selected
+// 2. a selected node cannot be clicked again, but will always be highlighted
+// 3. if mouse enters a node (B) that is the last selected node(A)'s child (related node), add all B's children to hoveredChildren
+// 4. if mouse leave node B, remove B from hovered, and remove its children from hoveredChildren. Keep selected and its children highlighted, as well as the arrows.
+
+const state = {
+  selected: [],
+  selectedChildren: [],
+  hovered: "",
+  hoveredChildren: [],
+};
+
+function applyState(nodeEls, allEdgeLines) {
+  const { selected, selectedChildren, hovered, hoveredChildren } = state;
+  const lastSelected = selected[selected.length - 1];
+  const hasSelection = selected.length > 0;
+  const hasHover = hovered !== "";
+
+  // init: everything fully visible
+  if (!hasSelection && !hasHover) {
+    Object.values(nodeEls).forEach(({ textEl }) => textEl.setAttribute("fill", BLACK));
+    allEdgeLines().forEach((el) => restoreEdge(el));
+    return;
+  }
+
+  // Nodes
+  // lit = selected nodes + their children + hovered node + its children
+  const litIds = new Set([
+    ...selected,
+    ...selectedChildren,
+    ...(hasHover ? [hovered, ...hoveredChildren] : []),
+  ]);
+
+  Object.entries(nodeEls).forEach(([id, { textEl, g }]) => {
+    id = parseInt(id)
+    const isSelected = selected.includes(id);
+    const isClickable = !hasSelection || selectedChildren.includes(id);
+    textEl.setAttribute("fill", isSelected ? RED : litIds.has(id) ? BLACK : LIGHT_GRAY);
+    g.style.pointerEvents = isClickable && !isSelected ? "auto" : "none";
+  });
+
+  // Edges
+  // Full opacity from last selected, half opacity from hovered, dim everything else.
+  allEdgeLines().forEach((el) => {
+    const fromId = parseInt(el.dataset.fromId);
+    const fromLastSelected = hasSelection && fromId === lastSelected;
+    const fromHovered = hasHover && fromId === hovered;
+
+    if (fromLastSelected) { el.style.opacity = "1"; restoreEdge(el); }
+    else if (fromHovered) { el.style.opacity = "0.5"; restoreEdge(el); }
+    else { el.style.opacity = "0.08"; }
+  });
+}
 
 export function drawColumn(tokens, bigramIndex) {
-  const writer = document.getElementById("writer")
+  const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
   svg.innerHTML = "";
+
   const W = svg.clientWidth || 800;
   const H = svg.clientHeight || 600;
-
-  // const usedPos = COL_ORDER.filter((p) => tokens.some((t) => t.pos === p));
   const colCount = COL_ORDER.length;
   if (!colCount) return;
 
   const colW = (W - PAD_L - PAD_R) / Math.max(colCount - 1, 1);
-
-  const colX = {};
-  COL_ORDER.forEach((p, i) => { colX[p] = PAD_L + i * colW; });
-
   const rowH = (H - PAD_T - PAD_B) / Math.max(tokens.length, 1);
-  const tokenPos = {};
-  tokens.forEach((t, globalIndex) => {
-    tokenPos[t.id] = {
-      x: colX[t.pos],
-      y: PAD_T + globalIndex * rowH + rowH / 2,
-    };
-  });
+
+  const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_L + i * colW]));
+  const tokenPos = buildTokenPositions(tokens, colX, rowH);
+  const normToIds = buildNormToIds(tokens);
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = "";
@@ -40,7 +87,7 @@ export function drawColumn(tokens, bigramIndex) {
   mkArrowMarker(defs, "arr-black", BLACK);
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
-  // column headers
+  // Column headers
   const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
@@ -48,7 +95,6 @@ export function drawColumn(tokens, bigramIndex) {
   });
   svg.appendChild(headerGroup);
 
-  // hit rect
   const hitrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   hitrect.setAttribute("fill", "transparent");
   requestAnimationFrame(() => {
@@ -60,27 +106,6 @@ export function drawColumn(tokens, bigramIndex) {
     hitrect.setAttribute("height", bbox.height + pad.y * 2);
   });
   svg.appendChild(hitrect);
-  hitrect.addEventListener("mousemove", (e) => {
-    const svgRect = svg.getBoundingClientRect();
-    const mouseX = e.clientX - svgRect.left;
-
-    // find closest column
-    const p = COL_ORDER.reduce((best, col) =>
-      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best
-    );
-
-    setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "0.08");
-    setTextNodetatus(nodeEls, "#ccc");
-    headerGroup.querySelectorAll(`text`).forEach(ele => ele.setAttribute("fill", LIGHT_GRAY))
-    headerGroup.querySelector(`#colheader-${p}`).setAttribute("fill", BLACK)
-    tokens.forEach(t => { if (t.pos === p) nodeEls[t.id].textEl.setAttribute("fill", BLACK) });
-  });
-
-  hitrect.addEventListener("mouseleave", () => {
-    headerGroup.querySelectorAll(`text`).forEach(ele => ele.setAttribute("fill", LIGHT_GRAY))
-    setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "1.0");
-    setTextNodetatus(nodeEls, BLACK);
-  });
 
   const edgeGroupBlue = document.createElementNS("http://www.w3.org/2000/svg", "g");
   edgeGroupBlue.setAttribute("class", "edge-layer edge-layer-blue");
@@ -90,73 +115,16 @@ export function drawColumn(tokens, bigramIndex) {
   edgeGroupBlack.setAttribute("class", "edge-layer edge-layer-black");
   svg.appendChild(edgeGroupBlack);
 
-  // outgoingEdges[tokenId] = [ { lineEl, targetId, isImmediate } ]
-  const outgoingEdges = {};
-  tokens.forEach((t) => { outgoingEdges[t.id] = []; });
+  const outgoingEdges = drawEdges(tokens, bigramIndex, normToIds, tokenPos, edgeGroupBlack, edgeGroupBlue);
 
-  const normToIds = new Map();
-  tokens.forEach((t) => {
-    const n = normalize(t.word);
-    if (!normToIds.has(n)) normToIds.set(n, []);
-    normToIds.get(n).push(t.id);
-  });
-
-  // for each token, look up what follows its normalized form,
-  // then draw arrows to every token whose norm matches a follower norm.
-  tokens.forEach((fromTok, fromIdx) => {
-    const fromNorm = normalize(fromTok.word);
-    const followerNorms = bigramIndex.get(fromNorm);
-    if (!followerNorms) return;
-
-    followerNorms.forEach((toNorm) => {
-      const toIds = normToIds.get(toNorm) || [];
-      toIds.forEach((toId) => {
-        const toIdx = tokens.findIndex(t => t.id === toId);
-
-        // skip self-loops (and backward edges?)
-        if (toId === fromTok.id) return;
-
-        const a = tokenPos[fromTok.id];
-        const b = tokenPos[toId];
-        if (!a || !b) return;
-
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1) return;
-
-        const isImmediate = toIdx === fromIdx + 1;  // the token directly after in the original sequence
-        const color = isImmediate ? BLACK : LIGHT_BLUE;
-        const marker = isImmediate ? "url(#arr-black)" : "url(#arr-blue)";
-
-        const nx = dx / len, ny = dy / len;
-        const GAP = 12;
-
-        const edgeGroup = isImmediate ? edgeGroupBlack : edgeGroupBlue;
-        const lineEl = line(
-          edgeGroup,
-          a.x + nx * GAP,
-          a.y + ny * GAP,
-          b.x - nx * (GAP + 6),
-          b.y - ny * (GAP + 6),
-          color, isImmediate ? 1 : 0.7, marker,
-        );
-        lineEl.style.transition = "opacity 0.2s ease, stroke 0.2s ease";
-        lineEl.dataset.fromId = fromTok.id;
-        lineEl.dataset.toId = toId;
-        lineEl.dataset.immediate = isImmediate ? "1" : "0";
-
-        outgoingEdges[fromTok.id].push({ lineEl, targetId: toId, isImmediate });
-      });
-    });
-  });
-
-  // Label layer
   const labelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   labelGroup.setAttribute("class", "label-layer");
   svg.appendChild(labelGroup);
 
   const nodeEls = {};
+  const allEdgeLines = () => svg.querySelectorAll(".edge-layer line");
 
+  // Token node
   tokens.forEach((t) => {
     const pos = tokenPos[t.id];
     if (!pos) return;
@@ -176,8 +144,8 @@ export function drawColumn(tokens, bigramIndex) {
     textEl.setAttribute("fill", BLACK);
     textEl.setAttribute("class", "token-label");
     textEl.textContent = t.word;
+    g.appendChild(textEl);
 
-    // Normalized form shown as a small subtitle
     const normWord = normalize(t.word);
     if (normWord !== t.word.toLowerCase()) {
       const subEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -192,61 +160,139 @@ export function drawColumn(tokens, bigramIndex) {
       g.appendChild(subEl);
     }
 
-    const hitRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     const approxW = t.word.length * 10 + 16;
+    const hitRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hitRect.setAttribute("x", pos.x - approxW / 2);
     hitRect.setAttribute("y", pos.y - 13);
     hitRect.setAttribute("width", approxW);
     hitRect.setAttribute("height", 26);
     hitRect.setAttribute("fill", "transparent");
-
-    g.appendChild(textEl);
     g.appendChild(hitRect);
+
     labelGroup.appendChild(g);
     nodeEls[t.id] = { g, textEl };
 
-    // === HOVER ===
     g.addEventListener("mouseenter", () => {
-
-      setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "0.08")
-      setTextNodetatus(nodeEls, "#ccc")
-
-      // highlight reachable nodes
-      const highlightEdges = outgoingEdges[t.id];
-      const reachableIds = new Set([t.id]);
-      highlightEdges.forEach(({ lineEl, targetId }) => {
-        lineEl.style.opacity = "1";
-        reachableIds.add(targetId);
-      });
-
-      reachableIds.forEach(id => {
-        if (nodeEls[id]) nodeEls[id].textEl.setAttribute("fill", BLACK);
-      });
+      state.hovered = t.id;
+      state.hoveredChildren = outgoingEdges[t.id].map(e => e.targetId);
+      applyState(nodeEls, allEdgeLines);
     });
 
     g.addEventListener("mouseleave", () => {
-      setArrowOpacity(svg.querySelectorAll(".edge-layer line"), "")
-      setTextNodetatus(nodeEls, BLACK)
+      state.hovered = "";
+      state.hoveredChildren = [];
+      applyState(nodeEls, allEdgeLines);
     });
 
     g.addEventListener("click", () => {
-      //TODO: find the best form for the constructed sentence
       writer.innerHTML += t.word + " ";
-    })
+      state.selected.push(t.id);
+      state.selectedChildren = outgoingEdges[t.id].map(e => e.targetId);
+      // hovered state resets on click — the next mouseenter will re-populate it
+      state.hovered = "";
+      state.hoveredChildren = [];
+      applyState(nodeEls, allEdgeLines);
+    });
+  });
+
+  // Column header hover
+  hitrect.addEventListener("mousemove", (e) => {
+    const mouseX = e.clientX - svg.getBoundingClientRect().left;
+    const p = COL_ORDER.reduce((best, col) =>
+      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best
+    );
+    headerGroup.querySelectorAll("text").forEach(el => el.setAttribute("fill", LIGHT_GRAY));
+    headerGroup.querySelector(`#colheader-${p}`).setAttribute("fill", BLACK);
+    // dim everything except nodes in this column
+    Object.entries(nodeEls).forEach(([id, { textEl }]) => {
+      id = parseInt(id)
+      const tok = tokens.find(t => t.id === id);
+      textEl.setAttribute("fill", tok?.pos === p ? BLACK : "#ccc");
+    });
+    dimArrows(allEdgeLines());
+  });
+
+  hitrect.addEventListener("mouseleave", () => {
+    headerGroup.querySelectorAll("text").forEach(el => el.setAttribute("fill", LIGHT_GRAY));
+    applyState(nodeEls, allEdgeLines);
   });
 }
 
-function setTextNodetatus(nodeEls, color) {
-  Object.values(nodeEls).forEach(({ textEl: te }) => {
-    te.setAttribute("fill", color);
+// Helpers──
+
+function buildTokenPositions(tokens, colX, rowH) {
+  const tokenPos = {};
+  tokens.forEach((t, i) => {
+    tokenPos[t.id] = {
+      x: colX[t.pos],
+      y: PAD_T + i * rowH + rowH / 2,
+    };
   });
+  return tokenPos;
 }
 
-function setArrowOpacity(arrows, opacity) {
-  arrows.forEach((el) => {
-    el.style.opacity = opacity;
-    const isImmediate = el.dataset.immediate === "1";
-    el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
-    el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
+function buildNormToIds(tokens) {
+  const map = new Map();
+  tokens.forEach((t) => {
+    const n = normalize(t.word);
+    if (!map.has(n)) map.set(n, []);
+    map.get(n).push(t.id);
   });
+  return map;
+}
+
+function drawEdges(tokens, bigramIndex, normToIds, tokenPos, edgeGroupBlack, edgeGroupBlue) {
+  const outgoingEdges = Object.fromEntries(tokens.map(t => [t.id, []]));
+  const GAP = 12;
+
+  tokens.forEach((fromTok, fromIdx) => {
+    const fromNorm = normalize(fromTok.word);
+    const followerNorms = bigramIndex.get(fromNorm);
+    if (!followerNorms) return;
+
+    followerNorms.forEach((toNorm) => {
+      (normToIds.get(toNorm) || []).forEach((toId) => {
+        if (toId === fromTok.id) return;
+
+        const a = tokenPos[fromTok.id];
+        const b = tokenPos[toId];
+        if (!a || !b) return;
+
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 1) return;
+
+        const toIdx = tokens.findIndex(t => t.id === toId);
+        const isImmediate = toIdx === fromIdx + 1;
+        const color = isImmediate ? BLACK : LIGHT_BLUE;
+        const marker = isImmediate ? "url(#arr-black)" : "url(#arr-blue)";
+        const nx = dx / len, ny = dy / len;
+
+        const lineEl = line(
+          isImmediate ? edgeGroupBlack : edgeGroupBlue,
+          a.x + nx * GAP, a.y + ny * GAP,
+          b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
+          color, isImmediate ? 1 : 0.7, marker,
+        );
+        lineEl.style.transition = "opacity 0.2s ease, stroke 0.2s ease";
+        lineEl.dataset.fromId = fromTok.id;
+        lineEl.dataset.toId = toId;
+        lineEl.dataset.immediate = isImmediate ? "1" : "0";
+
+        outgoingEdges[fromTok.id].push({ lineEl, targetId: toId, isImmediate });
+      });
+    });
+  });
+
+  return outgoingEdges;
+}
+
+function dimArrows(arrows) {
+  arrows.forEach(el => { el.style.opacity = "0.08"; });
+}
+function restoreEdge(el) {
+  const isImmediate = el.dataset.immediate === "1";
+  el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
+  el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
+  el.style.opacity = "1.0"
 }

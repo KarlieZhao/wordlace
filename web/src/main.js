@@ -14,7 +14,7 @@
 
 import "./style.css";
 import { drawColumn } from "./weave";
-import { drawLinear } from "./drawlinear";
+import { drawLinear } from "./braid";
 import { POS_TRANSITIONS } from "./words";
 import nlp from "compromise/two";
 
@@ -38,7 +38,7 @@ function getColTag(term) {
   const tags = new Set(term.tags);
   const word = term.normal;
   if (word === 'to') return "TO";
-    if (tags.has('Pronoun')) return "PRP";
+  if (tags.has('Pronoun')) return "PRP";
   if (tags.has('Determiner')) return "DT";
   if (tags.has('Conjunction')) return "CC";
   if (tags.has('Preposition')) return "IN";
@@ -126,12 +126,11 @@ function draw() {
 function initSVG() {
   const svg = document.getElementById("svg");
   svg.innerHTML = "";
-  const W =svg.clientWidth ||600;
+  const W = svg.clientWidth || 600;
   // const stepY = 58;
   // const startY = 60;
   const H = window.innerHeight * 0.9 || 600; //startY + tokens.length * stepY + 60;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  console.log(W,H)
   svg.style.height = H + "px";
 }
 
