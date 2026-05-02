@@ -11,6 +11,13 @@
 //  And they will   differ--if they do--
 //  As Syllable from Sound--
 
+// TODO: 
+// the traces and shapes matter a lot: word flow and choices 
+// 1. performance issues (long sentences)
+// 2. explore word positions: part of speech, word vector? (2d coordinates)
+// 3. try a chinese version => chinese tokenizer | part of speech detector or smth
+// 4. explore n-gram model for better outcome?
+// 5. fix issues with the current POS_TRANSITIONS
 
 import "./style.css";
 import { drawColumn } from "./weave";
@@ -151,4 +158,4 @@ document.getElementById("sentence-input").addEventListener("keydown", (e) => {
 });
 
 init();
-loadDemo(0);
+loadDemo(2);

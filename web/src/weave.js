@@ -218,8 +218,7 @@ export function drawColumn(tokens, bigramIndex) {
   });
 }
 
-// Helpers──
-
+// Helpers
 function buildTokenPositions(tokens, colX, rowH) {
   const tokenPos = {};
   tokens.forEach((t, i) => {
