@@ -71,7 +71,7 @@ import nlp from 'compromise/two';
 // Grammar: which POS can follow which POS
 export const POS_TRANSITIONS = {
   // Determiner: before adj, noun, or adverb modifying noun
-  DT:  ["JJ", "JJR", "JJS", "NN", "NNS", "NNP", "NNPS", "RB"],
+  DT: ["JJ", "JJR", "JJS", "NN", "NNS", "NNP", "NNPS", "RB"],
 
   // Pronoun: before modal, verb, adverb, or another verb form
   PRP: ["MD", "VB", "VBZ", "VBD", "VBP", "VBG", "RB", "VBN"],
@@ -83,7 +83,7 @@ export const POS_TRANSITIONS = {
   MD: ["VB", "VBP", "VBZ", "RB", "VBN", "VBG"],
 
   // Base verb: before noun, det, prep, adverb, particle, pronoun
-  VB:  ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VB"],
+  VB: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VB"],
 
   // Verb present 3sg (runs, takes): same as VB
   VBZ: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VBN"],
@@ -101,12 +101,12 @@ export const POS_TRANSITIONS = {
   VBN: ["IN", "RB", "DT", "NN", "NNS", "PRP", "CC"],
 
   // Adjective: before noun, another adj, or coordinating conj
-  JJ:  ["NN", "NNS", "NNP", "NNPS", "JJ", "JJR", "JJS", "CC"],
+  JJ: ["NN", "NNS", "NNP", "NNPS", "JJ", "JJR", "JJS", "CC"],
   JJR: ["NN", "NNS", "CC", "IN"],   // comparative
   JJS: ["NN", "NNS", "CC"],          // superlative
 
   // Singular noun: before verb, prep, conj, another noun, or modal
-  NN:  ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "NN", "NNS", "POS"],
+  NN: ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "NN", "NNS", "POS"],
 
   // Plural noun
   NNS: ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "POS"],
@@ -118,50 +118,50 @@ export const POS_TRANSITIONS = {
   NNPS: ["VB", "VBZ", "VBD", "VBP", "IN", "CC", "MD"],
 
   // Adverb: before verb, adj, another adverb, or modal
-  RB:  ["VB", "VBZ", "VBD", "VBP", "VBG", "VBN", "JJ", "JJR", "RB", "RBR", "MD"],
+  RB: ["VB", "VBZ", "VBD", "VBP", "VBG", "VBN", "JJ", "JJR", "RB", "RBR", "MD"],
   RBR: ["JJ", "JJR", "VB", "RB"],   // comparative adverb (more quickly)
   RBS: ["JJ", "VB", "RB"],           // superlative adverb (most quickly)
 
   // Preposition/subordinating conj: before det, noun, pronoun, verb
-  IN:  ["DT", "NN", "NNS", "NNP", "PRP", "VBG", "JJ", "RB", "WDT", "WP"],
+  IN: ["DT", "NN", "NNS", "NNP", "PRP", "VBG", "JJ", "RB", "WDT", "WP"],
 
   // Coordinating conjunction (and, but, or): restarts almost anything
-  CC:  ["DT", "NN", "NNS", "NNP", "PRP", "VB", "VBD", "VBP", "VBZ", "JJ", "RB", "MD", "IN"],
+  CC: ["DT", "NN", "NNS", "NNP", "PRP", "VB", "VBD", "VBP", "VBZ", "JJ", "RB", "MD", "IN"],
 
   // Particle (to in infinitive): before base verb only
-  TO:  ["VB"],
+  TO: ["VB"],
 
   // Wh-determiner (that, which, what as relative): before noun or verb
   WDT: ["NN", "NNS", "VB", "VBZ", "VBD", "VBP", "MD"],
 
   // Wh-pronoun (who, what): before verb or modal
-  WP:  ["VB", "VBZ", "VBD", "VBP", "MD", "RB"],
+  WP: ["VB", "VBZ", "VBD", "VBP", "MD", "RB"],
 
   // Wh-adverb (when, where, why, how): before pronoun, noun, modal, verb
   WRB: ["PRP", "DT", "NN", "MD", "VB", "VBP", "RB"],
 
   // Existential there: before verb
-  EX:  ["VB", "VBZ", "VBD", "VBP", "MD"],
+  EX: ["VB", "VBZ", "VBD", "VBP", "MD"],
 
   // Possessive ending ('s): before noun, adj
   POS: ["NN", "NNS", "JJ", "NNP"],
 };
 
 
-export const COL_ORDER = ["PRP", "NN", "TO", "DT", "IN", "MD", "RB", "CC", "VB", "VBN", "JJ", "FW"];
+export const COL_ORDER = ["PRP", "NN", "RB", "VB", "VBN", "JJ", "IN", "MD", "DT", "CC", "TO", "FW"];
 
 export const COL_LABELS = {
   PRP: "pronoun",
-  TO: "particle",
-  DT: "det.",
-  IN: "prep.",
-  MD: "modal",
+  NN: "noun",
   RB: "adverb",
-  CC: "conj.",
   VB: "verb",
   VBN: "pp. verb",
   JJ: "adj.",
-  NN: "noun",
+  IN: "prep.",
+  MD: "modal",
+  DT: "det.",
+  CC: "conj.",
+  TO: "particle",
   FW: "other",
 };
 
