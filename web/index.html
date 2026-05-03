@@ -20,24 +20,29 @@
     <div class="view-tab " id="tab-ngram">N-gram</div>
   </div>
 
-  <div id="inputbar">
-    <input id="sentence-input" type="text" placeholder="Type a sentence…" />
-    <button class="go-btn" id="draw">Weave</button>
-    <!-- <button class="demo-btn" onclick="loadDemo(0)">demo 1</button>
-    <button class="demo-btn" onclick="loadDemo(1)">demo 2</button> -->
-  </div>
+  <main class="main-container">
+    <div id="canvas-wrap">
+      <svg id="svg"></svg>
 
-  <!-- <div id="pos-strip"></div> -->
-
-  <div id="canvas-wrap">
-    <svg id="svg"></svg>
-    <div id="writer-container" class="">
-      <div id="display"></div>
-      <div id="writer"></div>
-      <div id="enter-key" class="go-btn">Enter ↵</div>
-      <div id="clear-key" class="go-btn">Clear</div>
     </div>
-  </div>
+
+
+    <div id="right-panels">
+      <div style="width: 100%; display: flex; flex-direction: column; gap: 2rem">
+        <div class="input-section">
+          <textarea id="sentence-input" placeholder="Type a sentence…" rows="1"></textarea>
+          <button class="weave-btn" id="draw">Weave</button>
+        </div>
+
+        <div id="writer-container" class="">
+          <button id="enter-key">Enter ↵</button>
+          <button id="clear-key">Clear</button>
+          <div id="writer"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
 </body>
 
 </html>

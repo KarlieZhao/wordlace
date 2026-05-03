@@ -11,8 +11,8 @@
 //  And they will   differ--if they do--
 //  As Syllable from Sound--
 
-// TODO: 
-// the traces and shapes matter a lot: word flow and choices 
+// TODO:
+// the traces and shapes matter a lot: word flow and choices
 // 1. performance issues (long sentences)
 // 2. explore word positions: part of speech, word vector? (2d coordinates)
 // 3. try a chinese version => chinese tokenizer | part of speech detector or smth
@@ -39,6 +39,7 @@ const DEMOS = [
   "She should never forget the beautiful, hidden truth.",
   "In this essay I try to sketch out what that upside might look like—what a world with powerful AI might look like if everything goes right.",
   "We must always remember that the dark and silent unknown can never truly be forgotten, even when we simply will it to be gone.",
+  "The Brain--is wider than the Sky--For--put them side by side--The one the other will contain",
 ];
 
 function getColTag(term) {
@@ -132,13 +133,13 @@ function draw() {
 
 function initSVG() {
   const svg = document.getElementById("svg");
+  const container = document.querySelector("#canvas-wrap");
   svg.innerHTML = "";
-  const W = svg.clientWidth || 600;
-  // const stepY = 58;
-  // const startY = 60;
-  const H = window.innerHeight * 0.87 || 600; //startY + tokens.length * stepY + 60;
+  const W = container.clientWidth * 0.85 || 600;
+  const H = container.clientHeight || 600;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = H + "px";
+  console.log(W, H);
 }
 
 function loadDemo(i) {
@@ -158,4 +159,4 @@ document.getElementById("sentence-input").addEventListener("keydown", (e) => {
 });
 
 init();
-loadDemo(2);
+loadDemo(4);
