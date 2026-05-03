@@ -73,7 +73,7 @@ export function drawColumn(tokens, bigramIndex) {
   const rowCount = COL_ORDER.length;
   if (!rowCount) return;
 
-  const rowH = 50; //(H - PAD_T - PAD_B) / Math.max(rowCount - 1, 1);
+  const rowH = Math.min(50, (H - PAD_T - PAD_B) / Math.max(rowCount-1, 1));
   const colW = (W - PAD_L - PAD_R) / Math.max(tokens.length, 1);
 
   // Each POS gets a Y position (row)

@@ -35,11 +35,10 @@ let bigramIndex = new Map();
 let surfaceMap = new Map();
 
 const DEMOS = [
-  "To be gorgeous you must first be seen but to be seen allows you to be hunted",
+  "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
   "She should never forget the beautiful, hidden truth.",
   "In this essay I try to sketch out what that upside might look like—what a world with powerful AI might look like if everything goes right.",
   "We must always remember that the dark and silent unknown can never truly be forgotten, even when we simply will it to be gone.",
-  "The Brain--is wider than the Sky--For--put them side by side--The one the other will contain",
   "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
   "All happy families are alike; each unhappy family is unhappy in its own way.",
   "Not all those who wander are lost.",
