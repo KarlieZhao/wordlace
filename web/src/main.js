@@ -40,22 +40,32 @@ const DEMOS = [
   "In this essay I try to sketch out what that upside might look like—what a world with powerful AI might look like if everything goes right.",
   "We must always remember that the dark and silent unknown can never truly be forgotten, even when we simply will it to be gone.",
   "The Brain--is wider than the Sky--For--put them side by side--The one the other will contain",
+  "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
+  "All happy families are alike; each unhappy family is unhappy in its own way.",
+  "Not all those who wander are lost.",
+  "I took a deep breath and listened to the old brag of my heart: I am, I am, I am.",
+  "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
+  "So we beat on, boats against the current, borne back ceaselessly into the past.",
+  "There is no greater agony than bearing an untold story inside you.",
+  "One must always be careful of books, and what is inside them, for words have the power to change us.",
+  "I am an invisible man, No, I am not a spook like those who haunted Edgar Allan Poe; nor am I one of your Hollywood-movie ectoplasms. I am a man of substance, of flesh and bone, fiber and liquids — and I might even be said to possess a mind.",
+  "Ships at a distance have every man's wish on board. For some they come in with the tide. For others they sail forever on the horizon, never out of sight, never landing until the Watcher turns his eyes away in resignation, his dreams mocked to death by Time.",
 ];
 
 function getColTag(term) {
   const tags = new Set(term.tags);
   const word = term.normal;
-  if (word === 'to') return "TO";
-  if (tags.has('Pronoun')) return "PRP";
-  if (tags.has('Determiner')) return "DT";
-  if (tags.has('Conjunction')) return "CC";
-  if (tags.has('Preposition')) return "IN";
-  if (tags.has('Modal')) return "MD";
-  if (tags.has('PastTense') || tags.has('Participle')) return "VBN";
-  if (tags.has('Verb')) return "VB";
-  if (tags.has('Adverb')) return "RB";
-  if (tags.has('Adjective')) return "JJ";
-  if (tags.has('Foreign')) return "FW";
+  if (word === "to") return "TO";
+  if (tags.has("Pronoun")) return "PRP";
+  if (tags.has("Determiner")) return "DT";
+  if (tags.has("Conjunction")) return "CC";
+  if (tags.has("Preposition")) return "IN";
+  if (tags.has("Modal")) return "MD";
+  if (tags.has("PastTense") || tags.has("Participle")) return "VBN";
+  if (tags.has("Verb")) return "VB";
+  if (tags.has("Adverb")) return "RB";
+  if (tags.has("Adjective")) return "JJ";
+  if (tags.has("Foreign")) return "FW";
   return "NN";
 }
 
@@ -69,7 +79,7 @@ function parseSentence() {
     word: t.text,
     norm: t.normal,
     pos: getColTag(t),
-    id: i
+    id: i,
   }));
 
   const surface = new Map();
@@ -113,10 +123,35 @@ function parseSentence() {
 }
 
 // UI
+let demoCount = 0;
+export let showOriginalOnly = false;
+
 function init() {
   document.getElementById("tab-ngram").addEventListener("click", () => switchView("linear"));
   document.getElementById("tab-pos").addEventListener("click", () => switchView("lace"));
   document.getElementById("draw").addEventListener("click", parseSentence);
+  document.getElementById("prev-demo").addEventListener("click", () => {
+    demoCount--;
+    if (demoCount < 0) demoCount = DEMOS.length - 1;
+    loadDemo(demoCount % DEMOS.length);
+  });
+  document.getElementById("next-demo").addEventListener("click", () => {
+    demoCount++;
+    loadDemo(demoCount % DEMOS.length);
+  });
+
+  document.querySelector("#hide-blue").addEventListener("mouseenter", () => {
+    showOriginalOnly = true;
+    loadDemo(demoCount);
+  });
+
+
+  document.querySelector("#hide-blue").addEventListener("mouseout", () => {
+    showOriginalOnly = false;
+    loadDemo(demoCount);
+  });
+
+
 }
 
 function switchView(v) {
@@ -139,7 +174,6 @@ function initSVG() {
   const H = container.clientHeight || 600;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = H + "px";
-  console.log(W, H);
 }
 
 function loadDemo(i) {
@@ -159,4 +193,4 @@ document.getElementById("sentence-input").addEventListener("keydown", (e) => {
 });
 
 init();
-loadDemo(4);
+loadDemo(demoCount);

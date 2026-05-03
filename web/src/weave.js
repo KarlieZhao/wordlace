@@ -1,7 +1,7 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
-
-const PAD_L = 60, PAD_R = 60, PAD_T = 60, PAD_B = 40;
+import { showOriginalOnly } from "./main";
+const PAD_L = 80, PAD_R = 40, PAD_T = 50, PAD_B = 50;
 const LIGHT_BLUE = "#b9d1e3";
 const BLACK = "#111111";
 const LIGHT_GRAY = "#b0b0b0";
@@ -70,14 +70,16 @@ export function drawColumn(tokens, bigramIndex) {
 
   const W = svg.clientWidth || 800;
   const H = svg.clientHeight || 600;
-  const colCount = COL_ORDER.length;
-  if (!colCount) return;
+  const rowCount = COL_ORDER.length;
+  if (!rowCount) return;
 
-  const colW = (W - PAD_L - PAD_R) / Math.max(colCount - 1, 1);
-  const rowH = (H - PAD_T - PAD_B) / Math.max(tokens.length, 1);
+  const rowH = 50; //(H - PAD_T - PAD_B) / Math.max(rowCount - 1, 1);
+  const colW = (W - PAD_L - PAD_R) / Math.max(tokens.length, 1);
 
-  const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_L + i * colW]));
-  const tokenPos = buildTokenPositions(tokens, colX, rowH);
+  // Each POS gets a Y position (row)
+  const rowY = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_T + i * rowH]));
+  // Each token gets an X position (column)
+  const tokenPos = buildTokenPositions(tokens, rowY, colW);
   const normToIds = buildNormToIds(tokens);
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -87,18 +89,29 @@ export function drawColumn(tokens, bigramIndex) {
   mkArrowMarker(defs, "arr-black", BLACK);
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
-  // Column headers
+  // Row labels (POS labels on the left)
   const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
-    drawText(headerGroup, `colheader-${p}`, colX[p], 30, COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "middle", "IBM Plex Mono");
+    drawText(
+      headerGroup,
+      `rowheader-${p}`,
+      PAD_L - 10,
+      rowY[p],
+      COL_LABELS[p] || p,
+      11,
+      400,
+      LIGHT_GRAY,
+      "end",
+      "IBM Plex Mono",
+    );
   });
   svg.appendChild(headerGroup);
 
   const hitrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   hitrect.setAttribute("fill", "transparent");
   requestAnimationFrame(() => {
-    const pad = { x: 12, y: 8 };
+    const pad = { x: 8, y: 12 };
     const bbox = headerGroup.getBBox();
     hitrect.setAttribute("x", bbox.x - pad.x);
     hitrect.setAttribute("y", bbox.y - pad.y);
@@ -160,12 +173,13 @@ export function drawColumn(tokens, bigramIndex) {
       g.appendChild(subEl);
     }
 
+    const approxH = 26;
     const approxW = t.word.length * 10 + 16;
     const hitRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hitRect.setAttribute("x", pos.x - approxW / 2);
-    hitRect.setAttribute("y", pos.y - 13);
+    hitRect.setAttribute("y", pos.y - approxH / 2);
     hitRect.setAttribute("width", approxW);
-    hitRect.setAttribute("height", 26);
+    hitRect.setAttribute("height", approxH);
     hitRect.setAttribute("fill", "transparent");
     g.appendChild(hitRect);
 
@@ -174,7 +188,7 @@ export function drawColumn(tokens, bigramIndex) {
 
     g.addEventListener("mouseenter", () => {
       state.hovered = t.id;
-      state.hoveredChildren = outgoingEdges[t.id].map(e => e.targetId);
+      state.hoveredChildren = outgoingEdges[t.id].map((e) => e.targetId);
       applyState(nodeEls, allEdgeLines);
     });
 
@@ -187,7 +201,7 @@ export function drawColumn(tokens, bigramIndex) {
     g.addEventListener("click", () => {
       writer.innerHTML += t.word + " ";
       state.selected.push(t.id);
-      state.selectedChildren = outgoingEdges[t.id].map(e => e.targetId);
+      state.selectedChildren = outgoingEdges[t.id].map((e) => e.targetId);
       // hovered state resets on click — the next mouseenter will re-populate it
       state.hovered = "";
       state.hoveredChildren = [];
@@ -195,36 +209,36 @@ export function drawColumn(tokens, bigramIndex) {
     });
   });
 
-  // Column header hover
+  // Row header hover (highlight tokens in the hovered POS row)
   hitrect.addEventListener("mousemove", (e) => {
-    const mouseX = e.clientX - svg.getBoundingClientRect().left;
+    const mouseY = e.clientY - svg.getBoundingClientRect().top;
     const p = COL_ORDER.reduce((best, col) =>
-      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best
+      Math.abs(rowY[col] - mouseY) < Math.abs(rowY[best] - mouseY) ? col : best,
     );
-    headerGroup.querySelectorAll("text").forEach(el => el.setAttribute("fill", LIGHT_GRAY));
-    headerGroup.querySelector(`#colheader-${p}`).setAttribute("fill", BLACK);
-    // dim everything except nodes in this column
+    headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
+    headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", BLACK);
+    // dim everything except nodes in this POS row
     Object.entries(nodeEls).forEach(([id, { textEl }]) => {
-      id = parseInt(id)
-      const tok = tokens.find(t => t.id === id);
+      id = parseInt(id);
+      const tok = tokens.find((t) => t.id === id);
       textEl.setAttribute("fill", tok?.pos === p ? BLACK : "#ccc");
     });
     dimArrows(allEdgeLines());
   });
 
   hitrect.addEventListener("mouseleave", () => {
-    headerGroup.querySelectorAll("text").forEach(el => el.setAttribute("fill", LIGHT_GRAY));
+    headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
     applyState(nodeEls, allEdgeLines);
   });
 }
 
-// Helpers
-function buildTokenPositions(tokens, colX, rowH) {
+//helpers
+function buildTokenPositions(tokens, rowY, colW) {
   const tokenPos = {};
   tokens.forEach((t, i) => {
     tokenPos[t.id] = {
-      x: colX[t.pos],
-      y: PAD_T + i * rowH + rowH / 2,
+      x: PAD_L + i * colW + colW / 2,
+      y: rowY[t.pos],
     };
   });
   return tokenPos;
@@ -263,6 +277,7 @@ function drawEdges(tokens, bigramIndex, normToIds, tokenPos, edgeGroupBlack, edg
 
         const toIdx = tokens.findIndex(t => t.id === toId);
         const isImmediate = toIdx === fromIdx + 1;
+        if (showOriginalOnly && !isImmediate) return;
         const color = isImmediate ? BLACK : LIGHT_BLUE;
         const marker = isImmediate ? "url(#arr-black)" : "url(#arr-blue)";
         const nx = dx / len, ny = dy / len;
