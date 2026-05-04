@@ -17,18 +17,52 @@ nlp_en = en_core_web_sm.load()
 # nlp_zh = zh_core_web_sm.load()
 
 
-def get_token_data(doc):
-    return [
-        {
-            "word": token.text,
-            "norm": token.norm_,
-            "pos": token.pos_,
-            "id": token.i,
-            "dep": token.dep_,  # dependency relation label ( "nsubj", "dobj")
-            "head_id": token.head.i,  # index of the governing head token
-        }
-        for token in doc
-    ]
+def get_phrase_data(doc):
+    # Build a lookup: token index → chunk it belongs to
+    token_to_chunk = {}
+    for chunk in doc.noun_chunks:
+        for token in chunk:
+            token_to_chunk[token.i] = chunk
+
+    phrases = []
+    visited = set()
+
+    for token in doc:
+        if token.i in token_to_chunk:
+            chunk = token_to_chunk[token.i]
+            if chunk.start not in visited:
+                visited.add(chunk.start)
+                # Use the chunk's root for dep/head info
+                root = chunk.root
+                phrases.append(
+                    {
+                        "word": chunk.text,
+                        "norm": root.norm_,
+                        "pos": root.pos_,
+                        "id": chunk.start,
+                        "dep": root.dep_,
+                        "head_id": root.head.i,
+                        "is_phrase": True,
+                        "span": [chunk.start, chunk.end],  # token range
+                    }
+                )
+        else:
+            # Non-noun tokens (verbs, conjunctions, etc.) stay as-is
+            phrases.append(
+                {
+                    "word": token.text,
+                    "norm": token.norm_,
+                    "pos": token.pos_,
+                    "id": token.i,
+                    "dep": token.dep_,
+                    "head_id": token.head.i,
+                    "is_phrase": False,
+                    "span": [token.i, token.i + 1],
+                }
+            )
+
+    return phrases
+
 
 def main():
     lines = [
@@ -47,19 +81,11 @@ def main():
         "I am an invisible man, No, I am not a spook like those who haunted Edgar Allan Poe; nor am I one of your Hollywood-movie ectoplasms. I am a man of substance, of flesh and bone, fiber and liquids — and I might even be said to possess a mind.",
         "Ships at a distance have every man's wish on board. For some they come in with the tide. For others they sail forever on the horizon, never out of sight, never landing until the Watcher turns his eyes away in resignation, his dreams mocked to death by Time.",
     ]
-    result =[]
-    for line in lines: 
+
+    result = []
+    for line in lines:
         doc_en = nlp_en(line)
-        result.append(get_token_data(doc_en))
-
-    # print([(w.text, w.pos_) for w in doc_en])
-
-    # === CHINESE ===
-    # doc_zh = nlp_zh("这是一句话。我正在分析这句话。")
-    # print([(w.text, w.pos_) for w in doc_zh])
-    # print("=== Dependencies ===")
-    # for token in doc_zh:
-    #     print(f"{token.text:<12} --[{token.dep_:<10}]--> {token.head.text}")
+        result.append(get_phrase_data(doc_en))
 
     output_path = os.path.join("output", "tokens.json")
     destination = os.path.join(os.path.dirname(HERE), "web", "data")
