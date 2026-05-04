@@ -67,103 +67,40 @@ import nlp from 'compromise/two';
 //   "foreign word":                "FW",
 //   "interjection":                "UH",
 
-
-// Grammar: which POS can follow which POS
 export const POS_TRANSITIONS = {
-  // Determiner: before adj, noun, or adverb modifying noun
-  DT: ["JJ", "JJR", "JJS", "NN", "NNS", "NNP", "NNPS", "RB"],
-
-  // Pronoun: before modal, verb, adverb, or another verb form
-  PRP: ["MD", "VB", "VBZ", "VBD", "VBP", "VBG", "RB", "VBN"],
-
-  // Possessive pronoun (my, your, his): before noun or adj
-  PRP$: ["NN", "NNS", "NNP", "JJ", "JJR"],
-
-  // Modal: before base verb or adverb
-  MD: ["VB", "VBP", "VBZ", "RB", "VBN", "VBG"],
-
-  // Base verb: before noun, det, prep, adverb, particle, pronoun
-  VB: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VB"],
-
-  // Verb present 3sg (runs, takes): same as VB
-  VBZ: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VBN"],
-
-  // Verb past (ran, took)
-  VBD: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VBN"],
-
-  // Verb present non-3sg (I run, we take)
-  VBP: ["DT", "NN", "NNS", "NNP", "IN", "RB", "RP", "PRP", "JJ", "VBG", "VBN"],
-
-  // Verb gerund/present-participle (running): before noun, prep, adverb
-  VBG: ["DT", "NN", "NNS", "NNP", "IN", "RB", "PRP", "JJ"],
-
-  // Verb past-participle (forgotten, seen): before prep, adverb, noun
-  VBN: ["IN", "RB", "DT", "NN", "NNS", "PRP", "CC"],
-
-  // Adjective: before noun, another adj, or coordinating conj
-  JJ: ["NN", "NNS", "NNP", "NNPS", "JJ", "JJR", "JJS", "CC"],
-  JJR: ["NN", "NNS", "CC", "IN"],   // comparative
-  JJS: ["NN", "NNS", "CC"],          // superlative
-
-  // Singular noun: before verb, prep, conj, another noun, or modal
-  NN: ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "NN", "NNS", "POS"],
-
-  // Plural noun
-  NNS: ["VB", "VBZ", "VBD", "VBP", "VBN", "VBG", "IN", "CC", "MD", "POS"],
-
-  // Proper noun singular (London, Alice)
-  NNP: ["VB", "VBZ", "VBD", "VBP", "IN", "CC", "MD", "NNP", "NN"],
-
-  // Proper noun plural
-  NNPS: ["VB", "VBZ", "VBD", "VBP", "IN", "CC", "MD"],
-
-  // Adverb: before verb, adj, another adverb, or modal
-  RB: ["VB", "VBZ", "VBD", "VBP", "VBG", "VBN", "JJ", "JJR", "RB", "RBR", "MD"],
-  RBR: ["JJ", "JJR", "VB", "RB"],   // comparative adverb (more quickly)
-  RBS: ["JJ", "VB", "RB"],           // superlative adverb (most quickly)
-
-  // Preposition/subordinating conj: before det, noun, pronoun, verb
-  IN: ["DT", "NN", "NNS", "NNP", "PRP", "VBG", "JJ", "RB", "WDT", "WP"],
-
-  // Coordinating conjunction (and, but, or): restarts almost anything
-  CC: ["DT", "NN", "NNS", "NNP", "PRP", "VB", "VBD", "VBP", "VBZ", "JJ", "RB", "MD", "IN"],
-
-  // Particle (to in infinitive): before base verb only
-  TO: ["VB"],
-
-  // Wh-determiner (that, which, what as relative): before noun or verb
-  WDT: ["NN", "NNS", "VB", "VBZ", "VBD", "VBP", "MD"],
-
-  // Wh-pronoun (who, what): before verb or modal
-  WP: ["VB", "VBZ", "VBD", "VBP", "MD", "RB"],
-
-  // Wh-adverb (when, where, why, how): before pronoun, noun, modal, verb
-  WRB: ["PRP", "DT", "NN", "MD", "VB", "VBP", "RB"],
-
-  // Existential there: before verb
-  EX: ["VB", "VBZ", "VBD", "VBP", "MD"],
-
-  // Possessive ending ('s): before noun, adj
-  POS: ["NN", "NNS", "JJ", "NNP"],
+  DET: ["ADJ", "NOUN", "PROPN", "ADV"],
+  PRON: ["AUX", "VERB", "ADV"],
+  AUX: ["VERB", "ADV", "PART"],
+  VERB: ["DET", "NOUN", "PROPN", "ADP", "ADV", "PART", "PRON", "ADJ", "VERB"],
+  NOUN: ["VERB", "AUX", "ADP", "CCONJ", "NOUN", "PART"],
+  PROPN: ["VERB", "AUX", "ADP", "CCONJ", "PROPN", "NOUN"],
+  ADJ: ["NOUN", "PROPN", "ADJ", "CCONJ"],
+  ADV: ["VERB", "AUX", "ADJ", "ADV"],
+  ADP: ["DET", "NOUN", "PROPN", "PRON", "VERB", "ADJ", "ADV"],
+  CCONJ: ["DET", "NOUN", "PROPN", "PRON", "VERB", "ADJ", "ADV", "AUX", "ADP"],
+  PART: ["VERB"],
+  SCONJ: ["DET", "NOUN", "PROPN", "PRON", "VERB", "ADJ", "ADV"],
+  NUM: ["NOUN", "PROPN", "ADJ"],
+  INTJ: ["PUNCT"],
+  X: ["NOUN", "VERB", "ADJ"],
 };
-
-
-export const COL_ORDER = ["PRP", "NN", "RB", "VB", "VBN", "JJ", "IN", "MD", "DT", "CC", "TO", "FW"];
+export const COL_ORDER = ["PRON", "NOUN", "PROPN", "ADV", "VERB", "AUX", "ADJ", "ADP", "DET", "CCONJ", "SCONJ", "PART", "X", "PUNCT"];
 
 export const COL_LABELS = {
-  PRP: "pronoun",
-  NN: "noun",
-  RB: "adverb",
-  VB: "verb",
-  VBN: "pp. verb",
-  JJ: "adj.",
-  IN: "prep.",
-  MD: "modal",
-  DT: "det.",
-  CC: "conj.",
-  TO: "particle",
-  FW: "other",
-};
+  PRON: "pronoun",
+  NOUN: "noun",
+  PROPN: "proper noun",
+  ADV: "adverb",
+  VERB: "verb",
+  AUX: "auxiliary",
+  ADJ: "adj.",
+  ADP: "prep.",
+  DET: "det.",
+  CCONJ: "conj.",
+  SCONJ: "sub. conj.",
+  PART: "particle",
+  X: "other",
+}
 
 export const normalize = (str) => nlp(str).out('normal').trim();
 

@@ -1,13 +1,11 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
-const PAD_L = 80, PAD_R = 40, PAD_T = 50, PAD_B = 50;
+const PAD_L = 100, PAD_R = 40, PAD_T = 100, PAD_B = 50;
 const LIGHT_BLUE = "#b9d1e3";
 const BLACK = "#111111";
 const LIGHT_GRAY = "#b0b0b0";
 const RED = "#955151";
-
-
 
 // 1. if a node is clicked => add to selected
 // 2. a selected node cannot be clicked again, but will always be highlighted

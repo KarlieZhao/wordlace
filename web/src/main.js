@@ -25,14 +25,10 @@ import { drawLinear } from "./braid";
 import { POS_TRANSITIONS } from "./words";
 import nlp from "compromise/two";
 
-let tokens = [];
 let view = "lace";
 
 /** bigram index: normalized-word → Set<normalized-word> (followers) */
 let bigramIndex = new Map();
-
-/** surface map: normalized-word → most-common surface form */
-let surfaceMap = new Map();
 
 const DEMOS = [
   "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
@@ -51,57 +47,22 @@ const DEMOS = [
   "Ships at a distance have every man's wish on board. For some they come in with the tide. For others they sail forever on the horizon, never out of sight, never landing until the Watcher turns his eyes away in resignation, his dreams mocked to death by Time.",
 ];
 
-function getColTag(term) {
-  const tags = new Set(term.tags);
-  const word = term.normal;
-  if (word === "to") return "TO";
-  if (tags.has("Pronoun")) return "PRP";
-  if (tags.has("Determiner")) return "DT";
-  if (tags.has("Conjunction")) return "CC";
-  if (tags.has("Preposition")) return "IN";
-  if (tags.has("Modal")) return "MD";
-  if (tags.has("PastTense") || tags.has("Participle")) return "VBN";
-  if (tags.has("Verb")) return "VB";
-  if (tags.has("Adverb")) return "RB";
-  if (tags.has("Adjective")) return "JJ";
-  if (tags.has("Foreign")) return "FW";
-  return "NN";
-}
-
 function parseSentence() {
-  const raw = document.getElementById("sentence-input").value.trim();
-  if (!raw) return;
+  const tokens = allTokens[demoCount]
 
-  const doc = nlp(raw);
-  const terms = doc.json()[0].terms;
-  const currentTokens = terms.map((t, i) => ({
-    word: t.text,
-    norm: t.normal,
-    pos: getColTag(t),
-    id: i,
-  }));
-
-  const surface = new Map();
-  for (const t of currentTokens) {
-    if (!surface.has(t.norm)) {
-      surface.set(t.norm, t.word.toLowerCase());
-    }
-  }
-
-  // build POS-based bigram index:
-  // for each token, find which POS tags can follow its POS from POS_TRANSITIONS
-  // then collect the norms of tokens in the sentence that match those POS tags.
   const index = new Map();
-  const posByNorm = new Map(); // norm → pos (use the last one if repeated)
-  for (const t of currentTokens) {
+  const posByNorm = new Map();
+
+
+  for (const t of tokens) {
     posByNorm.set(t.norm, t.pos);
   }
 
-  for (const fromTok of currentTokens) {
+  for (const fromTok of tokens) {
     const allowedPos = POS_TRANSITIONS[fromTok.pos] || [];
     const followers = new Set();
 
-    for (const toTok of currentTokens) {
+    for (const toTok of tokens) {
       if (toTok.id === fromTok.id) continue;
       if (allowedPos.includes(toTok.pos)) {
         followers.add(toTok.norm);
@@ -113,9 +74,7 @@ function parseSentence() {
     }
   }
 
-  tokens = currentTokens;
   bigramIndex = index;
-  surfaceMap = surface;
 
   initSVG();
   draw();
@@ -123,9 +82,15 @@ function parseSentence() {
 
 // UI
 let demoCount = 0;
+let allTokens =[];
 export let showOriginalOnly = false;
 
-function init() {
+async function init() {
+  const response  = await fetch("/data/tokens.json");
+  allTokens = await response.json();
+
+  loadDemo(demoCount);
+
   document.getElementById("tab-ngram").addEventListener("click", () => switchView("linear"));
   document.getElementById("tab-pos").addEventListener("click", () => switchView("lace"));
   document.getElementById("draw").addEventListener("click", parseSentence);
@@ -150,7 +115,6 @@ function init() {
     loadDemo(demoCount);
   });
 
-
 }
 
 function switchView(v) {
@@ -161,8 +125,8 @@ function switchView(v) {
 }
 
 function draw() {
-  if (!tokens.length) return;
-  view === "linear" ? drawLinear(tokens) : drawColumn(tokens, bigramIndex);
+  if (!allTokens[demoCount]?.length) return;
+  view === "linear" ? drawLinear(allTokens[demoCount]) : drawColumn(allTokens[demoCount], bigramIndex);
 }
 
 function initSVG() {
@@ -192,4 +156,3 @@ document.getElementById("sentence-input").addEventListener("keydown", (e) => {
 });
 
 init();
-loadDemo(demoCount);
