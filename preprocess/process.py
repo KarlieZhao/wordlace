@@ -18,7 +18,6 @@ nlp_en = en_core_web_sm.load()
 
 
 def get_phrase_data(doc):
-    # Build a lookup: token index → chunk it belongs to
     token_to_chunk = {}
     for chunk in doc.noun_chunks:
         for token in chunk:
@@ -32,7 +31,6 @@ def get_phrase_data(doc):
             chunk = token_to_chunk[token.i]
             if chunk.start not in visited:
                 visited.add(chunk.start)
-                # Use the chunk's root for dep/head info
                 root = chunk.root
                 phrases.append(
                     {
@@ -47,7 +45,7 @@ def get_phrase_data(doc):
                     }
                 )
         else:
-            # Non-noun tokens (verbs, conjunctions, etc.) stay as-is
+            # Non-noun tokens (verbs, conjunctions, etc.) cannot be "phrased"
             phrases.append(
                 {
                     "word": token.text,

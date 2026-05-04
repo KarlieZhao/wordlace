@@ -134,7 +134,7 @@ function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
   })
 }
 
-export function drawColumn(tokens) {  // bigramIndex removed — no longer needed
+export function drawColumn(tokens) {
   const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
   svg.innerHTML = "";
@@ -157,7 +157,7 @@ export function drawColumn(tokens) {  // bigramIndex removed — no longer neede
   mkArrowMarker(defs, "arr-black", BLACK);
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
-  // Row labels
+  // row labels
   const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
@@ -279,7 +279,7 @@ export function drawColumn(tokens) {  // bigramIndex removed — no longer neede
   });
 }
 
-// --- Helpers ---
+// --- helpers ---
 
 function buildTokenPositions(tokens, rowY, colW) {
   const tokenPos = {};

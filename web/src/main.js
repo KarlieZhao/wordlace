@@ -27,9 +27,6 @@ import nlp from "compromise/two";
 
 let view = "lace";
 
-/** bigram index: normalized-word → Set<normalized-word> (followers) */
-let bigramIndex = new Map();
-
 const DEMOS = [
   "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
   "She should never forget the beautiful, hidden truth.",
@@ -74,7 +71,6 @@ function parseSentence() {
     }
   }
 
-  bigramIndex = index;
 
   initSVG();
   draw();
@@ -126,7 +122,7 @@ function switchView(v) {
 
 function draw() {
   if (!allTokens[demoCount]?.length) return;
-  view === "linear" ? drawLinear(allTokens[demoCount]) : drawColumn(allTokens[demoCount], bigramIndex);
+  view === "linear" ? drawLinear(allTokens[demoCount]) : drawColumn(allTokens[demoCount]);
 }
 
 function initSVG() {
@@ -144,7 +140,7 @@ function loadDemo(i) {
   parseSentence();
 }
 
-// Resize handler
+// resize
 let rez;
 window.addEventListener("resize", () => {
   clearTimeout(rez);
