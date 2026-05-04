@@ -1,16 +1,75 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
-const PAD_L = 100, PAD_R = 40, PAD_T = 100, PAD_B = 50;
-const LIGHT_BLUE = "#b9d1e3";
-const BLACK = "#111111";
+
+const PAD_L = 130, PAD_R = 20, PAD_T = 100, PAD_B = 50;
+const LIGHT_BLUE = "#043f6c"; //"#b9d1e3";
+const BLACK =  "#6f5201"; // "#111111";
 const LIGHT_GRAY = "#b0b0b0";
 const RED = "#955151";
 
-// 1. if a node is clicked => add to selected
-// 2. a selected node cannot be clicked again, but will always be highlighted
-// 3. if mouse enters a node (B) that is the last selected node(A)'s child (related node), add all B's children to hoveredChildren
-// 4. if mouse leave node B, remove B from hovered, and remove its children from hoveredChildren. Keep selected and its children highlighted, as well as the arrows.
+const HIDDEN_DEPS = new Set(["punct"]);
+
+const DEP_LABELS = {
+  nsubj: "nominal subject",
+  obj: "direct object",
+  iobj: "indirect object",
+  csubj: "clausal subject",
+  ccomp: "clausal complement",
+  xcomp: "open clausal complement",
+  obl: "oblique nominal",
+  vocative: "vocative",
+  expl: "expletive",
+  dislocated: "dislocated element",
+  advcl: "adverbial clause modifier",
+  advmod: "adverbial modifier",
+  discourse: "discourse element",
+  aux: "auxiliary",
+  cop: "copula",
+  mark: "marker",
+  nmod: "nominal modifier",
+  appos: "appositional modifier",
+  nummod: "numeric modifier",
+  acl: "adjectival clause",
+  amod: "adjectival modifier",
+  det: "determiner",
+  clf: "classifier",
+  case: "case marking",
+  conj: "conjunct",
+  cc: "coordinating conjunction",
+  fixed: "fixed multiword expression",
+  flat: "flat multiword expression",
+  compound: "compound",
+  list: "list",
+  parataxis: "parataxis",
+  orphan: "orphan",
+  goeswith: "goes with",
+  reparandum: "reparandum",
+  punct: "punctuation",
+  root: "root of sentence",
+  dep: "unspecified dependency",
+  relcl: "relative clause modifier",
+  prep: "prepositional modifier",
+  pobj: "object of preposition",
+  poss: "possession modifier",
+  attr: "attribute",
+  neg: "negation modifier",
+  agent: "agent",
+  pcomp: "complement of preposition",
+  dobj: "direct object",
+  nsubjpass: "passive nominal subject",
+  auxpass: "passive auxiliary",
+  oprd: "object predicate",
+  meta: "meta modifier",
+  intj: "interjection",
+  quantmod: "quantifier modifier",
+  predet: "predeterminer",
+  preconj: "preconjunct",
+  npadvmod: "noun phrase adverbial modifier",
+  prt: "particle",
+  nn: "noun compound modifier",
+  acomp: "adjectival complement",
+};
 
 const state = {
   selected: [],
@@ -19,21 +78,19 @@ const state = {
   hoveredChildren: [],
 };
 
-function applyState(nodeEls, allEdgeLines) {
+function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
   const { selected, selectedChildren, hovered, hoveredChildren } = state;
   const lastSelected = selected[selected.length - 1];
   const hasSelection = selected.length > 0;
   const hasHover = hovered !== "";
 
-  // init: everything fully visible
   if (!hasSelection && !hasHover) {
     Object.values(nodeEls).forEach(({ textEl }) => textEl.setAttribute("fill", BLACK));
     allEdgeLines().forEach((el) => restoreEdge(el));
+    allEdgeLabels().forEach((el) => el.textContent = el.dataset.dep)
     return;
   }
 
-  // Nodes
-  // lit = selected nodes + their children + hovered node + its children
   const litIds = new Set([
     ...selected,
     ...selectedChildren,
@@ -41,27 +98,43 @@ function applyState(nodeEls, allEdgeLines) {
   ]);
 
   Object.entries(nodeEls).forEach(([id, { textEl, g }]) => {
-    id = parseInt(id)
+    id = parseInt(id);
     const isSelected = selected.includes(id);
     const isClickable = !hasSelection || selectedChildren.includes(id);
     textEl.setAttribute("fill", isSelected ? RED : litIds.has(id) ? BLACK : LIGHT_GRAY);
     g.style.pointerEvents = isClickable && !isSelected ? "auto" : "none";
   });
 
-  // Edges
-  // Full opacity from last selected, half opacity from hovered, dim everything else.
   allEdgeLines().forEach((el) => {
     const fromId = parseInt(el.dataset.fromId);
     const fromLastSelected = hasSelection && fromId === lastSelected;
     const fromHovered = hasHover && fromId === hovered;
 
-    if (fromLastSelected) { el.style.opacity = "1"; restoreEdge(el); }
+
+    if (fromLastSelected) {
+      el.style.opacity = "1"; restoreEdge(el); 
+    }
     else if (fromHovered) { el.style.opacity = "0.5"; restoreEdge(el); }
     else { el.style.opacity = "0.08"; }
   });
+
+  allEdgeLabels().forEach(el => {
+    const fromId = parseInt(el.dataset.fromId);
+    const fromLastSelected = hasSelection && fromId === lastSelected;
+    const fromHovered = hasHover && fromId === hovered;
+    // console.log(fromHovered, fromId, fromLastSelected)
+    if (fromLastSelected) {
+      el.textContent = DEP_LABELS[el.dataset.dep]
+    } else if (fromHovered) {
+      el.textContent = DEP_LABELS[el.dataset.dep]
+    }
+    else {
+      el.textContent = el.dataset.dep
+    }
+  })
 }
 
-export function drawColumn(tokens, bigramIndex) {
+export function drawColumn(tokens) {  // bigramIndex removed — no longer needed
   const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
   svg.innerHTML = "";
@@ -71,14 +144,11 @@ export function drawColumn(tokens, bigramIndex) {
   const rowCount = COL_ORDER.length;
   if (!rowCount) return;
 
-  const rowH = Math.min(50, (H - PAD_T - PAD_B) / Math.max(rowCount-1, 1));
+  const rowH = Math.min(50, (H - PAD_T - PAD_B) / Math.max(rowCount - 1, 1));
   const colW = (W - PAD_L - PAD_R) / Math.max(tokens.length, 1);
 
-  // Each POS gets a Y position (row)
   const rowY = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_T + i * rowH]));
-  // Each token gets an X position (column)
   const tokenPos = buildTokenPositions(tokens, rowY, colW);
-  const normToIds = buildNormToIds(tokens);
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = "";
@@ -87,22 +157,12 @@ export function drawColumn(tokens, bigramIndex) {
   mkArrowMarker(defs, "arr-black", BLACK);
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
-  // Row labels (POS labels on the left)
+  // Row labels
   const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
-    drawText(
-      headerGroup,
-      `rowheader-${p}`,
-      PAD_L - 10,
-      rowY[p],
-      COL_LABELS[p] || p,
-      11,
-      400,
-      LIGHT_GRAY,
-      "end",
-      "IBM Plex Mono",
-    );
+    drawText(headerGroup, `rowheader-${p}`, PAD_L - 10, rowY[p],
+      COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "end", "IBM Plex Mono");
   });
   svg.appendChild(headerGroup);
 
@@ -118,15 +178,9 @@ export function drawColumn(tokens, bigramIndex) {
   });
   svg.appendChild(hitrect);
 
-  const edgeGroupBlue = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  edgeGroupBlue.setAttribute("class", "edge-layer edge-layer-blue");
-  svg.appendChild(edgeGroupBlue);
-
-  const edgeGroupBlack = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  edgeGroupBlack.setAttribute("class", "edge-layer edge-layer-black");
-  svg.appendChild(edgeGroupBlack);
-
-  const outgoingEdges = drawEdges(tokens, bigramIndex, normToIds, tokenPos, edgeGroupBlack, edgeGroupBlue);
+  const edgeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  edgeGroup.setAttribute("class", "edge-layer");
+  svg.appendChild(edgeGroup);
 
   const labelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   labelGroup.setAttribute("class", "label-layer");
@@ -134,8 +188,11 @@ export function drawColumn(tokens, bigramIndex) {
 
   const nodeEls = {};
   const allEdgeLines = () => svg.querySelectorAll(".edge-layer line");
+  const allEdgeLabels = () => svg.querySelectorAll(".edge-layer text");
 
-  // Token node
+  const outgoingEdges = drawDepEdges(tokens, tokenPos, edgeGroup);
+
+  // Token nodes
   tokens.forEach((t) => {
     const pos = tokenPos[t.id];
     if (!pos) return;
@@ -166,13 +223,11 @@ export function drawColumn(tokens, bigramIndex) {
       subEl.setAttribute("dominant-baseline", "central");
       subEl.setAttribute("font-size", "9");
       subEl.setAttribute("fill", "#aaaaaa");
-      subEl.setAttribute("class", "token-norm");
       subEl.textContent = normWord;
       g.appendChild(subEl);
     }
 
-    const approxH = 26;
-    const approxW = t.word.length * 10 + 16;
+    const approxH = 26, approxW = t.word.length * 10 + 16;
     const hitRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     hitRect.setAttribute("x", pos.x - approxW / 2);
     hitRect.setAttribute("y", pos.y - approxH / 2);
@@ -187,35 +242,30 @@ export function drawColumn(tokens, bigramIndex) {
     g.addEventListener("mouseenter", () => {
       state.hovered = t.id;
       state.hoveredChildren = outgoingEdges[t.id].map((e) => e.targetId);
-      applyState(nodeEls, allEdgeLines);
+      applyState(nodeEls, allEdgeLines, allEdgeLabels);
     });
-
     g.addEventListener("mouseleave", () => {
       state.hovered = "";
       state.hoveredChildren = [];
-      applyState(nodeEls, allEdgeLines);
+      applyState(nodeEls, allEdgeLines, allEdgeLabels);
     });
-
     g.addEventListener("click", () => {
       writer.innerHTML += t.word + " ";
       state.selected.push(t.id);
       state.selectedChildren = outgoingEdges[t.id].map((e) => e.targetId);
-      // hovered state resets on click — the next mouseenter will re-populate it
       state.hovered = "";
       state.hoveredChildren = [];
-      applyState(nodeEls, allEdgeLines);
+      applyState(nodeEls, allEdgeLines, allEdgeLabels);
     });
   });
 
-  // Row header hover (highlight tokens in the hovered POS row)
+  // Row header hover
   hitrect.addEventListener("mousemove", (e) => {
     const mouseY = e.clientY - svg.getBoundingClientRect().top;
     const p = COL_ORDER.reduce((best, col) =>
-      Math.abs(rowY[col] - mouseY) < Math.abs(rowY[best] - mouseY) ? col : best,
-    );
+      Math.abs(rowY[col] - mouseY) < Math.abs(rowY[best] - mouseY) ? col : best);
     headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
     headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", BLACK);
-    // dim everything except nodes in this POS row
     Object.entries(nodeEls).forEach(([id, { textEl }]) => {
       id = parseInt(id);
       const tok = tokens.find((t) => t.id === id);
@@ -223,88 +273,114 @@ export function drawColumn(tokens, bigramIndex) {
     });
     dimArrows(allEdgeLines());
   });
-
   hitrect.addEventListener("mouseleave", () => {
     headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
-    applyState(nodeEls, allEdgeLines);
+    applyState(nodeEls, allEdgeLines, allEdgeLabels);
   });
 }
 
-//helpers
+// --- Helpers ---
+
 function buildTokenPositions(tokens, rowY, colW) {
   const tokenPos = {};
   tokens.forEach((t, i) => {
-    tokenPos[t.id] = {
-      x: PAD_L + i * colW + colW / 2,
-      y: rowY[t.pos],
-    };
+    tokenPos[t.id] = { x: PAD_L + i * colW + colW / 2, y: rowY[t.pos] };
   });
   return tokenPos;
 }
 
-function buildNormToIds(tokens) {
-  const map = new Map();
-  tokens.forEach((t) => {
-    const n = normalize(t.word);
-    if (!map.has(n)) map.set(n, []);
-    map.get(n).push(t.id);
-  });
-  return map;
-}
-
-function drawEdges(tokens, bigramIndex, normToIds, tokenPos, edgeGroupBlack, edgeGroupBlue) {
-  const outgoingEdges = Object.fromEntries(tokens.map(t => [t.id, []]));
+function drawDepEdges(tokens, tokenPos, edgeGroup) {
+  const outgoingEdges = Object.fromEntries(tokens.map((t) => [t.id, []]));
   const GAP = 12;
+  const tokenById = Object.fromEntries(tokens.map((t) => [t.id, t]));
 
-  tokens.forEach((fromTok, fromIdx) => {
-    const fromNorm = normalize(fromTok.word);
-    const followerNorms = bigramIndex.get(fromNorm);
-    if (!followerNorms) return;
-
-    followerNorms.forEach((toNorm) => {
-      (normToIds.get(toNorm) || []).forEach((toId) => {
-        if (toId === fromTok.id) return;
-
-        const a = tokenPos[fromTok.id];
-        const b = tokenPos[toId];
-        if (!a || !b) return;
-
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len < 1) return;
-
-        const toIdx = tokens.findIndex(t => t.id === toId);
-        const isImmediate = toIdx === fromIdx + 1;
-        if (showOriginalOnly && !isImmediate) return;
-        const color = isImmediate ? BLACK : LIGHT_BLUE;
-        const marker = isImmediate ? "url(#arr-black)" : "url(#arr-blue)";
-        const nx = dx / len, ny = dy / len;
-
-        const lineEl = line(
-          isImmediate ? edgeGroupBlack : edgeGroupBlue,
-          a.x + nx * GAP, a.y + ny * GAP,
-          b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
-          color, isImmediate ? 1 : 0.7, marker,
-        );
-        lineEl.style.transition = "opacity 0.2s ease, stroke 0.2s ease";
-        lineEl.dataset.fromId = fromTok.id;
-        lineEl.dataset.toId = toId;
-        lineEl.dataset.immediate = isImmediate ? "1" : "0";
-
-        outgoingEdges[fromTok.id].push({ lineEl, targetId: toId, isImmediate });
-      });
+  if (showOriginalOnly) {
+    tokens.forEach((tok, i) => {
+      const next = tokens[i + 1];
+      if (!next) return;
+      const a = tokenPos[tok.id];
+      const b = tokenPos[next.id];
+      if (!a || !b) return;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1) return;
+      const nx = dx / len, ny = dy / len;
+      const lineEl = line(
+        edgeGroup,
+        a.x + nx * GAP, a.y + ny * GAP,
+        b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
+        BLACK, 1, "url(#arr-black)",
+      );
+      lineEl.style.transition = "opacity 0.2s ease";
+      lineEl.dataset.fromId = tok.id;
+      lineEl.dataset.toId = next.id;
+      lineEl.dataset.immediate = "1";
+      outgoingEdges[tok.id].push({ lineEl, targetId: next.id });
     });
+    return outgoingEdges;
+  }
+  tokens.forEach((tok) => {
+    if (HIDDEN_DEPS.has(tok.dep)) return;
+    // Skip root (head points to itself)
+    if (tok.head_id === tok.id) return;
+
+    const a = tokenPos[tok.id];
+    const b = tokenPos[tok.head_id];
+    if (!a || !b) return;
+
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1) return;
+
+    const nx = dx / len, ny = dy / len;
+
+    // Color by dependency direction: left-arc vs right-arc
+    const isRightward = tok.head_id > tok.id;
+    const color = isRightward ? BLACK : LIGHT_BLUE;
+    const marker = isRightward ? "url(#arr-black)" : "url(#arr-blue)";
+
+    const lineEl = line(
+      edgeGroup,
+      a.x + nx * GAP, a.y + ny * GAP,
+      b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
+      color, isRightward ? 1 : 0.7, marker,
+    );
+    lineEl.style.transition = "opacity 0.2s ease";
+    lineEl.dataset.fromId = tok.id;
+    lineEl.dataset.toId = tok.head_id;
+    lineEl.dataset.immediate = isRightward ? "1" : "0";
+    lineEl.dataset.dep = tok.dep;
+    lineEl.style.cursor = "pointer";
+
+    // Dep label tag shown along the edge midpoint
+    const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
+    const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
+
+    const labelEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    labelEl.setAttribute("x", midX);
+    labelEl.setAttribute("y", midY - 5);
+    labelEl.setAttribute("text-anchor", "middle");
+    labelEl.setAttribute("font-size", "9");
+    labelEl.setAttribute("font-family", "IBM Plex Mono");
+    labelEl.setAttribute("fill", LIGHT_GRAY);
+    labelEl.setAttribute("pointer-events", "none");
+    labelEl.dataset.fromId = tok.id;
+    labelEl.dataset.dep = tok.dep;
+    labelEl.textContent = tok.dep;
+    edgeGroup.appendChild(labelEl);
+    outgoingEdges[tok.id].push({ lineEl, targetId: tok.head_id });
   });
 
   return outgoingEdges;
 }
 
 function dimArrows(arrows) {
-  arrows.forEach(el => { el.style.opacity = "0.08"; });
+  arrows.forEach((el) => { el.style.opacity = "0.08"; });
 }
+
 function restoreEdge(el) {
   const isImmediate = el.dataset.immediate === "1";
   el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
   el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
-  el.style.opacity = "1.0"
+  el.style.opacity = "1.0";
 }
