@@ -50,3 +50,26 @@ edges can be weighted by how often they co-occur
 - Linguistic typology is the systematic comparison of languages to find out what varies, what doesn't, and what patterns show up across unrelated languages.
 
 
+
+## what i've done
+spacy.py process sentences into tokens.json
+
+```python
+ {
+    "word": chunk.text,
+    "norm": root.norm_,
+    "pos": root.pos_,
+    "id": chunk.start,
+    "dep": root.dep_,
+    "head_id": root.head.i,
+    "is_phrase": True,
+    "span": [chunk.start, chunk.end],  # token range
+}
+```
+
+
+
+# TODO
+- next word options (what makes a sentence)?
+- chinese
+- make it real time

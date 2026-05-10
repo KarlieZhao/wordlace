@@ -82,7 +82,7 @@ let allTokens =[];
 export let showOriginalOnly = false;
 
 async function init() {
-  const response  = await fetch("/data/tokens.json");
+  const response  = await fetch("/data/tokens_ch.json");
   allTokens = await response.json();
 
   loadDemo(demoCount);

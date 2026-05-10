@@ -2,3 +2,5 @@
 
 data/
 output/
+preprocess/venv/
+preprocess/__pycache__/
