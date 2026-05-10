@@ -2,7 +2,7 @@ import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
 
-const PAD_L = 130, PAD_R = 20, PAD_T = 100, PAD_B = 50;
+const PAD_L = 80, PAD_R = 20, PAD_T = 60, PAD_B = 50;
 const LIGHT_BLUE = "#043f6c"; //"#b9d1e3";
 const BLACK =  "#6f5201"; // "#111111";
 const LIGHT_GRAY = "#b0b0b0";
@@ -133,7 +133,6 @@ function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
     }
   })
 }
-
 export function drawColumn(tokens) {
   const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
@@ -141,14 +140,14 @@ export function drawColumn(tokens) {
 
   const W = svg.clientWidth || 800;
   const H = svg.clientHeight || 600;
-  const rowCount = COL_ORDER.length;
-  if (!rowCount) return;
+  const colCount = COL_ORDER.length;
+  if (!colCount) return;
 
-  const rowH = Math.min(50, (H - PAD_T - PAD_B) / Math.max(rowCount - 1, 1));
-  const colW = (W - PAD_L - PAD_R) / Math.max(tokens.length, 1);
+  const colW = Math.min(100, (W - PAD_L - PAD_R) / Math.max(colCount - 1, 1));
+  const rowH = (H - PAD_T - PAD_B) / Math.max(tokens.length, 1);
 
-  const rowY = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_T + i * rowH]));
-  const tokenPos = buildTokenPositions(tokens, rowY, colW);
+  const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_L + i * colW]));
+  const tokenPos = buildTokenPositions(tokens, colX, rowH);
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = "";
@@ -157,19 +156,19 @@ export function drawColumn(tokens) {
   mkArrowMarker(defs, "arr-black", BLACK);
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
-  // row labels
+  // Column headers (POS labels across the top)
   const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
-    drawText(headerGroup, `rowheader-${p}`, PAD_L - 10, rowY[p],
-      COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "end", "IBM Plex Mono");
+    drawText(headerGroup, `rowheader-${p}`, colX[p], PAD_T - 10,
+      COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "middle", "IBM Plex Mono");
   });
   svg.appendChild(headerGroup);
 
   const hitrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   hitrect.setAttribute("fill", "transparent");
   requestAnimationFrame(() => {
-    const pad = { x: 8, y: 12 };
+    const pad = { x: 12, y: 8 };
     const bbox = headerGroup.getBBox();
     hitrect.setAttribute("x", bbox.x - pad.x);
     hitrect.setAttribute("y", bbox.y - pad.y);
@@ -207,7 +206,7 @@ export function drawColumn(tokens) {
     textEl.setAttribute("y", pos.y);
     textEl.setAttribute("text-anchor", "middle");
     textEl.setAttribute("dominant-baseline", "central");
-    textEl.setAttribute("font-size", "17");
+    textEl.setAttribute("font-size", "12");
     textEl.setAttribute("font-weight", "400");
     textEl.setAttribute("fill", BLACK);
     textEl.setAttribute("class", "token-label");
@@ -217,9 +216,9 @@ export function drawColumn(tokens) {
     const normWord = normalize(t.word);
     if (normWord !== t.word.toLowerCase()) {
       const subEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      subEl.setAttribute("x", pos.x);
-      subEl.setAttribute("y", pos.y + 16);
-      subEl.setAttribute("text-anchor", "middle");
+      subEl.setAttribute("x", pos.x + 16);
+      subEl.setAttribute("y", pos.y);
+      subEl.setAttribute("text-anchor", "start");
       subEl.setAttribute("dominant-baseline", "central");
       subEl.setAttribute("font-size", "9");
       subEl.setAttribute("fill", "#aaaaaa");
@@ -259,11 +258,11 @@ export function drawColumn(tokens) {
     });
   });
 
-  // Row header hover
+  // Column header hover — find nearest POS column by mouseX
   hitrect.addEventListener("mousemove", (e) => {
-    const mouseY = e.clientY - svg.getBoundingClientRect().top;
+    const mouseX = e.clientX - svg.getBoundingClientRect().left;
     const p = COL_ORDER.reduce((best, col) =>
-      Math.abs(rowY[col] - mouseY) < Math.abs(rowY[best] - mouseY) ? col : best);
+      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best);
     headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
     headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", BLACK);
     Object.entries(nodeEls).forEach(([id, { textEl }]) => {
@@ -281,10 +280,11 @@ export function drawColumn(tokens) {
 
 // --- helpers ---
 
-function buildTokenPositions(tokens, rowY, colW) {
+function buildTokenPositions(tokens, colX, rowH) {
   const tokenPos = {};
   tokens.forEach((t, i) => {
-    tokenPos[t.id] = { x: PAD_L + i * colW + colW / 2, y: rowY[t.pos] };
+    // X from POS category, Y from token order
+    tokenPos[t.id] = { x: colX[t.pos], y: PAD_T + i * rowH + rowH / 2 };
   });
   return tokenPos;
 }
@@ -292,7 +292,6 @@ function buildTokenPositions(tokens, rowY, colW) {
 function drawDepEdges(tokens, tokenPos, edgeGroup) {
   const outgoingEdges = Object.fromEntries(tokens.map((t) => [t.id, []]));
   const GAP = 12;
-  const tokenById = Object.fromEntries(tokens.map((t) => [t.id, t]));
 
   if (showOriginalOnly) {
     tokens.forEach((tok, i) => {
@@ -319,9 +318,9 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
     });
     return outgoingEdges;
   }
+
   tokens.forEach((tok) => {
     if (HIDDEN_DEPS.has(tok.dep)) return;
-    // Skip root (head points to itself)
     if (tok.head_id === tok.id) return;
 
     const a = tokenPos[tok.id];
@@ -334,25 +333,24 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
 
     const nx = dx / len, ny = dy / len;
 
-    // Color by dependency direction: left-arc vs right-arc
-    const isRightward = tok.head_id > tok.id;
-    const color = isRightward ? BLACK : LIGHT_BLUE;
-    const marker = isRightward ? "url(#arr-black)" : "url(#arr-blue)";
+    // "Downward" in the new layout = higher token index = larger Y
+    const isDownward = tok.head_id > tok.id;
+    const color = isDownward ? BLACK : LIGHT_BLUE;
+    const marker = isDownward ? "url(#arr-black)" : "url(#arr-blue)";
 
     const lineEl = line(
       edgeGroup,
       a.x + nx * GAP, a.y + ny * GAP,
       b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
-      color, isRightward ? 1 : 0.7, marker,
+      color, isDownward ? 1 : 0.7, marker,
     );
     lineEl.style.transition = "opacity 0.2s ease";
     lineEl.dataset.fromId = tok.id;
     lineEl.dataset.toId = tok.head_id;
-    lineEl.dataset.immediate = isRightward ? "1" : "0";
+    lineEl.dataset.immediate = isDownward ? "1" : "0";
     lineEl.dataset.dep = tok.dep;
     lineEl.style.cursor = "pointer";
 
-    // Dep label tag shown along the edge midpoint
     const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
     const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
 
@@ -373,7 +371,6 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
 
   return outgoingEdges;
 }
-
 function dimArrows(arrows) {
   arrows.forEach((el) => { el.style.opacity = "0.08"; });
 }
