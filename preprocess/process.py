@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import sys
 import os
 import shutil
 import spacy  # pyright: ignore[reportMissingImports]
@@ -47,7 +48,7 @@ def get_phrase_data(doc):
             for token in chunk:
                 token_to_chunk[token.i] = chunk
     except NotImplementedError:
-        token_to_chunk = get_noun_chunks_zh(doc) 
+        token_to_chunk = get_noun_chunks_zh(doc)
 
     phrases = []
     visited = set()
@@ -89,31 +90,39 @@ def get_phrase_data(doc):
 
 
 def main():
-    lines = [
-        "一九五七年的雪佛蘭小汽車以每小時七十英里的高速在愛荷華的大平原上疾駛",
-        "北緯四十二度的深秋，正午的太陽以四十余度的斜角在南方的藍空滾著銅環，而金黃色的光波溢進玻璃窗來，撫我新剃過的臉。",
-        # "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
-        # "She should never forget the beautiful, hidden truth.",
-        # "In this essay I try to sketch out what that upside might look like—what a world with powerful AI might look like if everything goes right.",
-        # "We must always remember that the dark and silent unknown can never truly be forgotten, even when we simply will it to be gone.",
-        # "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
-        # "All happy families are alike; each unhappy family is unhappy in its own way.",
-        # "Not all those who wander are lost.",
-        # "I took a deep breath and listened to the old brag of my heart: I am, I am, I am.",
-        # "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
-        # "So we beat on, boats against the current, borne back ceaselessly into the past.",
-        # "There is no greater agony than bearing an untold story inside you.",
-        # "One must always be careful of books, and what is inside them, for words have the power to change us.",
-        # "I am an invisible man, No, I am not a spook like those who haunted Edgar Allan Poe; nor am I one of your Hollywood-movie ectoplasms. I am a man of substance, of flesh and bone, fiber and liquids — and I might even be said to possess a mind.",
-        # "Ships at a distance have every man's wish on board. For some they come in with the tide. For others they sail forever on the horizon, never out of sight, never landing until the Watcher turns his eyes away in resignation, his dreams mocked to death by Time.",
-    ]
+    if LANG == "en":
+        lines = [
+            "It was late autumn at 42 degrees north latitude; the midday sun, at an angle of more than forty degrees, cast copper rings across the blue southern sky, while golden rays of light streamed through the window, caressing my freshly shaved face.",
+            # "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
+            # "She should never forget the beautiful, hidden truth.",
+            # "In this essay I try to sketch out what that upside might look like—what a world with powerful AI might look like if everything goes right.",
+            # "We must always remember that the dark and silent unknown can never truly be forgotten, even when we simply will it to be gone.",
+            # "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity.",
+            # "All happy families are alike; each unhappy family is unhappy in its own way.",
+            # "Not all those who wander are lost.",
+            # "I took a deep breath and listened to the old brag of my heart: I am, I am, I am.",
+            # "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.",
+            # "So we beat on, boats against the current, borne back ceaselessly into the past.",
+            # "There is no greater agony than bearing an untold story inside you.",
+            # "One must always be careful of books, and what is inside them, for words have the power to change us.",
+            # "I am an invisible man, No, I am not a spook like those who haunted Edgar Allan Poe; nor am I one of your Hollywood-movie ectoplasms. I am a man of substance, of flesh and bone, fiber and liquids — and I might even be said to possess a mind.",
+            # "Ships at a distance have every man's wish on board. For some they come in with the tide. For others they sail forever on the horizon, never out of sight, never landing until the Watcher turns his eyes away in resignation, his dreams mocked to death by Time.",
+        ]
+    elif LANG == "ch":
+        lines = [
+            "北纬四十二度的深秋，正午的太阳以四十余度的斜角在南方的蓝空滚著铜环，而金黄色的光波溢进玻璃窗来，抚我新剃过的脸",
+        ]
+    else:
+        lines = ""
+        print("language is not implemented yet, check LANG setting.")
+        sys.exit()
 
     result = []
     for line in lines:
         doc_en = nlp(line)
         result.append(get_phrase_data(doc_en))
 
-    filename = "tokens_ch.json"
+    filename = f"tokens_{LANG}.json"
     output_path = os.path.join("output", filename)
     destination = os.path.join(os.path.dirname(HERE), "web", "data")
     with open(output_path, "w", encoding="utf-8") as f:

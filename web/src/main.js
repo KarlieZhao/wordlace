@@ -78,15 +78,34 @@ function parseSentence() {
 
 // UI
 let demoCount = 0;
-let allTokens =[];
+let allTokens = [];
+let en_tokens, ch_tokens = [];
 export let showOriginalOnly = false;
 
 async function init() {
-  const response  = await fetch("/data/tokens_ch.json");
-  allTokens = await response.json();
+  const response  = await fetch("/data/tokens_en.json");
+  en_tokens = await response.json();
+
+  const response_ch = await fetch("/data/tokens_ch.json");
+  ch_tokens = await response_ch.json();
+  allTokens = en_tokens;
 
   loadDemo(demoCount);
 
+  const languageBtn =  document.getElementById("language-btn");
+  languageBtn.addEventListener("click", () => {
+    if (languageBtn.textContent === "en") {
+      allTokens = ch_tokens
+      languageBtn.textContent = "zh"
+        loadDemo(demoCount);
+
+    } else {
+      languageBtn.textContent = "en";
+      allTokens = en_tokens;
+        loadDemo(demoCount);
+
+    }
+  })
   document.getElementById("tab-ngram").addEventListener("click", () => switchView("linear"));
   document.getElementById("tab-pos").addEventListener("click", () => switchView("lace"));
   document.getElementById("draw").addEventListener("click", parseSentence);

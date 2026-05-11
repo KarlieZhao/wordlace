@@ -71,5 +71,9 @@ spacy.py process sentences into tokens.json
 
 # TODO
 - next word options (what makes a sentence)?
-- chinese
+
+- overlay graphs of both languages
+- collect sentences / passages written by diasportic writers => distance between words, geographical distance
+
+# at some point...
 - make it real time

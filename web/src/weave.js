@@ -2,7 +2,7 @@ import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
 
-const PAD_L = 130, PAD_R = 20, PAD_T = 100, PAD_B = 50;
+const PAD_L = 120, PAD_R = 20, PAD_T = 50, PAD_B = 50;
 const LIGHT_BLUE = "#043f6c"; //"#b9d1e3";
 const BLACK =  "#6f5201"; // "#111111";
 const LIGHT_GRAY = "#b0b0b0";
@@ -207,7 +207,7 @@ export function drawColumn(tokens) {
     textEl.setAttribute("y", pos.y);
     textEl.setAttribute("text-anchor", "middle");
     textEl.setAttribute("dominant-baseline", "central");
-    textEl.setAttribute("font-size", "17");
+    textEl.setAttribute("font-size", "12");
     textEl.setAttribute("font-weight", "400");
     textEl.setAttribute("fill", BLACK);
     textEl.setAttribute("class", "token-label");
