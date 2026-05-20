@@ -2,5 +2,7 @@
 
 data/
 output/
-preprocess/venv/
-preprocess/__pycache__/
+
+venv/
+__pycache__/
+ink_cli.egg-info/
