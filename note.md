@@ -31,7 +31,7 @@ edges can be weighted by how often they co-occur
   - shows how words nest into phrases hierarchically.
 
 - dependency tree
-  - with [space](https://stackoverflow.com/questions/36610179/how-to-get-the-dependency-tree-with-spacy)
+  - with [spacy](https://stackoverflow.com/questions/36610179/how-to-get-the-dependency-tree-with-spacy)
 
 - Attention maps: which words "look at" which words? 
   - damn, that'd be cool, sounds hard.
