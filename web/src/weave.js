@@ -143,10 +143,12 @@ export function drawColumn(tokens) {
   const colCount = COL_ORDER.length;
   if (!colCount) return;
 
-  const colW = Math.min(100, (W - PAD_L - PAD_R) / Math.max(colCount - 1, 1));
+  const colW = 50; //Math.min(100, (W - PAD_L - PAD_R) / Math.max(colCount - 1, 1));
   const rowH = (H - PAD_T - PAD_B) / Math.max(tokens.length, 1);
 
-  const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, PAD_L + i * colW]));
+  const colX = Object.fromEntries(
+    COL_ORDER.map((p, i) => [p, PAD_L + i * colW]),
+  );
   const tokenPos = buildTokenPositions(tokens, colX, rowH);
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
@@ -157,15 +159,31 @@ export function drawColumn(tokens) {
   mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
 
   // Column headers (POS labels across the top)
-  const headerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const headerGroup = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
   headerGroup.setAttribute("pointer-events", "none");
   COL_ORDER.forEach((p) => {
-    drawText(headerGroup, `rowheader-${p}`, colX[p], PAD_T - 10,
-      COL_LABELS[p] || p, 11, 400, LIGHT_GRAY, "middle", "IBM Plex Mono");
+    drawText(
+      headerGroup,
+      `rowheader-${p}`,
+      colX[p],
+      PAD_T - 10,
+      COL_LABELS[p] || p,
+      11,
+      400,
+      LIGHT_GRAY,
+      "middle",
+      "IBM Plex Mono",
+    );
   });
   svg.appendChild(headerGroup);
 
-  const hitrect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  const hitrect = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "rect",
+  );
   hitrect.setAttribute("fill", "transparent");
   requestAnimationFrame(() => {
     const pad = { x: 12, y: 8 };
@@ -181,7 +199,10 @@ export function drawColumn(tokens) {
   edgeGroup.setAttribute("class", "edge-layer");
   svg.appendChild(edgeGroup);
 
-  const labelGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const labelGroup = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "g",
+  );
   labelGroup.setAttribute("class", "label-layer");
   svg.appendChild(labelGroup);
 
@@ -201,7 +222,10 @@ export function drawColumn(tokens) {
     g.setAttribute("data-id", t.id);
     g.style.cursor = "default";
 
-    const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const textEl = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text",
+    );
     textEl.setAttribute("x", pos.x);
     textEl.setAttribute("y", pos.y);
     textEl.setAttribute("text-anchor", "middle");
@@ -215,7 +239,10 @@ export function drawColumn(tokens) {
 
     const normWord = normalize(t.word);
     if (normWord !== t.word.toLowerCase()) {
-      const subEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      const subEl = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "text",
+      );
       subEl.setAttribute("x", pos.x + 16);
       subEl.setAttribute("y", pos.y);
       subEl.setAttribute("text-anchor", "start");
@@ -226,8 +253,12 @@ export function drawColumn(tokens) {
       g.appendChild(subEl);
     }
 
-    const approxH = 26, approxW = t.word.length * 10 + 16;
-    const hitRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const approxH = 26,
+      approxW = t.word.length * 10 + 16;
+    const hitRect = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "rect",
+    );
     hitRect.setAttribute("x", pos.x - approxW / 2);
     hitRect.setAttribute("y", pos.y - approxH / 2);
     hitRect.setAttribute("width", approxW);
@@ -262,8 +293,11 @@ export function drawColumn(tokens) {
   hitrect.addEventListener("mousemove", (e) => {
     const mouseX = e.clientX - svg.getBoundingClientRect().left;
     const p = COL_ORDER.reduce((best, col) =>
-      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best);
-    headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
+      Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX) ? col : best,
+    );
+    headerGroup
+      .querySelectorAll("text")
+      .forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
     headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", BLACK);
     Object.entries(nodeEls).forEach(([id, { textEl }]) => {
       id = parseInt(id);
@@ -273,7 +307,9 @@ export function drawColumn(tokens) {
     dimArrows(allEdgeLines());
   });
   hitrect.addEventListener("mouseleave", () => {
-    headerGroup.querySelectorAll("text").forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
+    headerGroup
+      .querySelectorAll("text")
+      .forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
     applyState(nodeEls, allEdgeLines, allEdgeLabels);
   });
 }
