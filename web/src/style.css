@@ -28,7 +28,7 @@
 
   .main-container {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     height: calc(100vh - 48px);
   }
 
@@ -231,7 +231,6 @@
   }
 
   #canvas-wrap svg {
-    min-width: 300px;
     height: 100%;
     display: block;
   }

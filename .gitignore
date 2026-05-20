@@ -1,4 +1,8 @@
 .DS_Store
 
-/web/data/
-/preprocess/output
+data/
+output/
+
+venv/
+__pycache__/
+ink_cli.egg-info/

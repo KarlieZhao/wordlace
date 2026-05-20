@@ -1,0 +1,14 @@
+[project]
+name = "ink-cli"
+version = "0.1.0"
+description = "A poetic command line interface"
+dependencies = [
+    "typer"
+]
+
+[project.scripts]
+ink = "ink.cli:app"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
