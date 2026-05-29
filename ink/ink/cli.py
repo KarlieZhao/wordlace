@@ -1,5 +1,8 @@
 # ink/cli.py
 
+# TODO: check out argparse 
+# https://github.com/charmbracelet/bubbletea
+
 import typer
 from typing import List, Optional
 from prompt_toolkit import prompt
