@@ -1,5 +1,5 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
-const BLACK = "#111111"
+const BLACK = "#111111";
 
 export function drawLinear(tokens) {
   const startY = 60;
@@ -24,5 +24,4 @@ export function drawLinear(tokens) {
 
     drawText(wordGroup, null, cx, y, t.word, 18, 400, BLACK, "middle");
   });
-
 }

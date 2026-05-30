@@ -1,5 +1,3 @@
-// TODO: try out
-// https://demos.explosion.ai/displacy
 // The Brain--is wider than the Sky--
 //  For--put them side by side--
 //  The one the other will contain
@@ -82,7 +80,7 @@ let allTokens =[];
 export let showOriginalOnly = false;
 
 async function init() {
-  const response  = await fetch("/data/tokens_ch.json");
+  const response  = await fetch("/data/tokens_en.json");
   allTokens = await response.json();
 
   loadDemo(demoCount);
@@ -129,8 +127,8 @@ function initSVG() {
   const svg = document.getElementById("svg");
   const container = document.querySelector("#canvas-wrap");
   svg.innerHTML = "";
-  const W = container.clientWidth * 0.85 || 600;
-  const H = container.clientHeight || 600;
+  const W = container.clientWidth || 600;
+  const H = 1000; //container.clientHeight || 600;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.style.height = H + "px";
 }
