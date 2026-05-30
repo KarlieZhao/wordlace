@@ -1,25 +1,32 @@
 # ink/cli.py
 
 import typer
+import random
 from typing import List, Optional
 from prompt_toolkit import prompt
 
-from ink.transform import last_word, reduce, retrieve
+from ink.transform import last_word, reduce, retrieve, echo, ripple
 from ink.storage import save_entry
 
 app = typer.Typer()
 
+ALL_COMMANDS = [last_word, echo, reduce, ripple]
+
+# last words from stdin
+STOP_WORDS = ["Bye.", "Remember.", "Dont forget.", "Shh."]
 
 def process(command: str, text: str):
     if command == "distill":
         result = reduce(text)
-    elif command == "retrieve":
+    elif command == "recall":
         result = retrieve()
+    elif command == "ripple":
+        result = ripple()
     else:
-        result = last_word(text)
+        fn = random.choice(ALL_COMMANDS)
+        result = fn(text)
 
     print(f"> {result}")
-
     save_entry(command=command, input_text=text, output_text=result)
 
 
@@ -27,7 +34,7 @@ def process(command: str, text: str):
 def main(args: Optional[List[str]] = typer.Argument(None)):
     if args:
         # inline: first token is command or default
-        if args[0] in ["distill", "retrieve"]:
+        if args[0] in ["distill", "recall"]:
             command = args[0]
             text = " ".join(args[1:])
         else:
@@ -54,7 +61,7 @@ def main(args: Optional[List[str]] = typer.Argument(None)):
                 process("ink", line)
 
         except KeyboardInterrupt:
-            print("\nbye")
+            print(f"\n{random.choice(STOP_WORDS)}")
             break
 
 

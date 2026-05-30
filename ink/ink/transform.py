@@ -30,6 +30,9 @@ POS_MAP = {
 
 
 def tokenize(text: str) -> list[str]:
+    """
+    TODO: use spacy
+    """
     return re.findall(r"\b[\w']+\b", text.lower())
 
 
@@ -76,10 +79,13 @@ def tag_pos(text: str) -> list[dict]:
 
     return tagged
 
+def echo(text: str) -> str:
+    return text
 
 def reduce(text: str) -> str:
     """
     Reduce sentence into a simpler residue. keeps mainly nouns + verbs
+    TODO: use spacy one day
     """
 
     tagged = tag_pos(text)
@@ -94,7 +100,7 @@ def reduce(text: str) -> str:
 
 
 def retrieve() -> str:
-    """throw a random old idea back at me"""
+    """randomly throw an old thing I said back at meee"""
     entries = read_log()
 
     if not entries:
@@ -106,3 +112,8 @@ def retrieve() -> str:
     input_text = entry["input"]
 
     return f"{input_text}"
+
+
+def ripple() -> str:
+    """Keep reducing the sentence until it's very short."""
+    return ""

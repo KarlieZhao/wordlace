@@ -1,22 +1,20 @@
+### install
+
+```
+pipx install ink
+```
 
 
-
-### install locally
+### develop
 
 right now: activate venv, then install inside the project root:
 
 
 ```bash
 source ./venv/bin/activate
-pip3 install typer
+pip install -r requirements.txt
 pip3 install -e .
 
-```
-
-Eventually should just be a simple install. 
-
-```
-pipx install ink
 ```
 
 Data are stored in `/Users/USER_NAME/ink_log/log.jsonl`
