@@ -39,6 +39,15 @@ edges can be weighted by how often they co-occur
 - POS tagger
   - would be cool to see text color coded by POS or something, visualizing the pattern
 
+- thematic roles 
+  - https://www.ling.upenn.edu/~beatrice/syntax-textbook/box-thematic.html
+
+- sentence diagram 
+  - y
+
+- dissecting words
+  - https://medium.com/@adecressac/beyond-simple-categories-a80633dfac39
+  
 ### NLP and relationality 
 - words don't have intrinsic categories. (how much do i believe that?)
   - meaning = usage distribution

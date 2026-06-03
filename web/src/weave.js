@@ -3,10 +3,12 @@ import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
 
 const PAD_L = 80, PAD_R = 20, PAD_T = 60, PAD_B = 50;
-const LIGHT_BLUE = "#043f6c"; //"#b9d1e3";
-const BLACK =  "#6f5201"; // "#111111";
-const LIGHT_GRAY = "#b0b0b0";
-const RED = "#955151";
+let PALETTE = {
+  LIGHT_BLUE: "#043f6c",
+  BLACK: "#6f5201",
+  LIGHT_GRAY: "#b0b0b0",
+  RED: "#955151",
+};
 
 const HIDDEN_DEPS = new Set(["punct"]);
 
@@ -71,23 +73,108 @@ const DEP_LABELS = {
   acomp: "adjectival complement",
 };
 
+ const DEP_LABELS_ZH = {
+   nsubj: "主语",
+   obj: "直接宾语",
+   iobj: "间接宾语",
+   csubj: "从句主语",
+   ccomp: "从句补语",
+   xcomp: "开放式从句补语",
+   obl: "状语成分",
+   vocative: "称呼语",
+   expl: "虚位主语",
+   dislocated: "移位成分",
+   advcl: "状语从句",
+   advmod: "状语修饰",
+   discourse: "话语成分",
+   aux: "助动词",
+   cop: "系动词",
+   mark: "标记词",
+   nmod: "名词修饰",
+   appos: "同位语",
+   nummod: "数词修饰",
+   acl: "定语从句",
+   amod: "形容词修饰",
+   det: "限定词",
+   clf: "量词",
+   case: "格标记",
+   conj: "并列项",
+   cc: "并列连词",
+   fixed: "固定短语",
+   flat: "扁平结构",
+   compound: "复合词",
+   list: "列表",
+   parataxis: "并列结构",
+   orphan: "孤立成分",
+   goeswith: "拼写连写",
+   reparandum: "自我修正",
+   punct: "标点",
+   root: "句子根",
+   dep: "未指定依存关系",
+   relcl: "关系从句",
+   prep: "介词修饰",
+   pobj: "介词宾语",
+   poss: "所属修饰",
+   attr: "属性",
+   neg: "否定",
+   agent: "施事",
+   pcomp: "介词补语",
+   dobj: "直接宾语",
+   nsubjpass: "被动主语",
+   auxpass: "被动助动词",
+   oprd: "宾语补足语",
+   meta: "元信息",
+   intj: "感叹词",
+   quantmod: "量词修饰",
+   predet: "前限定词",
+   preconj: "前并列词",
+   npadvmod: "名词短语状语",
+   prt: "小品词",
+   nn: "名词修饰",
+   acomp: "形容词补语",
+ };
+
 const state = {
   selected: [],
   selectedChildren: [],
   hovered: "",
   hoveredChildren: [],
+  language: "zh",
 };
 
+if (state.language === "en") {
+ 
+  PALETTE = {
+    LIGHT_BLUE: "#59a1d7",
+    BLACK: "#d0af57",
+    LIGHT_GRAY: "#646464",
+    RED: "#d76f6f",
+  };
+} else {
+   PALETTE = {
+    LIGHT_BLUE: "#043f6c",
+    BLACK: "#6f5201",
+    LIGHT_GRAY: "#b0b0b0",
+    RED: "#955151",
+  };
+
+}
 function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
   const { selected, selectedChildren, hovered, hoveredChildren } = state;
   const lastSelected = selected[selected.length - 1];
   const hasSelection = selected.length > 0;
   const hasHover = hovered !== "";
+    const labelSet = state.language === "zh" ? DEP_LABELS_ZH : DEP_LABELS;
+
 
   if (!hasSelection && !hasHover) {
-    Object.values(nodeEls).forEach(({ textEl }) => textEl.setAttribute("fill", BLACK));
+    Object.values(nodeEls).forEach(({ textEl }) =>
+      textEl.setAttribute("fill", PALETTE.BLACK),
+    );
     allEdgeLines().forEach((el) => restoreEdge(el));
-    allEdgeLabels().forEach((el) => el.textContent = el.dataset.dep)
+    allEdgeLabels().forEach(
+      (el) => (el.textContent = labelSet[el.dataset.dep]),
+    );
     return;
   }
 
@@ -101,7 +188,10 @@ function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
     id = parseInt(id);
     const isSelected = selected.includes(id);
     const isClickable = !hasSelection || selectedChildren.includes(id);
-    textEl.setAttribute("fill", isSelected ? RED : litIds.has(id) ? BLACK : LIGHT_GRAY);
+    textEl.setAttribute(
+      "fill",
+      isSelected ? PALETTE.RED : litIds.has(id) ? PALETTE.BLACK : PALETTE.LIGHT_GRAY,
+    );
     g.style.pointerEvents = isClickable && !isSelected ? "auto" : "none";
   });
 
@@ -110,32 +200,35 @@ function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
     const fromLastSelected = hasSelection && fromId === lastSelected;
     const fromHovered = hasHover && fromId === hovered;
 
-
     if (fromLastSelected) {
-      el.style.opacity = "1"; restoreEdge(el); 
+      el.style.opacity = "1";
+      restoreEdge(el);
+    } else if (fromHovered) {
+      el.style.opacity = "0.5";
+      restoreEdge(el);
+    } else {
+      el.style.opacity = "0.08";
     }
-    else if (fromHovered) { el.style.opacity = "0.5"; restoreEdge(el); }
-    else { el.style.opacity = "0.08"; }
   });
 
-  allEdgeLabels().forEach(el => {
+  allEdgeLabels().forEach((el) => {
     const fromId = parseInt(el.dataset.fromId);
     const fromLastSelected = hasSelection && fromId === lastSelected;
     const fromHovered = hasHover && fromId === hovered;
     // console.log(fromHovered, fromId, fromLastSelected)
-    if (fromLastSelected) {
-      el.textContent = DEP_LABELS[el.dataset.dep]
-    } else if (fromHovered) {
-      el.textContent = DEP_LABELS[el.dataset.dep]
-    }
-    else {
-      el.textContent = el.dataset.dep
-    }
-  })
+    // if (fromLastSelected || fromHovered) {
+    //   el.textContent = labelSet[el.dataset.dep];
+    // } else {
+      el.textContent = labelSet[el.dataset.dep];
+    // }
+  });
+
+
 }
 export function drawColumn(tokens) {
   const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
+  if (state.language === "en") svg.style.backgroundColor = "#333";
   svg.innerHTML = "";
 
   const W = svg.clientWidth * 1.1 || 800;
@@ -155,10 +248,10 @@ export function drawColumn(tokens) {
   svg.style.height = "";
 
   const defs = mkDefs(svg);
-  mkArrowMarker(defs, "arr-black", BLACK);
-  mkArrowMarker(defs, "arr-blue", LIGHT_BLUE);
+  mkArrowMarker(defs, "arr-black", PALETTE.BLACK);
+  mkArrowMarker(defs, "arr-blue", PALETTE.LIGHT_BLUE);
 
-  // Column headers (POS labels across the top)
+  // col headers
   const headerGroup = document.createElementNS(
     "http://www.w3.org/2000/svg",
     "g",
@@ -173,7 +266,7 @@ export function drawColumn(tokens) {
       COL_LABELS[p] || p,
       11,
       400,
-      LIGHT_GRAY,
+      PALETTE.LIGHT_GRAY,
       "middle",
       "IBM Plex Mono",
     );
@@ -232,7 +325,7 @@ export function drawColumn(tokens) {
     textEl.setAttribute("dominant-baseline", "central");
     textEl.setAttribute("font-size", "12");
     textEl.setAttribute("font-weight", "400");
-    textEl.setAttribute("fill", BLACK);
+    textEl.setAttribute("fill", PALETTE.BLACK);
     textEl.setAttribute("class", "token-label");
     textEl.textContent = t.word;
     g.appendChild(textEl);
@@ -289,7 +382,8 @@ export function drawColumn(tokens) {
     });
   });
 
-  // Column header hover — find nearest POS column by mouseX
+  // col header hover
+  // find nearest POS column by mouseX
   hitrect.addEventListener("mousemove", (e) => {
     const mouseX = e.clientX - svg.getBoundingClientRect().left;
     const p = COL_ORDER.reduce((best, col) =>
@@ -297,25 +391,24 @@ export function drawColumn(tokens) {
     );
     headerGroup
       .querySelectorAll("text")
-      .forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
-    headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", BLACK);
+      .forEach((el) => el.setAttribute("fill", PALETTE.LIGHT_GRAY));
+    headerGroup.querySelector(`#rowheader-${p}`).setAttribute("fill", PALETTE.BLACK);
     Object.entries(nodeEls).forEach(([id, { textEl }]) => {
       id = parseInt(id);
       const tok = tokens.find((t) => t.id === id);
-      textEl.setAttribute("fill", tok?.pos === p ? BLACK : "#ccc");
+      textEl.setAttribute("fill", tok?.pos === p ? PALETTE.BLACK : "#ccc");
     });
     dimArrows(allEdgeLines());
   });
   hitrect.addEventListener("mouseleave", () => {
     headerGroup
       .querySelectorAll("text")
-      .forEach((el) => el.setAttribute("fill", LIGHT_GRAY));
+      .forEach((el) => el.setAttribute("fill", PALETTE.LIGHT_GRAY));
     applyState(nodeEls, allEdgeLines, allEdgeLabels);
   });
 }
 
-// --- helpers ---
-
+// helpers
 function buildTokenPositions(tokens, colX, rowH) {
   const tokenPos = {};
   tokens.forEach((t, i) => {
@@ -329,6 +422,7 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
   const outgoingEdges = Object.fromEntries(tokens.map((t) => [t.id, []]));
   const GAP = 12;
 
+  const labelSet = state.language === "zh" ? DEP_LABELS_ZH : DEP_LABELS;
   if (showOriginalOnly) {
     tokens.forEach((tok, i) => {
       const next = tokens[i + 1];
@@ -344,7 +438,7 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
         edgeGroup,
         a.x + nx * GAP, a.y + ny * GAP,
         b.x - nx * (GAP + 6), b.y - ny * (GAP + 6),
-        BLACK, 1, "url(#arr-black)",
+        PALETTE.BLACK, 1, "url(#arr-black)",
       );
       lineEl.style.transition = "opacity 0.2s ease";
       lineEl.dataset.fromId = tok.id;
@@ -371,7 +465,7 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
 
     // "Downward" in the new layout = higher token index = larger Y
     const isDownward = tok.head_id > tok.id;
-    const color = isDownward ? BLACK : LIGHT_BLUE;
+    const color = isDownward ? PALETTE.BLACK : PALETTE.LIGHT_BLUE;
     const marker = isDownward ? "url(#arr-black)" : "url(#arr-blue)";
 
     const lineEl = line(
@@ -396,11 +490,11 @@ function drawDepEdges(tokens, tokenPos, edgeGroup) {
     labelEl.setAttribute("text-anchor", "middle");
     labelEl.setAttribute("font-size", "9");
     labelEl.setAttribute("font-family", "IBM Plex Mono");
-    labelEl.setAttribute("fill", LIGHT_GRAY);
+    labelEl.setAttribute("fill", PALETTE.LIGHT_GRAY);
     labelEl.setAttribute("pointer-events", "none");
     labelEl.dataset.fromId = tok.id;
     labelEl.dataset.dep = tok.dep;
-    labelEl.textContent = tok.dep;
+    labelEl.textContent = labelSet[tok.dep];
     edgeGroup.appendChild(labelEl);
     outgoingEdges[tok.id].push({ lineEl, targetId: tok.head_id });
   });
@@ -413,7 +507,7 @@ function dimArrows(arrows) {
 
 function restoreEdge(el) {
   const isImmediate = el.dataset.immediate === "1";
-  el.setAttribute("stroke", isImmediate ? BLACK : "#7bafd4");
+  el.setAttribute("stroke", isImmediate ? PALETTE.BLACK : "#7bafd4");
   el.setAttribute("marker-end", isImmediate ? "url(#arr-black)" : "url(#arr-blue)");
   el.style.opacity = "1.0";
 }

@@ -81,9 +81,9 @@
   /* ── PANELS ── */
   #right-panels {
     display: flex;
-    width: 35%;
+    width: 70%;
     align-items: top;
-    padding: 4rem 2rem;
+    padding: 1rem 2rem;
     border-bottom: 1px solid #e8e8e8;
     flex-wrap: wrap;
   }
@@ -98,7 +98,7 @@
 
   #sentence-input {
     width: 80%;
-    height: 60px;
+    /* height: 60px; */
     font-family: var(--font);
     font-size: 14px;
     font-weight: 300;
