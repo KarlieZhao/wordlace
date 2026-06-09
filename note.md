@@ -43,7 +43,7 @@ edges can be weighted by how often they co-occur
   - https://www.ling.upenn.edu/~beatrice/syntax-textbook/box-thematic.html
 
 - sentence diagram 
-  - y
+  - 
 
 - dissecting words
   - https://medium.com/@adecressac/beyond-simple-categories-a80633dfac39

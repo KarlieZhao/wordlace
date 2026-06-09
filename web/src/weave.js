@@ -2,6 +2,17 @@ import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { showOriginalOnly } from "./main";
 
+
+// maybe we don't show the dependcy terms on the graph since it's a bit too rigid 
+// language A - B - C ... 
+// automatically translating and shifting towards another languange word by word
+
+
+
+// TODO:
+// 1. rewrite these with classes 
+// 2. add a button for translation / comparing side by side / overlapping
+// make it an animation, with my own writing, make it personal, about the friction in language and translations
 const PAD_L = 80, PAD_R = 20, PAD_T = 60, PAD_B = 50;
 let PALETTE = {
   LIGHT_BLUE: "#043f6c",
@@ -143,12 +154,16 @@ const state = {
 };
 
 if (state.language === "en") {
- 
   PALETTE = {
-    LIGHT_BLUE: "#59a1d7",
-    BLACK: "#d0af57",
-    LIGHT_GRAY: "#646464",
-    RED: "#d76f6f",
+
+    LIGHT_BLUE: "#043f6c",
+    BLACK: "#6f5201",
+    LIGHT_GRAY: "#b0b0b0",
+    RED: "#955151",
+    // LIGHT_BLUE: "#59a1d7",
+    // BLACK: "#d0af57",
+    // LIGHT_GRAY: "#646464",
+    // RED: "#d76f6f",
   };
 } else {
    PALETTE = {
@@ -228,7 +243,7 @@ function applyState(nodeEls, allEdgeLines, allEdgeLabels) {
 export function drawColumn(tokens) {
   const writer = document.getElementById("writer");
   const svg = document.getElementById("svg");
-  if (state.language === "en") svg.style.backgroundColor = "#333";
+  // if (state.language === "en") svg.style.backgroundColor = "#333";
   svg.innerHTML = "";
 
   const W = svg.clientWidth * 1.1 || 800;
