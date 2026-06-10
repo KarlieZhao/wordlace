@@ -29,7 +29,7 @@
   .main-container {
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 48px);
+    height: 85vh;
   }
 
   /* ── TOP BAR ── */
