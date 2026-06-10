@@ -1,6 +1,6 @@
+import { views } from "./main";
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
-import { showOriginalOnly } from "./main";
 
 // maybe we don't show the dependcy terms on the graph since it's a bit too rigid
 // language A - B - C ...
@@ -8,12 +8,18 @@ import { showOriginalOnly } from "./main";
 
 // TODO:
 // add a button for translation / comparing side by side / overlapping
-// make it an animation, with my own writing, make it personal, about the friction in language and translations
+// make it an animation, with my own writing, about the friction in language and translations
 
-const PAD_L = 80,
-  PAD_R = 20,
-  PAD_T = 60,
-  PAD_B = 50;
+const PAD_B = -100;
+const PAD_L = 100;
+
+const ROW_H = 5;
+const PAD_T = -20 * ROW_H;
+
+const colW = 50;
+
+const VERSE_GAP = 5;
+
 const HIDDEN_DEPS = new Set(["punct"]);
 
 const PALETTE_EN = {
@@ -282,7 +288,6 @@ class TokenNode {
   }
 }
 
-
 class Edges {
   constructor(svg, tokens, tokenPos, state) {
     this.svg = svg;
@@ -290,7 +295,7 @@ class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this.outgoingEdges = showOriginalOnly
+    this.outgoingEdges = views?.showOriginalOnly
       ? this._drawSequentialEdges()
       : this._drawDepEdges();
   }
@@ -313,14 +318,14 @@ class Edges {
   _drawSequentialEdges() {
     const GAP = 12;
     const pal = this.state.palette;
-    const outgoing = Object.fromEntries(this.tokens.map((t) => [t.id, []]));
+    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
 
     this.tokens.forEach((tok, i) => {
       const next = this.tokens[i + 1];
       if (!next) return;
 
-      const a = this.tokenPos[tok.id];
-      const b = this.tokenPos[next.id];
+      const a = this.tokenPos[tok._key];
+      const b = this.tokenPos[next._key];
       if (!a || !b) return;
 
       const [nx, ny, len] = this._unitVector(a, b);
@@ -337,10 +342,10 @@ class Edges {
         "url(#arr-black)",
       );
       lineEl.style.transition = "opacity 0.2s ease";
-      lineEl.dataset.fromId = tok.id;
-      lineEl.dataset.toId = next.id;
+      lineEl.dataset.fromKey = tok._key;
+      lineEl.dataset.toKey = next._key;
       lineEl.dataset.immediate = "1";
-      outgoing[tok.id].push({ lineEl, targetId: next.id });
+      outgoing[tok._key].push({ lineEl, targetKey: next._key });
     });
 
     return outgoing;
@@ -350,14 +355,28 @@ class Edges {
     const GAP = 12;
     const pal = this.state.palette;
     const labelSet = this.state.labelSet;
-    const outgoing = Object.fromEntries(this.tokens.map((t) => [t.id, []]));
+    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
+
+    // Build a map from sentence-local id → _key for head lookups within each sentence.
+    // Tokens from different sentences never share edges, so we rebuild per sentence
+    // by grouping on the sentence-index prefix of _key.
+    const sentenceKeyMap = new Map(); // Map<local_id, _key>
+    this.tokens.forEach((t) => {
+      const si = t._key.split("_")[0];
+      if (!sentenceKeyMap.has(si)) sentenceKeyMap.set(si, new Map());
+      sentenceKeyMap.get(si).set(t.id, t._key);
+    });
 
     this.tokens.forEach((tok) => {
       if (HIDDEN_DEPS.has(tok.dep)) return;
       if (tok.head_id === tok.id) return;
 
-      const a = this.tokenPos[tok.id];
-      const b = this.tokenPos[tok.head_id];
+      const si = tok._key.split("_")[0];
+      const headKey = sentenceKeyMap.get(si)?.get(tok.head_id);
+      if (!headKey) return;
+
+      const a = this.tokenPos[tok._key];
+      const b = this.tokenPos[headKey];
       if (!a || !b) return;
 
       const [nx, ny, len] = this._unitVector(a, b);
@@ -378,8 +397,8 @@ class Edges {
         marker,
       );
       lineEl.style.transition = "opacity 0.2s ease";
-      lineEl.dataset.fromId = tok.id;
-      lineEl.dataset.toId = tok.head_id;
+      lineEl.dataset.fromKey = tok._key;
+      lineEl.dataset.toKey = headKey;
       lineEl.dataset.immediate = isDownward ? "1" : "0";
       lineEl.dataset.dep = tok.dep;
       lineEl.style.cursor = "pointer";
@@ -387,23 +406,23 @@ class Edges {
       const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
       const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
 
-      const labelEl = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "text",
+      const labelEl = drawText(
+        this.group,
+        null,
+        midX,
+        midY - 5,
+        labelSet[tok.dep],
+        9,
+        400,
+        pal.LIGHT_GRAY,
+        "middle",
+        "IBM Plex Mono",
       );
-      labelEl.setAttribute("x", midX);
-      labelEl.setAttribute("y", midY - 5);
-      labelEl.setAttribute("text-anchor", "middle");
-      labelEl.setAttribute("font-size", "9");
-      labelEl.setAttribute("font-family", "IBM Plex Mono");
-      labelEl.setAttribute("fill", pal.LIGHT_GRAY);
       labelEl.setAttribute("pointer-events", "none");
-      labelEl.dataset.fromId = tok.id;
+      labelEl.dataset.fromKey = tok._key;
       labelEl.dataset.dep = tok.dep;
-      labelEl.textContent = labelSet[tok.dep];
-      this.group.appendChild(labelEl);
 
-      outgoing[tok.id].push({ lineEl, targetId: tok.head_id });
+      outgoing[tok._key].push({ lineEl, targetKey: headKey });
     });
 
     return outgoing;
@@ -417,9 +436,7 @@ class Edges {
   }
 
   dimAll() {
-    this.getLines().forEach((el) => {
-      el.style.opacity = "0.08";
-    });
+    this.getLines().forEach((el) => (el.style.opacity = "0.08"));
   }
 
   restoreEdge(el) {
@@ -433,8 +450,6 @@ class Edges {
     el.style.opacity = "1.0";
   }
 }
-
-// ─── ColumnHeader ──────────────────────────────────────────────────────────────
 
 class ColumnHeader {
   constructor(svg, colX, state) {
@@ -455,7 +470,7 @@ class ColumnHeader {
         g,
         `rowheader-${p}`,
         this.colX[p],
-        PAD_T - 10,
+        PAD_T - 20,
         COL_LABELS[p] || p,
         11,
         400,
@@ -494,10 +509,25 @@ class ColumnHeader {
   }
 
   highlight(posTag) {
-    const pal = this.state.palette;
     this.dimAll();
+    const pal = this.state.palette;
     const el = this.group.querySelector(`#rowheader-${posTag}`);
     if (el) el.setAttribute("fill", pal.BLACK);
+  }
+}
+
+// draw a horizontal line between verses/chapters
+class VerseDivider {
+  constructor(svg, x1, x2, y, color) {
+    const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    el.setAttribute("x1", x1);
+    el.setAttribute("y1", y);
+    el.setAttribute("x2", x2);
+    el.setAttribute("y2", y);
+    el.setAttribute("stroke", color);
+    el.setAttribute("stroke-width", "0.5");
+    el.setAttribute("stroke-opacity", "0.7");
+    svg.appendChild(el);
   }
 }
 
@@ -506,31 +536,37 @@ export class DependencyGraph {
     this.state = new GraphState(language);
     this.writer = document.getElementById("writer");
     this.svg = document.getElementById("svg");
-    this.nodeMap = {}; // id → TokenNode
+    this.nodeMap = {};
     this.edgeLayer = null;
     this.header = null;
   }
 
-  draw(tokens) {
+  /**
+   * @param {Array}  tokens    - flat array of all tokens in the chapter,
+   *                             each augmented with a `_key` string that is
+   *                             unique across the whole chapter
+   * @param {Array}  sentences - original sentence[][] structure for verse spacing
+   */
+  draw(tokens, sentences = null) {
     this.svg.innerHTML = "";
     this.nodeMap = {};
 
     const W = this.svg.clientWidth * 1.1 || 800;
-    const H = this.svg.clientHeight || 600;
-    console.log(W, H);
-    const colCount = COL_ORDER.length;
-    if (!colCount) return;
-
-    const colW = 60;
-    const rowH = (H - PAD_T - PAD_B) / Math.max(tokens.length, 1);
-
     const colX = Object.fromEntries(
       COL_ORDER.map((p, i) => [p, PAD_L + i * colW]),
     );
-    const tokenPos = this._buildTokenPositions(tokens, colX, rowH);
 
-    this.svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    this.svg.style.height = "";
+    // Stamp every token with a chapter-unique key before anything else
+    this._stampKeys(tokens, sentences);
+
+    // Build a set of keys that start a new verse (first token of each sentence after the first)
+    const verseStartKeys = this._buildVerseStartKeys(sentences);
+
+    const tokenPos = this._buildTokenPositions(tokens, colX, verseStartKeys);
+    const totalH = this._totalHeight(tokens, verseStartKeys);
+
+    this.svg.setAttribute("viewBox", `0 0 ${W} ${totalH}`);
+    this.svg.style.height = totalH + "px";
 
     const defs = mkDefs(this.svg);
     const pal = this.state.palette;
@@ -540,6 +576,10 @@ export class DependencyGraph {
     this.header = new ColumnHeader(this.svg, colX, this.state);
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state);
 
+    if (sentences && sentences.length > 1) {
+      this._drawVerseDividers(sentences, tokenPos, W, pal);
+    }
+
     const labelGroup = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "g",
@@ -548,11 +588,11 @@ export class DependencyGraph {
     this.svg.appendChild(labelGroup);
 
     tokens.forEach((t) => {
-      const pos = tokenPos[t.id];
+      const pos = tokenPos[t._key];
       if (!pos) return;
       const node = new TokenNode(this.svg, t, pos, this.state);
       labelGroup.appendChild(node.g);
-      this.nodeMap[t.id] = node;
+      this.nodeMap[t._key] = node;
       this._attachTokenEvents(node, t);
     });
 
@@ -560,26 +600,81 @@ export class DependencyGraph {
     this._applyState();
   }
 
-  
-  _buildTokenPositions(tokens, colX, rowH) {
-    const positions = {};
-    tokens.forEach((t, i) => {
-      positions[t.id] = {
-        x: colX[t.pos],
-        y: PAD_T + i * rowH + rowH / 2,
-      };
+  // layout helpers
+  /**
+   * Stamp every token with a chapter-unique `_key` of the form `"si_ti"`
+   * (sentence index + token id). Mutates in place — safe because these are
+   * transient render objects, not the stored data.
+   */
+  _stampKeys(tokens, sentences) {
+    if (sentences) {
+      sentences.forEach((sentence, si) => {
+        sentence.forEach((t) => {
+          t._key = `${si}_${t.id}`;
+        });
+      });
+    } else {
+      tokens.forEach((t, i) => {
+        t._key = `0_${i}`;
+      });
+    }
+  }
+
+  _buildVerseStartKeys(sentences) {
+    const keys = new Set();
+    if (!sentences) return keys;
+    sentences.slice(1).forEach((sentence) => {
+      if (sentence.length) keys.add(sentence[0]._key);
     });
+    return keys;
+  }
+
+  _buildTokenPositions(tokens, colX, verseStartKeys) {
+    const positions = {};
+    let y = PAD_T;
+
+    tokens.forEach((t) => {
+      if (verseStartKeys.has(t._key)) y += VERSE_GAP;
+      positions[t._key] = { x: colX[t.pos] ?? PAD_L, y };
+      y += ROW_H;
+    });
+
     return positions;
   }
 
+  _totalHeight(tokens, verseStartKeys) {
+    let h = PAD_T + PAD_B;
+    tokens.forEach((t) => {
+      if (verseStartKeys.has(t._key)) h += VERSE_GAP;
+      h += ROW_H;
+    });
+    return Math.max(h, 300);
+  }
+
+  _drawVerseDividers(sentences, tokenPos, W, pal) {
+    sentences.slice(1).forEach((sentence) => {
+      if (!sentence.length) return;
+      const pos = tokenPos[sentence[0]._key];
+      if (!pos) return;
+      new VerseDivider(
+        this.svg,
+        PAD_L - 20,
+        colW * (Object.keys(COL_ORDER).length + 1),
+        pos.y - VERSE_GAP / 2,
+        pal.LIGHT_GRAY,
+      );
+    });
+  }
+
+  // event handlers
   _attachTokenEvents(node, token) {
     const { g } = node;
     const outgoing = this.edgeLayer.outgoingEdges;
 
     g.addEventListener("mouseenter", () => {
       this.state.hoverToken(
-        token.id,
-        outgoing[token.id].map((e) => e.targetId),
+        token._key,
+        outgoing[token._key].map((e) => e.targetKey),
       );
       this._applyState();
     });
@@ -592,8 +687,8 @@ export class DependencyGraph {
     g.addEventListener("click", () => {
       this.writer.innerHTML += token.word + " ";
       this.state.selectToken(
-        token.id,
-        outgoing[token.id].map((e) => e.targetId),
+        token._key,
+        outgoing[token._key].map((e) => e.targetKey),
       );
       this._applyState();
     });
@@ -612,8 +707,7 @@ export class DependencyGraph {
       this.header.highlight(nearestPos);
       const pal = this.state.palette;
       Object.values(this.nodeMap).forEach((node) => {
-        const fill = node.token.pos === nearestPos ? pal.BLACK : "#ccc";
-        node.setFill(fill);
+        node.setFill(node.token.pos === nearestPos ? pal.BLACK : "#ccc");
       });
       this.edgeLayer.dimAll();
     });
@@ -640,23 +734,21 @@ export class DependencyGraph {
 
     const litIds = state.litIds;
 
-    Object.entries(this.nodeMap).forEach(([id, node]) => {
-      id = parseInt(id);
-      const isSelected = state.selected.includes(id);
+    Object.entries(this.nodeMap).forEach(([key, node]) => {
+      const isSelected = state.selected.includes(key);
       const isClickable =
-        !state.hasSelection || state.selectedChildren.includes(id);
-
+        !state.hasSelection || state.selectedChildren.includes(key);
       node.setFill(
-        isSelected ? pal.RED : litIds.has(id) ? pal.BLACK : pal.LIGHT_GRAY,
+        isSelected ? pal.RED : litIds.has(key) ? pal.BLACK : pal.LIGHT_GRAY,
       );
       node.setPointerEvents(isClickable && !isSelected ? "auto" : "none");
     });
 
     this.edgeLayer.getLines().forEach((el) => {
-      const fromId = parseInt(el.dataset.fromId);
+      const fromKey = el.dataset.fromKey;
       const fromLastSelected =
-        state.hasSelection && fromId === state.lastSelected;
-      const fromHovered = state.hasHover && fromId === state.hovered;
+        state.hasSelection && fromKey === state.lastSelected;
+      const fromHovered = state.hasHover && fromKey === state.hovered;
 
       if (fromLastSelected) {
         el.style.opacity = "1";

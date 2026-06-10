@@ -91,23 +91,27 @@ def get_phrase_data(doc):
 
 def main():
     if LANG == "en" or LANG == "zh":
-        with open(f"input_{LANG}.json", "r") as file:
-            lines = json.load(file)
+        with open("tselliot.json", "r") as file:
+            poem = json.load(file)
     else:
-        lines = ""
+        poem = ""
         print("to be implemented...")
         sys.exit()
 
-    result = []
-    for line in lines:
-        doc_en = nlp(line)
-        result.append(get_phrase_data(doc_en))
+    outgoing = []
+    for chapter in poem:
+        result = []
+        for line in chapter["content"]:
+            doc_en = nlp(line)
+            result.append(get_phrase_data(doc_en))
+        data = {"title": chapter["title"], "content": result}
+        outgoing.append(data)
 
     filename = f"tokens_{LANG}.json"
     output_path = os.path.join("output", filename)
     destination = os.path.join(os.path.dirname(HERE), "web", "data")
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(result, f, ensure_ascii=False, indent=2)
+        json.dump(outgoing, f, ensure_ascii=False, indent=2)
 
     shutil.copy(output_path, destination)
     print("Data copied to ", os.path.join(destination, filename))

@@ -20,126 +20,129 @@
 import "./style.css";
 import { DependencyGraph } from "./weave";
 import { drawLinear } from "./braid";
-import { POS_TRANSITIONS } from "./words";
 
-let view = "lace";
+class Views {
+  constructor() {
+    this.poems = []; // [{ title, content: sentence[][] }]
+    this.chapterIndex = 0;
+    this.view = "lace"; // "lace" | "linear"
+    this.showOriginalOnly = false;
+    this.graph = new DependencyGraph("en");
 
-const DEMOS = [
-  "To be gorgeous you must first be seen, but to be seen allows you to be hunted.",
-];
-
-function parseSentence() {
-  const tokens = allTokens[demoCount];
-
-  const index = new Map();
-  const posByNorm = new Map();
-
-  for (const t of tokens) {
-    posByNorm.set(t.norm, t.pos);
+    this._resizeTimer = null;
   }
 
-  for (const fromTok of tokens) {
-    const allowedPos = POS_TRANSITIONS[fromTok.pos] || [];
-    const followers = new Set();
+  async init() {
+    const response = await fetch("/data/tokens_en.json");
+    this.poems = await response.json();
+    this._bindUI();
+    this._loadChapter(this.chapterIndex);
+  }
 
-    for (const toTok of tokens) {
-      if (toTok.id === fromTok.id) continue;
-      if (allowedPos.includes(toTok.pos)) {
-        followers.add(toTok.norm);
-      }
+  get currentPoem() {
+    return this.poems[this.chapterIndex] ?? null;
+  }
+
+  /** Flatten all sentences in the current chapter into one token list.
+   *  Sentence breaks are preserved via a synthetic separator token so
+   *  the layout can insert visual gaps between verses.
+   */
+  get currentTokens() {
+    const poem = this.currentPoem;
+    if (!poem) return [];
+    return poem.content.flat();
+  }
+
+  // rendering
+
+  _loadChapter(index) {
+    this.chapterIndex =
+      ((index % this.poems.length) + this.poems.length) % this.poems.length;
+    const poem = this.currentPoem;
+    if (!poem) return;
+
+    const titleEl = document.getElementById("sentence-input");
+    if (titleEl) titleEl.value = poem.title;
+    this._initSVG();
+    this._draw();
+  }
+
+  _draw() {
+    const tokens = this.currentTokens;
+    if (!tokens.length) return;
+
+    if (this.view === "linear") {
+      drawLinear(tokens);
+    } else {
+      this.graph.draw(tokens, this.currentPoem.content);
     }
-
-    if (followers.size > 0) {
-      index.set(fromTok.norm, followers);
-    }
   }
 
-  initSVG();
-  draw();
-}
+  _initSVG() {
+    const svg = document.getElementById("svg");
+    const container = document.querySelector("#canvas-wrap");
+    svg.innerHTML = "";
+    const W = container.clientWidth || 600;
+    const H = 900;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.style.height = H + "px";
+  }
 
-// UI
-let demoCount = 0;
-let allTokens = [];
-export let showOriginalOnly = false;
 
-async function init() {
-  const response = await fetch("/data/tokens_en.json");
-  allTokens = await response.json();
+  _bindUI() {
+    document
+      .getElementById("tab-ngram")
+      .addEventListener("click", () => this._switchView("linear"));
 
-  loadDemo(demoCount);
+    document
+      .getElementById("tab-pos")
+      .addEventListener("click", () => this._switchView("lace"));
 
-  document
-    .getElementById("tab-ngram")
-    .addEventListener("click", () => switchView("linear"));
-  document
-    .getElementById("tab-pos")
-    .addEventListener("click", () => switchView("lace"));
-  document.getElementById("draw").addEventListener("click", parseSentence);
-  document.getElementById("prev-demo").addEventListener("click", () => {
-    demoCount--;
-    if (demoCount < 0) demoCount = DEMOS.length - 1;
-    loadDemo(demoCount % DEMOS.length);
-  });
-  document.getElementById("next-demo").addEventListener("click", () => {
-    demoCount++;
-    loadDemo(demoCount % DEMOS.length);
-  });
+    document
+      .getElementById("draw")
+      .addEventListener("click", () => this._draw());
 
-  document.querySelector("#hide-blue").addEventListener("mouseenter", () => {
-    showOriginalOnly = true;
-    loadDemo(demoCount);
-  });
+    document.getElementById("prev-demo").addEventListener("click", () => {
+      this._loadChapter(this.chapterIndex - 1);
+    });
 
-  document.querySelector("#hide-blue").addEventListener("mouseout", () => {
-    showOriginalOnly = false;
-    loadDemo(demoCount);
-  });
-}
+    document.getElementById("next-demo").addEventListener("click", () => {
+      this._loadChapter(this.chapterIndex + 1);
+    });
 
-function switchView(v) {
-  view = v;
-  document
-    .getElementById("tab-ngram")
-    .classList.toggle("active", v === "linear");
-  document.getElementById("tab-pos").classList.toggle("active", v === "lace");
-  draw();
-}
+    const hideBlue = document.querySelector("#hide-blue");
+    hideBlue.addEventListener("mouseenter", () => {
+      this.showOriginalOnly = true;
+      this._draw();
+    });
+    hideBlue.addEventListener("mouseout", () => {
+      this.showOriginalOnly = false;
+      this._draw();
+    });
 
-function draw() {
-  if (!allTokens[demoCount]?.length) return;
-  if (view === "linear") {
-    drawLinear(allTokens[demoCount]);
-  } else {
-    const graph = new DependencyGraph("en");
-    graph.draw(allTokens[demoCount]);
+    document
+      .getElementById("sentence-input")
+      .addEventListener("keydown", (e) => {
+        if (e.key === "Enter") this._draw();
+      });
+
+    window.addEventListener("resize", () => {
+      clearTimeout(this._resizeTimer);
+      this._resizeTimer = setTimeout(() => this._draw(), 100);
+    });
+  }
+
+  _switchView(v) {
+    this.view = v;
+    document
+      .getElementById("tab-ngram")
+      .classList.toggle("active", v === "linear");
+    document.getElementById("tab-pos").classList.toggle("active", v === "lace");
+    this._draw();
   }
 }
 
-function initSVG() {
-  const svg = document.getElementById("svg");
-  const container = document.querySelector("#canvas-wrap");
-  svg.innerHTML = "";
-  const W = container.clientWidth || 600;
-  const H = 900; //container.clientHeight || 600;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.style.height = H + "px";
-}
+const views = new Views();
+views.init();
 
-function loadDemo(i) {
-  document.getElementById("sentence-input").value = DEMOS[i];
-  parseSentence();
-}
-
-// resize
-let rez;
-window.addEventListener("resize", () => {
-  clearTimeout(rez);
-  rez = setTimeout(draw, 100);
-});
-
-document.getElementById("sentence-input").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") parseSentence();
-});
-
-init();
+export { views };
