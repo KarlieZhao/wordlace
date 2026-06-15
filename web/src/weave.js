@@ -13,7 +13,7 @@ const PAD_B = -100;
 const PAD_L = 100;
 
 const ROW_H = 12;
-const PAD_T = 0;//-20 * ROW_H;
+const PAD_T = 100;//-20 * ROW_H;
 
 const colW = 50;
 
@@ -498,10 +498,10 @@ class VerseDivider {
 }
 
 export class DependencyGraph {
-  constructor(language = "en") {
+  constructor(svgId, language = "en") {
     this.state = new GraphState(language);
     this.writer = document.getElementById("writer");
-    this.svg = document.getElementById("svg");
+    this.svg = document.getElementById(svgId);
     this.nodeMap = {};
     this.edgeLayer = null;
     this.header = null;

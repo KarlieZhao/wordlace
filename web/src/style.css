@@ -26,9 +26,15 @@
     flex-direction: column;
   }
 
+  #canvas-wrap-en,
+  #canvas-wrap-lang{
+width: 50vw;
+  }
+
   .main-container {
+    width: 100vw;
     display: flex;
-    flex-direction: column;
+    /* flex-direction: column; */
     height: 85vh;
   }
 
