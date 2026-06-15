@@ -14,6 +14,7 @@ export function mkArrowMarker(defs, id, color) {
   m.setAttribute("orient", "auto");
   const p = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   p.setAttribute("points", "0 0, 8 4, 0 8");
+  // p.setAttribute("points", "8 0, 0 4, 8 8");
   p.setAttribute("fill", color);
   m.appendChild(p);
   defs.appendChild(m);
@@ -33,7 +34,7 @@ export function line(svg, x1, y1, x2, y2, stroke, sw, marker) {
   return el;
 }
 
-export function drawText(group, id = null, x, y, str, size, weight, fill, anchor, family) {
+export function drawText(group, id = null, x, y, str, size, weight, fill, anchor, family, className=null) {
   // hit area
   const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   hitArea.setAttribute("fill", "transparent");
@@ -48,6 +49,7 @@ export function drawText(group, id = null, x, y, str, size, weight, fill, anchor
   el.setAttribute("font-weight", weight || 400);
   el.setAttribute("fill", fill || "#111111");
   el.setAttribute("font-family", family || "IBM Plex Sans, sans-serif");
+  if (className) el.setAttribute("class", className);
   el.textContent = str;
 
   if (id) {
@@ -66,5 +68,5 @@ export function drawText(group, id = null, x, y, str, size, weight, fill, anchor
     hitArea.setAttribute("height", bbox.height + pad.y * 2);
   });
 
-  return hitArea;
+  return { text: el, hitArea };
 }

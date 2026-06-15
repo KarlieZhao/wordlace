@@ -299,3 +299,7 @@
     text-align: center;
     line-height: 2;
   }
+
+  .label-layer .punct{
+    display: none;
+  }

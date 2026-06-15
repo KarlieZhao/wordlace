@@ -26,15 +26,16 @@ class Views {
     this.poems = []; // [{ title, content: sentence[][] }]
     this.chapterIndex = 0;
     this.view = "lace"; // "lace" | "linear"
-    this.showOriginalOnly = false;
+    this.showDeps = false;
+    this.showDepsLocked = false;
     this.graph = new DependencyGraph("en");
 
     this._resizeTimer = null;
   }
 
   async init() {
-    const response = await fetch("/data/tokens_en.json");
-    this.poems = await response.json();
+    const res = await fetch("/data/borges_en_tokens.json");
+    this.poems = await res.json();
     this._bindUI();
     this._loadChapter(this.chapterIndex);
   }
@@ -112,11 +113,20 @@ class Views {
 
     const hideBlue = document.querySelector("#hide-blue");
     hideBlue.addEventListener("mouseenter", () => {
-      this.showOriginalOnly = true;
+      this.showDeps = true;
       this._draw();
     });
+     hideBlue.addEventListener("click", () => {
+       this.showDepsLocked = !this.showDepsLocked;
+       if (this.showDepsLocked) {
+         hideBlue.textContent = "Hide Dependency";
+       } else {
+         hideBlue.textContent = "Show Dependency";
+       }
+       this._draw();
+     });
     hideBlue.addEventListener("mouseout", () => {
-      this.showOriginalOnly = false;
+      this.showDeps = false;
       this._draw();
     });
 

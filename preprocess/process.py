@@ -4,13 +4,15 @@ import sys
 import os
 import shutil
 import spacy
+import re
 
-import en_core_web_sm
-import zh_core_web_sm
+import en_core_web_sm, zh_core_web_sm, es_core_news_sm
+
 from spacy import displacy
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 LANG = "en"
+END_PUNCT = re.compile(r'[.!?]+["\')\]]*$')
 
 if LANG == "en":
     nlp = spacy.load("en_core_web_sm")  # type: ignore
@@ -18,6 +20,9 @@ if LANG == "en":
 elif LANG == "zh":
     nlp = spacy.load("zh_core_web_sm")  # type: ignore
     nlp = zh_core_web_sm.load()
+elif LANG == "es":
+    nlp = spacy.load("es_core_news_sm")  # type: ignore
+    nlp = es_core_news_sm.load()
 
 
 def get_noun_chunks_zh(doc):
@@ -89,9 +94,30 @@ def get_phrase_data(doc):
     return phrases
 
 
+
+def join_lines(lines):
+    sentences = []
+    buffer = []
+    for line in lines:
+        buffer.append(line.strip())
+        if END_PUNCT.search(line.strip()):
+            sentences.append(" ".join(buffer))
+            buffer = []
+    if buffer: 
+        sentences.append(" ".join(buffer))
+    return sentences
+
+
+
 def main():
-    if LANG == "en" or LANG == "zh":
-        with open("tselliot.json", "r") as file:
+    if len(sys.argv) <= 1:
+        print("Must enter input filename.")
+        sys.exit()
+        
+    input_filename = sys.argv[1]
+
+    if LANG == "en" or LANG == "zh" or LANG == "es":
+        with open(f"{input_filename}", "r") as file:
             poem = json.load(file)
     else:
         poem = ""
@@ -99,15 +125,16 @@ def main():
         sys.exit()
 
     outgoing = []
+
     for chapter in poem:
         result = []
-        for line in chapter["content"]:
-            doc_en = nlp(line)
+        for sentence in join_lines(chapter["content"]):
+            doc_en = nlp(sentence)
             result.append(get_phrase_data(doc_en))
         data = {"title": chapter["title"], "content": result}
         outgoing.append(data)
 
-    filename = f"tokens_{LANG}.json"
+    filename = f"{input_filename.split('.')[0]}_tokens.json"
     output_path = os.path.join("output", filename)
     destination = os.path.join(os.path.dirname(HERE), "web", "data")
     with open(output_path, "w", encoding="utf-8") as f:

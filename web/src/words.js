@@ -84,7 +84,22 @@ export const POS_TRANSITIONS = {
   INTJ: ["PUNCT"],
   X: ["NOUN", "VERB", "ADJ"],
 };
-export const COL_ORDER = [ "PRON", "PROPN",  "ADP", "NOUN", "ADV", "VERB", "PART", "ADJ", "CCONJ",  "SCONJ", "DET", "AUX",  "X", "PUNCT"];
+export const COL_ORDER = [
+  "PRON",
+  "PROPN",
+  "AUX",
+  "ADP",
+  "NOUN",
+  "ADV",
+  "VERB",
+  "PART",
+  "ADJ",
+  "CCONJ",
+  "SCONJ",
+  "DET",
+  "X",
+  "PUNCT",
+];
 
 export const COL_LABELS = {
   PRON: "pronoun",

@@ -9,12 +9,11 @@ import { COL_ORDER, COL_LABELS, normalize } from "./words";
 // TODO:
 // add a button for translation / comparing side by side / overlapping
 // make it an animation, with my own writing, about the friction in language and translations
-
 const PAD_B = -100;
 const PAD_L = 100;
 
-const ROW_H = 5;
-const PAD_T = -20 * ROW_H;
+const ROW_H = 12;
+const PAD_T = 0;//-20 * ROW_H;
 
 const colW = 50;
 
@@ -218,17 +217,18 @@ class TokenNode {
     this.token = token;
     this.pos = pos;
     this.state = state;
-    this.g = this._buildGroup(svg);
+    this.g = this._buildGroup();
     this.textEl = this.g.querySelector(".token-label");
   }
 
-  _buildGroup(svg) {
+  _buildGroup() {
     const { x, y } = this.pos;
     const t = this.token;
     const pal = this.state.palette;
 
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("class", "token-node");
+    g.setAttribute("class", t.pos.toLowerCase());
     g.setAttribute("data-id", t.id);
     g.style.cursor = "default";
 
@@ -295,9 +295,7 @@ class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this.outgoingEdges = views?.showOriginalOnly
-      ? this._drawSequentialEdges()
-      : this._drawDepEdges();
+    this.outgoingEdges = this._drawDepEdges();
   }
 
   _createGroup() {
@@ -313,42 +311,6 @@ class Edges {
 
   getLabels() {
     return this.svg.querySelectorAll(".edge-layer text");
-  }
-
-  _drawSequentialEdges() {
-    const GAP = 12;
-    const pal = this.state.palette;
-    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
-
-    this.tokens.forEach((tok, i) => {
-      const next = this.tokens[i + 1];
-      if (!next) return;
-
-      const a = this.tokenPos[tok._key];
-      const b = this.tokenPos[next._key];
-      if (!a || !b) return;
-
-      const [nx, ny, len] = this._unitVector(a, b);
-      if (len < 1) return;
-
-      const lineEl = line(
-        this.group,
-        a.x + nx * GAP,
-        a.y + ny * GAP,
-        b.x - nx * (GAP + 6),
-        b.y - ny * (GAP + 6),
-        pal.BLACK,
-        1,
-        "url(#arr-black)",
-      );
-      lineEl.style.transition = "opacity 0.2s ease";
-      lineEl.dataset.fromKey = tok._key;
-      lineEl.dataset.toKey = next._key;
-      lineEl.dataset.immediate = "1";
-      outgoing[tok._key].push({ lineEl, targetKey: next._key });
-    });
-
-    return outgoing;
   }
 
   _drawDepEdges() {
@@ -393,7 +355,7 @@ class Edges {
         b.x - nx * (GAP + 6),
         b.y - ny * (GAP + 6),
         color,
-        isDownward ? 1 : 0.7,
+        0.8,
         marker,
       );
       lineEl.style.transition = "opacity 0.2s ease";
@@ -403,24 +365,26 @@ class Edges {
       lineEl.dataset.dep = tok.dep;
       lineEl.style.cursor = "pointer";
 
-      const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
-      const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
+      if (views.showDeps || views.showDepsLocked) {
+        const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
+        const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
 
-      const labelEl = drawText(
-        this.group,
-        null,
-        midX,
-        midY - 5,
-        labelSet[tok.dep],
-        9,
-        400,
-        pal.LIGHT_GRAY,
-        "middle",
-        "IBM Plex Mono",
-      );
-      labelEl.setAttribute("pointer-events", "none");
-      labelEl.dataset.fromKey = tok._key;
-      labelEl.dataset.dep = tok.dep;
+        const { text } = drawText(
+          this.group,
+          null,
+          midX,
+          midY - 5,
+          labelSet[tok.dep],
+          9,
+          400,
+          pal.LIGHT_GRAY,
+          "middle",
+          "IBM Plex Mono",
+          "dep-labels",
+        );
+        text.dataset.fromKey = tok._key;
+        text.dataset.dep = tok.dep;
+      }
 
       outgoing[tok._key].push({ lineEl, targetKey: headKey });
     });
@@ -466,18 +430,20 @@ class ColumnHeader {
     g.setAttribute("pointer-events", "none");
 
     COL_ORDER.forEach((p) => {
-      drawText(
-        g,
-        `rowheader-${p}`,
-        this.colX[p],
-        PAD_T - 20,
-        COL_LABELS[p] || p,
-        11,
-        400,
-        pal.LIGHT_GRAY,
-        "middle",
-        "IBM Plex Mono",
-      );
+      if (p !== "PUNCT") {
+        drawText(
+          g,
+          `rowheader-${p}`,
+          this.colX[p],
+          PAD_T - 20,
+          COL_LABELS[p] || p,
+          11,
+          400,
+          pal.LIGHT_GRAY,
+          "middle",
+          "IBM Plex Mono",
+        );
+      }
     });
 
     this.svg.appendChild(g);
@@ -556,10 +522,8 @@ export class DependencyGraph {
       COL_ORDER.map((p, i) => [p, PAD_L + i * colW]),
     );
 
-    // Stamp every token with a chapter-unique key before anything else
+    // stamp every token with a key: chapter#_verse#
     this._stampKeys(tokens, sentences);
-
-    // Build a set of keys that start a new verse (first token of each sentence after the first)
     const verseStartKeys = this._buildVerseStartKeys(sentences);
 
     const tokenPos = this._buildTokenPositions(tokens, colX, verseStartKeys);
@@ -660,7 +624,7 @@ export class DependencyGraph {
         this.svg,
         PAD_L - 20,
         colW * (Object.keys(COL_ORDER).length + 1),
-        pos.y - VERSE_GAP / 2,
+        pos.y - VERSE_GAP - ROW_H,
         pal.LIGHT_GRAY,
       );
     });
