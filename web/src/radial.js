@@ -1,11 +1,27 @@
+import { mkArrowMarker, mkDefs } from "./svgutils";
 import { DependencyGraph } from "./weave";
-import { mkDefs, mkArrowMarker } from "./svgutils";
-import { COL_ORDER } from "./words";
+// import { COL_ORDER } from "./words";
 import { TokenNode, Edges } from "./depcomponents";
-const POS_RING_GAP = 120;
-const INNER_RADIUS = 80;
-const LABEL_PAD = 20;
+const POS_RING_GAP = 25;
+const INNER_RADIUS = 10;
+const COL_ORDER = [
+  "PUNCT",
+  "X",
+  "SCONJ",
+  "DET",
+  "AUX",
+  "ADV",
+  "VERB",
+  "PART",
+  "CCONJ",
+  "ADP",
 
+  "ADJ",
+  "NOUN",
+  "PRON",
+
+  "PROPN",
+];
 export class RadialDepGraph extends DependencyGraph {
   draw(tokens, sentences = null) {
     this.svg.innerHTML = "";
@@ -26,7 +42,7 @@ export class RadialDepGraph extends DependencyGraph {
     const tokenPos = {};
 
     tokens.forEach((token, i) => {
-      const angle = -Math.PI / 2 + (i / tokens.length) * Math.PI * 2;
+      const angle = -Math.PI / 2 + (i / (tokens.length * 1.3)) * Math.PI * 2;
 
       const radius = ringMap[token.pos] ?? maxRadius;
 
@@ -42,13 +58,13 @@ export class RadialDepGraph extends DependencyGraph {
 
     this.svg.style.height = `${size}px`;
 
-    const defs = mkDefs(this.svg);
     const pal = this.state.palette;
 
+    const defs = mkDefs(this.svg);
     mkArrowMarker(defs, "arr-black", pal.BLACK);
     mkArrowMarker(defs, "arr-blue", pal.LIGHT_BLUE);
 
-    this._drawRings(cx, cy, ringMap, pal);
+    // this._drawRings(cx, cy, ringMap, pal);
 
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state);
 
@@ -63,13 +79,8 @@ export class RadialDepGraph extends DependencyGraph {
 
     tokens.forEach((t) => {
       const node = new TokenNode(this.svg, t, tokenPos[t._key], this.state);
-
-      this._orientLabel(node);
-
       labelGroup.appendChild(node.g);
-
       this.nodeMap[t._key] = node;
-
       this._attachTokenEvents(node, t);
     });
 
@@ -91,7 +102,7 @@ export class RadialDepGraph extends DependencyGraph {
 
       circle.setAttribute("stroke", pal.LIGHT_GRAY);
 
-      circle.setAttribute("stroke-width", "0.5");
+      circle.setAttribute("stroke-width", "0.3");
 
       this.svg.appendChild(circle);
 
@@ -101,37 +112,12 @@ export class RadialDepGraph extends DependencyGraph {
       );
 
       label.textContent = pos;
-
       label.setAttribute("x", cx);
-
-      label.setAttribute("y", cy - radius - LABEL_PAD);
-
+      label.setAttribute("y", cy - radius);
       label.setAttribute("text-anchor", "middle");
-
-      label.setAttribute("font-size", "10");
-
+      label.setAttribute("font-size", "9");
       label.setAttribute("fill", pal.LIGHT_GRAY);
-
       this.svg.appendChild(label);
     });
-  }
-
-  _orientLabel(node) {
-    const text = node.g.querySelector(".token-label");
-
-    if (!text) return;
-
-    const angleDeg = (node.pos.angle * 180) / Math.PI;
-
-    let rotation = angleDeg + 90;
-
-    if (angleDeg > 90 || angleDeg < -90) {
-      rotation += 180;
-    }
-
-    text.setAttribute(
-      "transform",
-      `rotate(${rotation} ${node.pos.x} ${node.pos.y})`,
-    );
   }
 }
