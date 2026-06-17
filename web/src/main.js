@@ -18,6 +18,7 @@
 
 import "./style.css";
 import { DependencyGraph } from "./weave";
+import {RadialDepGraph} from "./radial";
 import { drawLinear } from "./braid";
 
 class PoemView {
@@ -31,7 +32,8 @@ class PoemView {
     this.view = "lace"; // "lace" | "linear"
     this.showDeps = false;
     this.showDepsLocked = false;
-    this.graph = new DependencyGraph(this.svgId, lang);
+    // this.graph = new DependencyGraph(this.svgId, lang);
+    this.graph = new RadialDepGraph(this.svgId, lang);
     this._resizeTimer = null;
   }
 
@@ -107,12 +109,9 @@ class Views {
     this.lang.loadChapter(0);
   }
 
-  // Convenience: navigate both views together
   _loadChapter(index) {
     this.en.loadChapter(index);
     this.lang.loadChapter(index);
-
-    // Sync title display to EN poem title
     const titleEl = document.getElementById("sentence-input");
     if (titleEl) titleEl.value = this.en.currentPoem?.title ?? "";
   }
