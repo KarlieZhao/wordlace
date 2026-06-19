@@ -1,7 +1,8 @@
 import { views } from "./main";
-import { drawText, line } from "./svgutils";
+import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { PAD_T } from "./weave";
+
 const HIDDEN_DEPS = new Set(["punct"]);
 
 const PALETTE_EN = {
@@ -278,7 +279,8 @@ export class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this.outgoingEdges = this._drawDepEdges();
+    this.depEdges = this._drawDepEdges();
+    this.sequentialEdges = this._drawSequentialEdges();
   }
 
   _createGroup() {
@@ -296,19 +298,40 @@ export class Edges {
     return this.svg.querySelectorAll(".edge-layer text");
   }
 
+  _drawSequentialEdges() {
+    const PUNCT = /^[^\p{L}\p{N}]+$/u;
+
+    for (let i = 0; i < this.tokens.length - 1; i++) {
+      const curr = this.tokens[i];
+      const next = this.tokens[i + 1];
+
+      const currText = curr.word || curr.token || curr.text || "";
+      const nextText = next.word || next.token || next.text || "";
+
+      if (PUNCT.test(currText) || PUNCT.test(nextText)) continue;
+
+      this._createEdge(curr._key, next._key, {
+        color: "#ff6565",
+        marker: "url(#arr-red)",
+        width: 3,
+        opacity: 0.3,
+        showArrow: true,
+      });
+    }
+  }
+
   _drawDepEdges() {
     const GAP = 12;
     const pal = this.state.palette;
     const labelSet = this.state.labelSet;
     const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
+    const sentenceKeyMap = new Map();
 
-    // Build a map from sentence-local id → _key for head lookups within each sentence.
-    // Tokens from different sentences never share edges, so we rebuild per sentence
-    // by grouping on the sentence-index prefix of _key.
-    const sentenceKeyMap = new Map(); // Map<local_id, _key>
     this.tokens.forEach((t) => {
       const si = t._key.split("_")[0];
-      if (!sentenceKeyMap.has(si)) sentenceKeyMap.set(si, new Map());
+      if (!sentenceKeyMap.has(si)) {
+        sentenceKeyMap.set(si, new Map());
+      }
       sentenceKeyMap.get(si).set(t.id, t._key);
     });
 
@@ -318,61 +341,109 @@ export class Edges {
 
       const si = tok._key.split("_")[0];
       const headKey = sentenceKeyMap.get(si)?.get(tok.head_id);
+
       if (!headKey) return;
+
+      const isDownward = tok.head_id > tok.id;
+      const edge = this._createEdge(tok._key, headKey, {
+        gap: GAP,
+        color: isDownward ? pal.BLACK : pal.LIGHT_BLUE,
+        marker: isDownward ? "url(#arr-black)" : "url(#arr-blue)",
+        width: 0.8,
+        dep: tok.dep,
+        showArrow: false, 
+      });
+
+      if (!edge) return;
+
+      edge.dataset.immediate = isDownward ? "1" : "0";
+      edge.style.cursor = "pointer";
+
+      outgoing[tok._key].push({
+        lineEl: edge,
+        targetKey: headKey,
+      });
+
+      if (!(views.showDeps || views.showDepsLocked)) return;
 
       const a = this.tokenPos[tok._key];
       const b = this.tokenPos[headKey];
-      if (!a || !b) return;
 
-      const [nx, ny, len] = this._unitVector(a, b);
-      if (len < 1) return;
+      const midX = (a.x + b.x) / 2;
+      const midY = (a.y + b.y) / 2;
 
-      const isDownward = tok.head_id > tok.id;
-      const color = isDownward ? pal.BLACK : pal.LIGHT_BLUE;
-      const marker = isDownward ? "url(#arr-black)" : "url(#arr-blue)";
-
-      const lineEl = line(
+      const { text } = drawText(
         this.group,
-        a.x + nx * GAP,
-        a.y + ny * GAP,
-        b.x - nx * (GAP + 6),
-        b.y - ny * (GAP + 6),
-        color,
-        0.8,
-        marker,
+        null,
+        midX,
+        midY - 5,
+        labelSet[tok.dep],
+        9,
+        400,
+        pal.LIGHT_GRAY,
+        "middle",
+        "IBM Plex Mono",
+        "dep-labels",
       );
-      lineEl.style.transition = "opacity 0.2s ease";
-      lineEl.dataset.fromKey = tok._key;
-      lineEl.dataset.toKey = headKey;
-      lineEl.dataset.immediate = isDownward ? "1" : "0";
-      lineEl.dataset.dep = tok.dep;
-      lineEl.style.cursor = "pointer";
 
-      if (views.showDeps || views.showDepsLocked) {
-        const midX = (a.x + nx * GAP + b.x - nx * (GAP + 6)) / 2;
-        const midY = (a.y + ny * GAP + b.y - ny * (GAP + 6)) / 2;
-
-        const { text } = drawText(
-          this.group,
-          null,
-          midX,
-          midY - 5,
-          labelSet[tok.dep],
-          9,
-          400,
-          pal.LIGHT_GRAY,
-          "middle",
-          "IBM Plex Mono",
-          "dep-labels",
-        );
-        text.dataset.fromKey = tok._key;
-        text.dataset.dep = tok.dep;
-      }
-
-      outgoing[tok._key].push({ lineEl, targetKey: headKey });
+      text.dataset.fromKey = tok._key;
+      text.dataset.dep = tok.dep;
     });
 
     return outgoing;
+  }
+
+  _createEdge(fromKey, toKey, opts = {}) {
+
+    const defs = mkDefs(this.svg);
+    // mkArrowMarker(defs, "arr-black", "#000");
+    // mkArrowMarker(defs, "arr-blue", "#509cff");
+    mkArrowMarker(defs, "arr-red", "#ff6565");
+    const {
+      color = "#999",
+      marker = "url(#arr-black)",
+      width = 1,
+      gap = 0,
+      opacity = 0.6,
+      dep = null,
+      showArrow = true,
+    } = opts;
+
+    const a = this.tokenPos[fromKey];
+    const b = this.tokenPos[toKey];
+
+    if (!a || !b) return null;
+
+    const [nx, ny, len] = this._unitVector(a, b);
+    if (len < 1) return null;
+
+    const edge = line(
+      this.group,
+      a.x + nx * gap,
+      a.y + ny * gap,
+      b.x - nx * (gap + 6),
+      b.y - ny * (gap + 6),
+      color,
+      width,
+      showArrow ? marker : null,
+    );
+
+    edge.setAttribute("stroke", color);
+    edge.style.stroke = color;
+
+    if (!showArrow) {
+      edge.removeAttribute("marker-end");
+    }
+
+    edge.dataset.fromKey = fromKey;
+    edge.dataset.toKey = toKey;
+
+    if (dep) edge.dataset.dep = dep;
+
+    edge.style.opacity = opacity;
+    edge.style.transition = "opacity 0.2s ease";
+
+    return edge;
   }
 
   _unitVector(a, b) {
@@ -383,18 +454,18 @@ export class Edges {
   }
 
   dimAll() {
-    this.getLines().forEach((el) => (el.style.opacity = "0.08"));
+    // this.getLines().forEach((el) => (el.style.opacity = "0.08"));
   }
 
   restoreEdge(el) {
     const isImmediate = el.dataset.immediate === "1";
     const pal = this.state.palette;
     el.setAttribute("stroke", isImmediate ? pal.BLACK : "#7bafd4");
-    el.setAttribute(
-      "marker-end",
-      isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
-    );
-    el.style.opacity = "1.0";
+    // el.setAttribute(
+      // "marker-end",
+      // isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
+    // );
+    // el.style.opacity = "1.0";
   }
 }
 
@@ -458,10 +529,10 @@ export class ColumnHeader {
   }
 
   highlight(posTag) {
-    this.dimAll();
-    const pal = this.state.palette;
-    const el = this.group.querySelector(`#rowheader-${posTag}`);
-    if (el) el.setAttribute("fill", pal.BLACK);
+    // this.dimAll();
+    // const pal = this.state.palette;
+    // const el = this.group.querySelector(`#rowheader-${posTag}`);
+    // if (el) el.setAttribute("fill", pal.BLACK);
   }
 }
 

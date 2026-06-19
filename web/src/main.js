@@ -18,11 +18,11 @@
 
 import "./style.css";
 import { DependencyGraph } from "./weave";
-import {RadialDepGraph} from "./radial";
 import { drawLinear } from "./braid";
+import { Translator } from "./translate";
 
 class PoemView {
-  constructor(lang, dataUrl, svgId, containerId) {
+  constructor(lang, dataUrl, svgId, containerId, translateCallback = null) {
     this.lang = lang;
     this.dataUrl = dataUrl;
     this.svgId = svgId;
@@ -32,8 +32,8 @@ class PoemView {
     this.view = "lace"; // "lace" | "linear"
     this.showDeps = false;
     this.showDepsLocked = false;
-    // this.graph = new DependencyGraph(this.svgId, lang);
-    this.graph = new RadialDepGraph(this.svgId, lang);
+    this.graph = new DependencyGraph(this.svgId, lang, translateCallback);
+
     this._resizeTimer = null;
   }
 
@@ -86,104 +86,190 @@ class PoemView {
 }
 
 class Views {
-  constructor() {
-    this.en = new PoemView(
-      "en",
-      "/data/borges_en_tokens.json",
-      "svg-en",
-      "canvas-wrap-en",
-    );
-    this.lang = new PoemView(
-      "es",
-      "/data/borges_es_tokens.json",
-      "svg-lang",
-      "canvas-wrap-lang",
-    );
+  constructor(dualViews = false) {
     this._resizeTimer = null;
+    this._listeners = [];
+
+    this.views = [
+      new PoemView(
+        "en",
+        "/data/borges_en_tokens.json",
+        "svg-en",
+        "canvas-wrap-en",
+      ),
+    ];
+
+    if (dualViews) {
+      this.translator = new Translator("es", "en");
+
+      const translateCallback = (phrase) => {
+        this.translator.translate(phrase);
+      };
+      this.views.push(
+        new PoemView(
+          "es",
+          "/data/borges_es_tokens.json",
+          "svg-lang",
+          "canvas-wrap-lang",
+          translateCallback,
+        ),
+      );
+    }
+
+    [this.en, this.lang] = this.views;
+  }
+
+  forEachView(fn) {
+    this.views.forEach(fn);
+  }
+
+  addListener(el, event, handler) {
+    el.addEventListener(event, handler);
+    this._listeners.push(() => el.removeEventListener(event, handler));
+  }
+
+  destroy() {
+    this._listeners.forEach((remove) => remove());
+    this._listeners.length = 0;
+
+    clearTimeout(this._resizeTimer);
+  }
+
+  drawAll() {
+    this.forEachView((v) => v.draw());
   }
 
   async init() {
-    await Promise.all([this.en.load(), this.lang.load()]);
     this._bindUI();
-    this.en.loadChapter(0);
-    this.lang.loadChapter(0);
+
+    await Promise.all(this.views.map((v) => v.load()));
+
+    this.forEachView((v) => v.loadChapter(0));
   }
 
-  _loadChapter(index) {
-    this.en.loadChapter(index);
-    this.lang.loadChapter(index);
-    const titleEl = document.getElementById("sentence-input");
-    if (titleEl) titleEl.value = this.en.currentPoem?.title ?? "";
+  loadChapter(index) {
+    this.forEachView((v) => v.loadChapter(index));
+
+    const input = document.getElementById("sentence-input");
+
+    if (input) {
+      input.value = this.en.currentPoem?.title ?? "";
+    }
+  }
+
+  switchView(view) {
+    this.forEachView((v) => v.switchView(view));
+
+    document
+      .getElementById("tab-ngram")
+      .classList.toggle("active", view === "linear");
+
+    document
+      .getElementById("tab-pos")
+      .classList.toggle("active", view === "lace");
   }
 
   _bindUI() {
-    document
-      .getElementById("tab-ngram")
-      .addEventListener("click", () => this._switchView("linear"));
-    document
-      .getElementById("tab-pos")
-      .addEventListener("click", () => this._switchView("lace"));
-    document.getElementById("draw").addEventListener("click", () => {
-      this.en.draw();
-      this.lang.draw();
-    });
-    document.getElementById("prev-demo").addEventListener("click", () => {
-      this._loadChapter(this.en.chapterIndex - 1);
-    });
-    document.getElementById("next-demo").addEventListener("click", () => {
-      this._loadChapter(this.en.chapterIndex + 1);
-    });
+    this.addListener(document.getElementById("tab-ngram"), "click", () =>
+      this.switchView("linear"),
+    );
+    this.addListener(document.getElementById("tab-pos"), "click", () =>
+      this.switchView("lace"),
+    );
+    this.addListener(document.getElementById("draw"), "click", () =>
+      this.drawAll(),
+    );
+    this.addListener(document.getElementById("prev-demo"), "click", () =>
+      this.loadChapter(this.en.chapterIndex - 1),
+    );
+    this.addListener(document.getElementById("next-demo"), "click", () =>
+      this.loadChapter(this.en.chapterIndex + 1),
+    );
 
-    const hideBlue = document.querySelector("#hide-blue");
-    hideBlue.addEventListener("mouseenter", () => {
-      this.en.showDeps = true;
-      this.lang.showDeps = true;
-      this.en.draw();
-      this.lang.draw();
-    });
-    hideBlue.addEventListener("click", () => {
-      const locked = !this.en.showDepsLocked;
-      this.en.showDepsLocked = locked;
-      this.lang.showDepsLocked = locked;
-      hideBlue.textContent = locked ? "Hide Dependency" : "Show Dependency";
-      this.en.draw();
-      this.lang.draw();
-    });
-    hideBlue.addEventListener("mouseout", () => {
-      this.en.showDeps = false;
-      this.lang.showDeps = false;
-      this.en.draw();
-      this.lang.draw();
-    });
+    const hideBlue = document.getElementById("hide-blue");
 
-    document
-      .getElementById("sentence-input")
-      .addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          this.en.draw();
-          this.lang.draw();
-        }
+    this.addListener(hideBlue, "mouseenter", () => {
+      this.forEachView((v) => {
+        v.showDeps = true;
       });
 
-    window.addEventListener("resize", () => {
-      clearTimeout(this._resizeTimer);
-      this._resizeTimer = setTimeout(() => {
-        this.en.draw();
-        this.lang.draw();
-      }, 100);
+      this.drawAll();
     });
-  }
 
-  _switchView(v) {
-    this.en.switchView(v);
-    this.lang.switchView(v);
-    document
-      .getElementById("tab-ngram")
-      .classList.toggle("active", v === "linear");
-    document.getElementById("tab-pos").classList.toggle("active", v === "lace");
+    this.addListener(hideBlue, "mouseleave", () => {
+      this.forEachView((v) => {
+        v.showDeps = false;
+      });
+
+      this.drawAll();
+    });
+
+    this.addListener(hideBlue, "click", () => {
+      const locked = !this.en.showDepsLocked;
+
+      this.forEachView((v) => {
+        v.showDepsLocked = locked;
+      });
+
+      hideBlue.textContent = locked ? "Hide Dependency" : "Show Dependency";
+
+      this.drawAll();
+    });
+
+    this.addListener(
+      document.getElementById("sentence-input"),
+      "keydown",
+      (e) => {
+        if (e.key === "Enter") {
+          this.drawAll();
+        }
+      },
+    );
+
+    const resizeHandler = () => {
+      clearTimeout(this._resizeTimer);
+
+      this._resizeTimer = setTimeout(() => {
+        this.drawAll();
+      }, 100);
+    };
+
+    window.addEventListener("resize", resizeHandler);
+
+    this._listeners.push(() =>
+      window.removeEventListener("resize", resizeHandler),
+    );
   }
 }
 
-const views = new Views();
-views.init();
-export { views };
+export let views;
+
+async function createViews(dualViews) {
+  if (views) {
+    views.destroy();
+  document.querySelector("#svg-en").innerHTML = "";
+  document.querySelector("#svg-lang").innerHTML = "";
+  }
+    
+  views = new Views(dualViews);
+  await views.init();
+}
+
+async function initApp() {
+  const dualViewBtn = document.getElementById("dual-views");
+
+  dualViewBtn.addEventListener("click", async () => {
+    const pressed = dualViewBtn.getAttribute("aria-pressed") === "true";
+
+    const next = !pressed;
+
+    dualViewBtn.setAttribute("aria-pressed", String(next));
+
+    dualViewBtn.classList.toggle("on", next);
+    await createViews(next);
+  });
+
+  await createViews(dualViewBtn.getAttribute("aria-pressed") === "true");
+}
+
+initApp();

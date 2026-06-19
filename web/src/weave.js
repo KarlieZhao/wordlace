@@ -7,26 +7,28 @@ import {
   ColumnHeader,
   VerseDivider,
 } from "./depcomponents";
+import { views } from "./main";
 // maybe we don't show the dependcy terms on the graph since it's a bit too rigid
 // language A - B - C ...
 // automatically translating and shifting towards another languange word by word
 
 // TODO:
-// add a button for translation / comparing side by side / overlapping
 // make it an animation, with my own writing, about the friction in language and translations
+
 const PAD_B = -100;
-const PAD_L = 100;
+const PAD_L = 50;
 
 const ROW_H = 12;
-export const PAD_T = 100; //-20 * ROW_H;
+export const PAD_T = 50; //-20 * ROW_H;
 const colW = 50;
 const VERSE_GAP = 5;
 
 export class DependencyGraph {
-  constructor(svgId, language = "en") {
+  constructor(svgId, language = "en", translateCallback) {
     this.state = new GraphState(language);
     this.writer = document.getElementById("writer");
     this.svg = document.getElementById(svgId);
+    this.translateCallback = translateCallback;
     this.nodeMap = {};
     this.edgeLayer = null;
     this.header = null;
@@ -57,10 +59,10 @@ export class DependencyGraph {
     this.svg.setAttribute("viewBox", `0 0 ${W} ${totalH}`);
     this.svg.style.height = totalH + "px";
 
-    const defs = mkDefs(this.svg);
+    // const defs = mkDefs(this.svg);
     const pal = this.state.palette;
-    mkArrowMarker(defs, "arr-black", pal.BLACK);
-    mkArrowMarker(defs, "arr-blue", pal.LIGHT_BLUE);
+    // mkArrowMarker(defs, "arr-black", pal.BLACK);
+    // mkArrowMarker(defs, "arr-blue", pal.LIGHT_BLUE);
 
     this.header = new ColumnHeader(this.svg, colX, this.state);
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state);
@@ -158,20 +160,22 @@ export class DependencyGraph {
   // event handlers
   _attachTokenEvents(node, token) {
     const { g } = node;
-    const outgoing = this.edgeLayer.outgoingEdges;
+    const outgoing = this.edgeLayer.depEdges;
+    // const sequntialEdges = this.edgeLayer.sequentialEdges;
 
-    g.addEventListener("mouseenter", () => {
-      this.state.hoverToken(
-        token._key,
-        outgoing[token._key].map((e) => e.targetKey),
-      );
-      this._applyState();
-    });
+    // g.addEventListener("mouseenter", () => {
+    //   this.state.hoverToken(
+    //     token._key,
+    //     outgoing[token._key].map((e) => e.targetKey),
+    //   );
+    //   if (this.translateCallback) this.translateCallback(token.word);
+    //   this._applyState();
+    // });
 
-    g.addEventListener("mouseleave", () => {
-      this.state.clearHover();
-      this._applyState();
-    });
+    // g.addEventListener("mouseleave", () => {
+    //   this.state.clearHover();
+    //   this._applyState();
+    // });
 
     g.addEventListener("click", () => {
       this.writer.innerHTML += token.word + " ";

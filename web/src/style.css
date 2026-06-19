@@ -15,6 +15,9 @@
     --accent-b: #7bafd4;
     --font: 'IBM Plex Sans', sans-serif;
     --mono: 'IBM Plex Mono', monospace;
+
+    --body-fontsize: 11px;
+    --lg-fontsize: 13px;
   }
 
   body {
@@ -28,7 +31,8 @@
 
   #canvas-wrap-en,
   #canvas-wrap-lang{
-width: 50vw;
+    /* width: max-content; */
+    width: 50vw;
   }
 
   .main-container {
@@ -61,7 +65,7 @@ width: 50vw;
 
   .view-tab {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -137,7 +141,7 @@ width: 50vw;
     transition: background-color .15s, color .15s ease;
     background: transparent;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     border: 1px solid var(--text);
     color: var(--text);
   }
@@ -153,7 +157,7 @@ width: 50vw;
 
   .demo-btn {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     letter-spacing: .06em;
     text-transform: uppercase;
     padding: 7px 14px;
@@ -309,3 +313,20 @@ width: 50vw;
   .label-layer .punct{
     display: none;
   }
+
+  #dual-views.on{
+    background: var(--text);
+    color: #fff; 
+  }
+
+  .translation {
+  position: absolute;
+  left: 20vw;
+  height: 20vh;
+  background-color: #fff;
+  border: 1px solid black;
+  width: max-content;
+  padding: 0.6rem 1rem;
+  font-size: var(--lg-fontsize);
+  height: max-content;
+}
