@@ -279,8 +279,8 @@ export class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    // this.depEdges = this._drawDepEdges();
-    this.depEdges = this._drawBracketEdges();
+    this.depEdges = this._drawDepEdges();
+    // this.depEdges = this._drawBracketEdges();
     // this.sequentialEdges = this._drawSequentialEdges();
   }
 

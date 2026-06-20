@@ -9,3 +9,6 @@ ink_cli.egg-info/
 
 preprocess/*.json
 preprocess/*.txt
+
+input/
+/preprocess/input

@@ -11,7 +11,7 @@ import en_core_web_sm, zh_core_web_sm, es_core_news_sm
 from spacy import displacy
 
 HERE = os.path.dirname(os.path.realpath(__file__))
-LANG = "en"
+LANG = "zh"
 END_PUNCT = re.compile(r'[.!?]+["\')\]]*$')
 
 if LANG == "en":
@@ -117,7 +117,7 @@ def main():
     input_filename = sys.argv[1]
 
     if LANG == "en" or LANG == "zh" or LANG == "es":
-        with open(f"{input_filename}", "r") as file:
+        with open(f"./input/{input_filename}", "r") as file:
             poem = json.load(file)
     else:
         poem = ""
