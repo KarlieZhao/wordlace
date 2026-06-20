@@ -16,10 +16,16 @@
 // 4. explore n-gram model for better outcome?
 // 5. fix issues with the current POS_TRANSITIONS
 
+
+// hovering: (attention)
+// what words are related to this one, in what ways? 
+// all the tangly lines...
+
 import "./style.css";
 import { DependencyGraph } from "./weave";
 import { drawLinear } from "./braid";
 import { Translator } from "./translate";
+import { ArcDependencyGraph } from "./arcgraph";
 
 class PoemView {
   constructor(lang, dataUrl, svgId, containerId, translateCallback = null) {
@@ -32,6 +38,7 @@ class PoemView {
     this.view = "lace"; // "lace" | "linear"
     this.showDeps = false;
     this.showDepsLocked = false;
+    // this.graph = new ArcDependencyGraph(this.svgId, lang, translateCallback);
     this.graph = new DependencyGraph(this.svgId, lang, translateCallback);
 
     this._resizeTimer = null;
@@ -93,7 +100,7 @@ class Views {
     this.views = [
       new PoemView(
         "en",
-        "/data/borges_en_tokens.json",
+        "/data/tokens_en.json",
         "svg-en",
         "canvas-wrap-en",
       ),

@@ -279,8 +279,9 @@ export class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this.depEdges = this._drawDepEdges();
-    this.sequentialEdges = this._drawSequentialEdges();
+    // this.depEdges = this._drawDepEdges();
+    this.depEdges = this._drawBracketEdges();
+    // this.sequentialEdges = this._drawSequentialEdges();
   }
 
   _createGroup() {
@@ -298,6 +299,110 @@ export class Edges {
     return this.svg.querySelectorAll(".edge-layer text");
   }
 
+  _drawBracketEdges() {
+    const GAP = 10;
+    const pal = this.state.palette;
+
+    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
+
+    const sentenceKeyMap = new Map();
+
+    // rebuild id → key lookup per sentence
+    this.tokens.forEach((t) => {
+      const si = t._key.split("_")[0];
+      if (!sentenceKeyMap.has(si)) {
+        sentenceKeyMap.set(si, new Map());
+      }
+      sentenceKeyMap.get(si).set(t.id, t._key);
+    });
+
+    this.tokens.forEach((tok) => {
+      if (HIDDEN_DEPS?.has?.(tok.dep)) return;
+      if (tok.head_id === tok.id) return;
+
+      const si = tok._key.split("_")[0];
+      const headKey = sentenceKeyMap.get(si)?.get(tok.head_id);
+
+      if (!headKey) return;
+
+      const a = this.tokenPos[tok._key];
+      const b = this.tokenPos[headKey];
+
+      if (!a || !b) return;
+
+      // normalize direction
+      const left = a.x < b.x ? a : b;
+      const right = a.x < b.x ? b : a;
+
+      const dist = Math.abs(tok.id - tok.head_id);
+
+      // key aesthetic controls
+      const height = 14 + dist * 10;
+      const shoulder = 10;
+
+      const y = a.y;
+
+      const d = [
+        `M ${left.x} ${y}`,
+        `L ${left.x + shoulder} ${y - height}`,
+        `L ${right.x - shoulder} ${y - height}`,
+        `L ${right.x} ${y}`,
+      ].join(" ");
+
+      const path = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path",
+      );
+
+      path.setAttribute("d", d);
+      path.setAttribute("fill", "none");
+
+      // style (keep consistent with your system)
+      path.setAttribute(
+        "stroke",
+        tok.head_id > tok.id ? pal.BLACK : pal.LIGHT_BLUE,
+      );
+
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("opacity", "0.5");
+
+      path.dataset.fromKey = tok._key;
+      path.dataset.toKey = headKey;
+      path.dataset.dep = tok.dep;
+
+      this.group.appendChild(path);
+
+      // label on the “bridge”
+      if (views?.showDeps || views?.showDepsLocked) {
+        const midX = (left.x + right.x) / 2;
+
+        const label = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text",
+        );
+
+        label.setAttribute("x", midX);
+        label.setAttribute("y", y - height - 4);
+        label.setAttribute("text-anchor", "middle");
+        label.setAttribute("font-size", "9");
+        label.setAttribute("fill", pal.LIGHT_GRAY);
+
+        label.textContent = this.state.labelSet[tok.dep];
+
+        label.dataset.fromKey = tok._key;
+        label.dataset.dep = tok.dep;
+
+        this.group.appendChild(label);
+      }
+
+      outgoing[tok._key].push({
+        targetKey: headKey,
+        pathEl: path,
+      });
+    });
+
+    return outgoing;
+  }
   _drawSequentialEdges() {
     const PUNCT = /^[^\p{L}\p{N}]+$/u;
 
@@ -351,7 +456,7 @@ export class Edges {
         marker: isDownward ? "url(#arr-black)" : "url(#arr-blue)",
         width: 0.8,
         dep: tok.dep,
-        showArrow: false, 
+        showArrow: false,
       });
 
       if (!edge) return;
@@ -394,7 +499,6 @@ export class Edges {
   }
 
   _createEdge(fromKey, toKey, opts = {}) {
-
     const defs = mkDefs(this.svg);
     // mkArrowMarker(defs, "arr-black", "#000");
     // mkArrowMarker(defs, "arr-blue", "#509cff");
@@ -462,8 +566,8 @@ export class Edges {
     const pal = this.state.palette;
     el.setAttribute("stroke", isImmediate ? pal.BLACK : "#7bafd4");
     // el.setAttribute(
-      // "marker-end",
-      // isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
+    // "marker-end",
+    // isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
     // );
     // el.style.opacity = "1.0";
   }
