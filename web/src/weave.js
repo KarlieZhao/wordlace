@@ -16,11 +16,11 @@ import { views } from "./main";
 // make it an animation, with my own writing, about the friction in language and translations
 
 const PAD_B = -100;
-const PAD_L = 50;
+const PAD_L = 200;
 
-const ROW_H = 12;
+const colW = 30;
+const ROW_H = 30;
 export const PAD_T = 50; //-20 * ROW_H;
-const colW = 50;
 const VERSE_GAP = 5;
 
 export class DependencyGraph {
@@ -55,9 +55,8 @@ export class DependencyGraph {
 
     const tokenPos = this._buildTokenPositions(tokens, colX, verseStartKeys);
     const totalH = this._totalHeight(tokens, verseStartKeys);
-
-    this.svg.setAttribute("viewBox", `0 0 ${W} ${totalH}`);
-    this.svg.style.height = totalH + "px";
+    this.svg.setAttribute("viewBox", `0 0 ${totalH} ${800}`);
+    this.svg.style.height = W + "px";
 
     // const defs = mkDefs(this.svg);
     const pal = this.state.palette;
@@ -67,9 +66,9 @@ export class DependencyGraph {
     this.header = new ColumnHeader(this.svg, colX, this.state);
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state);
 
-    if (sentences && sentences.length > 1) {
-      this._drawVerseDividers(sentences, tokenPos, W, pal);
-    }
+    // if (sentences && sentences.length > 1) {
+    //   this._drawVerseDividers(sentences, tokenPos, W, pal);
+    // }
 
     const labelGroup = document.createElementNS(
       "http://www.w3.org/2000/svg",
@@ -122,12 +121,12 @@ export class DependencyGraph {
 
   _buildTokenPositions(tokens, colX, verseStartKeys) {
     const positions = {};
-    let y = PAD_T;
+    let x = PAD_T;
 
     tokens.forEach((t) => {
-      if (verseStartKeys.has(t._key)) y += VERSE_GAP;
-      positions[t._key] = { x: colX[t.pos] ?? PAD_L, y };
-      y += ROW_H;
+      if (verseStartKeys.has(t._key)) x += VERSE_GAP;
+      positions[t._key] = { x, y: colX[t.pos] ?? PAD_L };
+      x += ROW_H;
     });
 
     return positions;
@@ -142,20 +141,20 @@ export class DependencyGraph {
     return Math.max(h, 300);
   }
 
-  _drawVerseDividers(sentences, tokenPos, W, pal) {
-    sentences.slice(1).forEach((sentence) => {
-      if (!sentence.length) return;
-      const pos = tokenPos[sentence[0]._key];
-      if (!pos) return;
-      new VerseDivider(
-        this.svg,
-        PAD_L - 20,
-        colW * (Object.keys(COL_ORDER).length + 1),
-        pos.y - VERSE_GAP - ROW_H,
-        pal.LIGHT_GRAY,
-      );
-    });
-  }
+  // _drawVerseDividers(sentences, tokenPos, W, pal) {
+  //   sentences.slice(1).forEach((sentence) => {
+  //     if (!sentence.length) return;
+  //     const pos = tokenPos[sentence[0]._key];
+  //     if (!pos) return;
+  //     new VerseDivider(
+  //       this.svg,
+  //       PAD_L - 20,
+  //       colW * (Object.keys(COL_ORDER).length + 1),
+  //       pos.y - VERSE_GAP - ROW_H,
+  //       pal.LIGHT_GRAY,
+  //     );
+  //   });
+  // }
 
   // event handlers
   _attachTokenEvents(node, token) {

@@ -100,7 +100,7 @@ class Views {
     this.views = [
       new PoemView(
         "en",
-        "/data/ch_tokens.json",
+        "/data/borges_en.json",
         "svg-en",
         "canvas-wrap-en",
       ),
