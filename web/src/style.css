@@ -30,9 +30,11 @@
   }
 
   #canvas-wrap-en,
-  #canvas-wrap-lang{
+  #canvas-wrap-lang {
     /* width: max-content; */
-    width: 75%
+    width: 75%;
+    margin-left: 12.5%;
+
   }
 
   .main-container {
@@ -88,14 +90,18 @@
     border-bottom-color: var(--text);
   }
 
-  /* ── PANELS ── */
-  #right-panels {
+  #control-panels {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
     display: flex;
-    width: 70%;
     align-items: top;
     padding: 1rem 2rem;
     border-bottom: 1px solid #e8e8e8;
     flex-wrap: wrap;
+    background-color: white;
+    z-index: 0;
   }
 
   .input-section {
@@ -231,7 +237,6 @@
     cursor: pointer;
   }
 
-  /* ── CANVAS ── */
   #canvas-wrap {
     display: flex !important;
     flex-direction: row;
@@ -240,11 +245,13 @@
     /* overflow: hidden; */
   }
 
-  #canvas-wrap svg {
+  .canvas-wrap svg {
     /* height: 100%; */
     height: max-content;
     display: block;
+    transform-origin: top center;
   }
+  
 
   #writer-container {
     width: 100%;
@@ -329,4 +336,24 @@
   padding: 0.6rem 1rem;
   font-size: var(--lg-fontsize);
   height: max-content;
+}
+
+
+.intro{
+  margin-top: 3rem;
+  display: flex;
+  justify-content: center;
+  height: max-content;
+  min-height: 40vh;
+  width: 100%;
+  padding: 5rem 0
+}
+
+.intro div {
+  width: 60%;
+  min-width: 200px;
+}
+
+.intro p {
+  margin-top: 1rem;
 }

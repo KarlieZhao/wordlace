@@ -12,7 +12,8 @@ from spacy import displacy
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 LANG = "zh"
-END_PUNCT = re.compile(r'[.!?]+["\')\]]*$')
+END_PUNCT = re.compile(r'(?:[.!?。！？]+|……+|——+)["\')\]]*$')
+# re.compile(r'[.!?]+["\')\]]*$')
 
 if LANG == "en":
     nlp = spacy.load("en_core_web_sm")  # type: ignore
@@ -94,13 +95,13 @@ def get_phrase_data(doc):
     return phrases
 
 
-
 def join_lines(lines):
     sentences = []
     buffer = []
     for line in lines:
         buffer.append(line.strip())
         if END_PUNCT.search(line.strip()):
+            
             sentences.append(" ".join(buffer))
             buffer = []
     if buffer: 
@@ -108,12 +109,11 @@ def join_lines(lines):
     return sentences
 
 
-
 def main():
     if len(sys.argv) <= 1:
         print("Must enter input filename.")
         sys.exit()
-        
+
     input_filename = sys.argv[1]
 
     if LANG == "en" or LANG == "zh" or LANG == "es":
@@ -127,6 +127,7 @@ def main():
     outgoing = []
 
     for chapter in poem:
+        # print(chapter.keys())
         result = []
         for sentence in join_lines(chapter["content"]):
             doc_en = nlp(sentence)

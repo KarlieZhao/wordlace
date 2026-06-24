@@ -19,9 +19,9 @@ const PAD_B = -100;
 const PAD_L = 10;
 
 const colW = 10;
-const ROW_H = 80;
-export const PAD_T = 50; //-20 * ROW_H;
-const VERSE_GAP = 5;
+const ROW_H = 110;
+export const PAD_T = 50;
+const MAX_WORDS_PER_LINE = 50;
 
 export class DependencyGraph {
   constructor(svgId, language = "en", translateCallback) {
@@ -52,32 +52,26 @@ export class DependencyGraph {
       return current.length > longest.length ? current : longest;
     }, []);
 
-    const maxWords = Math.min(longestSentence.length, 40);
-
-    const totalW = this.svg.clientWidth ?? 1200;
+    const svgWidth = 1000;
     const totalH = this._totalHeight(tokens, verseStartKeys);
-    this.svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
-    this.svg.style.width = totalW;
-    this.svg.style.height = totalH;
+
+    this.svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalH}`);
+    // this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    this.svg.style.width = "100%";
+    this.svg.style.height = "auto";  
 
     const tokenPos = this._buildTokenPositions(
       tokens,
       colX,
-      (totalW - PAD_L * 2) / maxWords,
+      (svgWidth - PAD_L * 2) / Math.min(MAX_WORDS_PER_LINE, longestSentence.length),
       verseStartKeys,
     );
 
     const defs = mkDefs(this.svg);
     const pal = this.state.palette;
-    // mkArrowMarker(defs, "arr-black", pal.BLACK);
-    // mkArrowMarker(defs, "arr-blue", pal.LIGHT_BLUE);
 
     this.header = new ColumnHeader(this.svg, colX, this.state);
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state, defs);
-
-    // if (sentences && sentences.length > 1) {
-    //   this._drawVerseDividers(sentences, tokenPos, W, pal);
-    // }
 
     const labelGroup = document.createElementNS(
       "http://www.w3.org/2000/svg",
@@ -123,11 +117,26 @@ export class DependencyGraph {
     const keys = new Set();
     if (!sentences) return keys;
     sentences.slice(1).forEach((sentence) => {
-      if (sentence.length) keys.add(sentence[0]._key);
+      if (!sentence.length) return;
+      keys.add(sentence[0]._key);
+
+      if (sentence.length > MAX_WORDS_PER_LINE) {
+        let splitIndex = -1;
+        for (let i = Math.min(MAX_WORDS_PER_LINE - 1, sentence.length - 1); i >= 0; i--) {
+          if (sentence[i].pos === "PUNCT") {
+            splitIndex = i;
+            break;
+          }
+        }
+        // if a split point was found, mark the word after it as a new verse start
+        if (splitIndex !== -1 && splitIndex + 1 < sentence.length) {
+          keys.add(sentence[splitIndex + 1]._key);
+        }
+      }
     });
+
     return keys;
   }
-
   _buildTokenPositions(tokens, colX, spacing, verseStartKeys) {
     const positions = {};
     let x = PAD_T;
@@ -136,7 +145,6 @@ export class DependencyGraph {
       if (verseStartKeys.has(t._key)) {
         y += ROW_H;
         x = PAD_T;
-        // x += VERSE_GAP;
       }
       positions[t._key] = { x, y: y + colX[t.pos] ?? PAD_L };
       x += spacing;

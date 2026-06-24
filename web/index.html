@@ -14,61 +14,89 @@
 <body>
   <script type="module" src="/src/main.js"></script>
 
-  <div id="topbar">
+  <!-- <div id="topbar">
     <h1>Wordlace</h1>
     <div class="view-tab active" id="tab-pos">Part of Speech</div>
     <div class="view-tab " id="tab-ngram">N-gram</div>
-  </div>
-    <div id="right-panels">
-      <div style="width: 100%; display: flex; flex-direction: column; gap: 2rem">
-        <div class="input-section">
-          <!-- <textarea id="sentence-input" placeholder="Type a sentence…" rows="1"></textarea> -->
-          <!-- <button class="weave-btn" id="draw">Weave</button> -->
-          <button class="weave-btn" id="prev-demo">&lt;</button>
-          <button class="weave-btn" id="next-demo">></button>
-          <button class="weave-btn" id="hide-blue">Show Dependency</button>
-          <button class="weave-btn" id="dual-views" aria-pressed="false">Dual Views</button>
-        </div>
+  </div> -->
+  <div id="control-panels">
+    <div style="width: 100%; display: flex; flex-direction: column; gap: 2rem">
+      <div class="input-section">
+        <!-- <textarea id="sentence-input" placeholder="Type a sentence…" rows="1"></textarea> -->
+        <!-- <button class="weave-btn" id="draw">Weave</button> -->
+        <button class="weave-btn" id="prev-demo">&lt;</button>
+        <button class="weave-btn" id="next-demo">></button>
+        <button class="weave-btn" id="expand">+</button>
+        <button class="weave-btn" id="shrink">-</button>
+        <button class="weave-btn" id="hide-blue">Show Dependency</button>
+        <button class="weave-btn" id="dual-views" aria-pressed="false">Dual Views</button>
+      </div>
 
-        <!-- <div id="writer-container" class="">
+      <!-- <div id="writer-container" class="">
           <button id="enter-key">Enter ↵</button>
           <button id="clear-key">Clear</button>
           <div id="writer"></div>
         </div> -->
-      </div>
     </div>
-<div>
+  </div>
 
-<!-- All language is but a poor translation.*<br/>
-All language is just an attempt to communicate.<br/>
-Nothing survives transcription, nothing doesn't survive transcription. -Allison Parrish <a
-  href="https://posts.decontextualize.com/nothing-survives-transcription/">link</a>
-<br />
-
-In the face of all this, Susan Howe concludes that there is no editorial approach to Dickinson that could be truly faithful to her poetic innovations. “Words are only frames. No comfortable conclusions. Letters are scrawls, turnabouts, astonishments, strokes, cuts, masks.… [Dickinson’s] manuscripts should be understood as visual productions. 
-I yearn to express, yet stumble with words. For that I can't speak my mother tongue, 
-
-There are dimensions to language that are very difficult to describe with language, and yet it is only in language—in trying to move through it—that one has the privilege of experiencing these dimensions. 
+  <div class="intro">
+    <div>
+    All language is but a poor translation. ― Franz Kafka<br />
+    All language is but an attempt to communicate.<br />
 
 
-it’s that traces of language are insufficient even to tell us what language is like. 
-<br/>
-<small>* Franz Kafka</small> -->
-</div>
+
+    <p>
+          Nothing survives transcription, nothing doesn't survive transcription.
+
+    In the face of all this, Susan Howe concludes that there is no editorial approach to Dickinson that could be truly
+    faithful to her poetic innovations. “Words are only frames. No comfortable conclusions. Letters are scrawls, turnabouts,
+    astonishments, strokes, cuts, masks.… [Dickinson’s] manuscripts should be understood as visual productions.
+    ...it's that traces of language are insufficient even to tell us what language is like.
+     <br>
+    ― Allison Parrish <a
+      href="https://posts.decontextualize.com/nothing-survives-transcription/">link</a>
+   </p>
+    <p>
+    There are dimensions to language that are very difficult to describe with language, and yet it is only in language—in
+    trying to move through it—that one has the privilege of experiencing these dimensions.
+    <br>
+  ― Renée Gladman, Prose Architectures
+</p>
+    <p>
+      The struggle of literature is in fact a struggle to escape from the confines of language; it stretches out from the
+      utmost limits of what can be said; what stirs literature is the call and attraction of what is not in the dictionary.
+      <br>
+      
+      ― Italo Calvino
+      </p>
+      <p>
+        Poetry is the inscription of impossibility into a language: when we cannot say something directly yet we nonetheless
+        insist in speaking, we unavoidably get caught in repetitions, postponements, indirectness, surprising cuts
+        <br>
+        ― Slavoj Žižek
+      </p>
+    <br />
+    <p class="footnote">
+    <small>* Franz Kafka</small>
+    </p>
+    </div>
+  </div>
 
   <main class="main-container">
-    <div id="canvas-wrap-en">
+    <div id="canvas-wrap-en" class="canvas-wrap">
       <svg id="svg-en"></svg>
     </div>
 
-    <!-- <div id="canvas-wrap-lang">
+    <!-- <div id="canvas-wrap-lang"  class="canvas-wrap">
       <svg id="svg-lang"></svg>
     </div> -->
   </main>
 
-    <overlay-panel id="translation-label" class="translation">
-      translation
-    </overlay-panel>
+  <overlay-panel id="translation-label" class="translation">
+    translation
+  </overlay-panel>
 
 
 </body>

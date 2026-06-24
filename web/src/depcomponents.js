@@ -311,7 +311,7 @@ export class Edges {
 
       if (PUNCT.test(currText) || PUNCT.test(nextText)) continue;
 
-      this._createEdge(curr._key, next._key, defs,{
+      this._createEdge(curr._key, next._key, defs, {
         color: "#ff6565",
         marker: "url(#arr-red)",
         width: 3,
@@ -582,7 +582,11 @@ export class ColumnHeader {
     const pal = this.state.palette;
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
     g.setAttribute("pointer-events", "none");
+    // this.drawPOSHeaders();
+    return g;
+  }
 
+  drawPOSHeaders() {
     COL_ORDER.forEach((p) => {
       if (p !== "PUNCT") {
         drawText(
@@ -599,11 +603,8 @@ export class ColumnHeader {
         );
       }
     });
-
     this.svg.appendChild(g);
-    return g;
   }
-
   _buildHitRect() {
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute("fill", "transparent");

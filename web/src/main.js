@@ -27,10 +27,17 @@ import { drawLinear } from "./braid";
 import { Translator } from "./translate";
 import { ArcDependencyGraph } from "./arcgraph";
 
+const POEM_FILES = [
+  "borges_art_poetry_full",
+  "borges_two_english_poems",
+  "tselliot_tokens",
+  "ch_poem_tokens",
+  "aiqing_tokens"
+]
+
 class PoemView {
-  constructor(lang, dataUrl, svgId, containerId, translateCallback = null) {
+  constructor(lang, svgId, containerId, translateCallback = null) {
     this.lang = lang;
-    this.dataUrl = dataUrl;
     this.svgId = svgId;
     this.containerId = containerId;
     this.poems = [];
@@ -44,13 +51,20 @@ class PoemView {
     this._resizeTimer = null;
   }
 
-  async load() {
-    const res = await fetch(this.dataUrl);
-    this.poems = await res.json();
+  async loadAll() {
+    const results = await Promise.all(
+      POEM_FILES.map(async (url) => {
+        const res = await fetch(`/data/${url}.json`);
+        return res.json();
+      })
+    );
+    this.poems = results;
   }
 
   get currentPoem() {
-    return this.poems[this.chapterIndex] ?? null;
+    const poems = this.poems[this.chapterIndex];
+    if (poems) return poems[0]; 
+    else return null;
   }
 
   get currentTokens() {
@@ -60,8 +74,7 @@ class PoemView {
   }
 
   loadChapter(index) {
-    this.chapterIndex =
-      ((index % this.poems.length) + this.poems.length) % this.poems.length;
+    this.chapterIndex = ((index % POEM_FILES.length) + POEM_FILES.length) % POEM_FILES.length;
     this._initSVG();
     this.draw();
   }
@@ -80,10 +93,6 @@ class PoemView {
     const svg = document.getElementById(this.svgId);
     const container = document.querySelector(`#${this.containerId}`);
     svg.innerHTML = "";
-    const W = container.clientWidth || 600;
-    const H = 500;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.style.height = H + "px";
   }
 
   switchView(v) {
@@ -96,11 +105,10 @@ class Views {
   constructor(dualViews = false) {
     this._resizeTimer = null;
     this._listeners = [];
-
+    this.viewScale = 1;
     this.views = [
       new PoemView(
         "en",
-        "/data/tselliot_tokens.json",
         "svg-en",
         "canvas-wrap-en",
       ),
@@ -115,7 +123,6 @@ class Views {
       this.views.push(
         new PoemView(
           "es",
-          "/data/borges_es_tokens.json",
           "svg-lang",
           "canvas-wrap-lang",
           translateCallback,
@@ -149,7 +156,7 @@ class Views {
   async init() {
     this._bindUI();
 
-    await Promise.all(this.views.map((v) => v.load()));
+    await Promise.all(this.views.map((v) => v.loadAll()));
 
     this.forEachView((v) => v.loadChapter(0));
   }
@@ -157,11 +164,11 @@ class Views {
   loadChapter(index) {
     this.forEachView((v) => v.loadChapter(index));
 
-    const input = document.getElementById("sentence-input");
+    // const input = document.getElementById("sentence-input");
 
-    if (input) {
-      input.value = this.en.currentPoem?.title ?? "";
-    }
+    // if (input) {
+    //   input.value = this.en.currentPoem?.title ?? "";
+    // }
   }
 
   switchView(view) {
@@ -177,21 +184,37 @@ class Views {
   }
 
   _bindUI() {
-    this.addListener(document.getElementById("tab-ngram"), "click", () =>
-      this.switchView("linear"),
-    );
-    this.addListener(document.getElementById("tab-pos"), "click", () =>
-      this.switchView("lace"),
-    );
-    // this.addListener(document.getElementById("draw"), "click", () =>
-    //   this.drawAll(),
+    // this.addListener(document.getElementById("tab-ngram"), "click", () =>
+    //   this.switchView("linear"),
     // );
+    // this.addListener(document.getElementById("tab-pos"), "click", () =>
+    //   this.switchView("lace"),
+    // );
+
     this.addListener(document.getElementById("prev-demo"), "click", () =>
       this.loadChapter(this.en.chapterIndex - 1),
     );
     this.addListener(document.getElementById("next-demo"), "click", () =>
       this.loadChapter(this.en.chapterIndex + 1),
     );
+
+
+    this.addListener(document.getElementById("expand"), "click", () => {
+      this.views.forEach(view => {
+        this.viewScale += 0.1
+        this.viewScale = Math.min(3, this.viewScale);
+        const svg = document.querySelector(`#${view.svgId}`);
+        svg.style.transform = `scale(${this.viewScale})`;
+      })
+    }
+    );
+    this.addListener(document.getElementById("shrink"), "click", () =>
+      this.views.forEach(view => {
+        this.viewScale -= 0.1
+        this.viewScale = Math.max(0.1, this.viewScale);
+        const svg = document.querySelector(`#${view.svgId}`);
+        svg.style.transform = `scale(${this.viewScale})`;
+      }));
 
     const hideBlue = document.getElementById("hide-blue");
 
@@ -217,21 +240,9 @@ class Views {
       this.forEachView((v) => {
         v.showDepsLocked = locked;
       });
-
       hideBlue.textContent = locked ? "Hide Dependency" : "Show Dependency";
-
       this.drawAll();
     });
-
-    // this.addListener(
-    //   document.getElementById("sentence-input"),
-    //   "keydown",
-    //   (e) => {
-    //     if (e.key === "Enter") {
-    //       this.drawAll();
-    //     }
-    //   },
-    // );
 
     // const resizeHandler = () => {
     //   clearTimeout(this._resizeTimer);
@@ -254,10 +265,10 @@ export let views;
 async function createViews(dualViews) {
   if (views) {
     views.destroy();
-  document.querySelector("#svg-en").innerHTML = "";
-  document.querySelector("#svg-lang").innerHTML = "";
+    document.querySelector("#svg-en").innerHTML = "";
+    document.querySelector("#svg-lang").innerHTML = "";
   }
-    
+
   views = new Views(dualViews);
   await views.init();
 }
