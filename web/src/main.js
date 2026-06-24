@@ -1,14 +1,16 @@
 // TODO:
-// 2. add color palette
-// 3. add hovering: 
+// . get "show dependency" working again
+// . figure out the story of the tokens that are not aligned on the Y
+// . add hovering: 
 //     highlight: 1) same row (POS) (maybe)
 //                2) words that have arrows to or from this
-// 4. translation
+// . add more examples
+// . figure out where the preface goes
+// . translation
 //               - try legend/side note type
-// 5. add more examples
-// 6. figure out where the preface goes
 
-// 1. word positions: part of speech, word vector?
+// word Y positions: part of speech, word vector?
+// dual views would be cool
 
 
 import "./style.css";
@@ -54,7 +56,7 @@ class PoemView {
 
   get currentPoem() {
     const poems = this.poems[this.chapterIndex];
-    if (poems) return poems[0]; 
+    if (poems) return poems[0];
     else return null;
   }
 

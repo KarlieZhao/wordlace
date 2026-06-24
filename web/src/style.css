@@ -375,3 +375,7 @@ svg path{
   dominant-baseline: central;
   text-anchor: middle;
 }
+
+.token-label.strong{
+    font-weight: 500;
+}

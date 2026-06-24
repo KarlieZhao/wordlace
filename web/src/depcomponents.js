@@ -210,7 +210,10 @@ export class TokenNode {
     textEl.setAttribute("font-size", "12");
     textEl.setAttribute("font-weight", "400");
     textEl.setAttribute("fill", nodeColor);
-    textEl.setAttribute("class", "token-label");
+    textEl.classList.add("token-label");
+    if (["NOUN", "VERB"].includes(this.token.pos)){
+      textEl.classList.add("strong");
+    }
     textEl.textContent = t.word;
     g.appendChild(textEl);
 
