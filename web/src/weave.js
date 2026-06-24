@@ -4,16 +4,10 @@ import {
   TokenNode,
   Edges,
   GraphState,
-  ColumnHeader,
-  VerseDivider,
+  ColumnHeader
 } from "./depcomponents";
 import { views } from "./main";
-// maybe we don't show the dependcy terms on the graph since it's a bit too rigid
-// language A - B - C ...
-// automatically translating and shifting towards another languange word by word
-
-// TODO:
-// make it an animation, with my own writing, about the friction in language and translations
+import { PALETTE } from "./palette";
 
 const PAD_B = -100;
 const PAD_L = 10;
@@ -163,21 +157,6 @@ export class DependencyGraph {
     return Math.max(h, 400);
   }
 
-  // _drawVerseDividers(sentences, tokenPos, W, pal) {
-  //   sentences.slice(1).forEach((sentence) => {
-  //     if (!sentence.length) return;
-  //     const pos = tokenPos[sentence[0]._key];
-  //     if (!pos) return;
-  //     new VerseDivider(
-  //       this.svg,
-  //       PAD_L - 20,
-  //       colW * (Object.keys(COL_ORDER).length + 1),
-  //       pos.y - VERSE_GAP - ROW_H,
-  //       pal.LIGHT_GRAY,
-  //     );
-  //   });
-  // }
-
   // event handlers
   _attachTokenEvents(node, token) {
     const { g } = node;
@@ -219,9 +198,8 @@ export class DependencyGraph {
           : best,
       );
       this.header.highlight(nearestPos);
-      const pal = this.state.palette;
       Object.values(this.nodeMap).forEach((node) => {
-        node.setFill(node.token.pos === nearestPos ? pal.BLACK : "#ccc");
+        node.setFill(node.token.pos === nearestPos ? PALETTE.black : PALETTE.lightGray);
       });
       this.edgeLayer.dimAll();
     });
@@ -234,11 +212,10 @@ export class DependencyGraph {
 
   _applyState() {
     const { state } = this;
-    const pal = state.palette;
     const labelSet = state.labelSet;
 
     if (!state.hasSelection && !state.hasHover) {
-      Object.values(this.nodeMap).forEach((node) => node.setFill(pal.BLACK));
+      Object.values(this.nodeMap).forEach((node) => node.setFill(PALETTE.black));
       this.edgeLayer.getLines().forEach((el) => this.edgeLayer.restoreEdge(el));
       this.edgeLayer.getLabels().forEach((el) => {
         el.textContent = labelSet[el.dataset.dep];
@@ -253,7 +230,7 @@ export class DependencyGraph {
       const isClickable =
         !state.hasSelection || state.selectedChildren.includes(key);
       node.setFill(
-        isSelected ? pal.RED : litIds.has(key) ? pal.BLACK : pal.LIGHT_GRAY,
+        isSelected ? PALETTE.highlight : litIds.has(key) ? PALETTE.black : PALETTE.lightGray,
       );
       node.setPointerEvents(isClickable && !isSelected ? "auto" : "none");
     });

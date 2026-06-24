@@ -2,22 +2,10 @@ import { views } from "./main";
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { PAD_T } from "./weave";
+import { PALETTE } from "./palette";
 
 const HIDDEN_DEPS = new Set(["punct"]);
-
-const PALETTE_EN = {
-  LIGHT_BLUE: "#043f6c",
-  BLACK: "#6f5201",
-  LIGHT_GRAY: "#b0b0b0",
-  RED: "#955151",
-};
-
-const PALETTE_ZH = {
-  LIGHT_BLUE: "#043f6c",
-  BLACK: "#6f5201",
-  LIGHT_GRAY: "#b0b0b0",
-  RED: "#955151",
-};
+const SVGNS = "http://www.w3.org/2000/svg";
 
 const DEP_LABELS = {
   nsubj: "nominal subject",
@@ -150,10 +138,6 @@ export class GraphState {
     this.language = language;
   }
 
-  get palette() {
-    return this.language === "en" ? PALETTE_EN : PALETTE_ZH;
-  }
-
   get labelSet() {
     return this.language === "zh" ? DEP_LABELS_ZH : DEP_LABELS;
   }
@@ -198,6 +182,7 @@ export class GraphState {
 
 export class TokenNode {
   constructor(svg, token, pos, state) {
+    this.svg = svg
     this.token = token;
     this.pos = pos;
     this.state = state;
@@ -208,35 +193,41 @@ export class TokenNode {
   _buildGroup() {
     const { x, y } = this.pos;
     const t = this.token;
-    const pal = this.state.palette;
 
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const g = document.createElementNS(SVGNS, "g");
     g.setAttribute("class", "token-node");
     g.setAttribute("class", t.pos.toLowerCase());
     g.setAttribute("data-id", t.id);
     g.style.cursor = "default";
 
-    const textEl = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "text",
-    );
+    const nodeColor = PALETTE.POS[this.token.pos] ?? PALETTE.black;
+    
+    const textEl = document.createElementNS(SVGNS, "text");
     textEl.setAttribute("x", x);
     textEl.setAttribute("y", y);
     textEl.setAttribute("text-anchor", "middle");
     textEl.setAttribute("dominant-baseline", "central");
     textEl.setAttribute("font-size", "12");
     textEl.setAttribute("font-weight", "400");
-    textEl.setAttribute("fill", pal.BLACK);
+    textEl.setAttribute("fill", nodeColor);
     textEl.setAttribute("class", "token-label");
     textEl.textContent = t.word;
     g.appendChild(textEl);
 
+    // attempt at using dom divs instead of svg text
+    // for easy google translate -- outcome isnt great
+
+    // const textEl = document.createElement("div")
+    // textEl.style.left = 170 + x + 'px';
+    // textEl.style.top = y+80 + 'px';
+    // textEl.setAttribute("fill", pal.BLACK);
+    // textEl.setAttribute("class", "token-label");
+    // textEl.textContent = t.word;
+    // this.svg.parentElement.appendChild(textEl);
+
     const normWord = normalize(t.word);
     if (normWord !== t.word.toLowerCase()) {
-      const subEl = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "text",
-      );
+      const subEl = document.createElementNS(SVGNS, "text");
       subEl.setAttribute("x", x + 16);
       subEl.setAttribute("y", y);
       subEl.setAttribute("text-anchor", "start");
@@ -249,10 +240,7 @@ export class TokenNode {
 
     const approxH = 26;
     const approxW = t.word.length * 10 + 16;
-    const hitRect = document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "rect",
-    );
+    const hitRect = document.createElementNS(SVGNS, "rect");
     hitRect.setAttribute("x", x - approxW / 2);
     hitRect.setAttribute("y", y - approxH / 2);
     hitRect.setAttribute("width", approxW);
@@ -264,7 +252,7 @@ export class TokenNode {
   }
 
   setFill(color) {
-    this.textEl.setAttribute("fill", color);
+    // this.textEl.setAttribute("fill", color);
   }
 
   setPointerEvents(value) {
@@ -280,12 +268,11 @@ export class Edges {
     this.state = state;
     this.group = this._createGroup();
     this.depEdges = this._drawCurves();
-    // this.depEdges = this._drawDepEdges();
     this.sequentialEdges = this._drawSequentialEdges(defs);
   }
 
   _createGroup() {
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const g = document.createElementNS(SVGNS, "g");
     g.setAttribute("class", "edge-layer");
     this.svg.appendChild(g);
     return g;
@@ -312,10 +299,10 @@ export class Edges {
       if (PUNCT.test(currText) || PUNCT.test(nextText)) continue;
 
       this._createEdge(curr._key, next._key, defs, {
-        color: "#ff6565",
-        marker: "url(#arr-red)",
+        color: PALETTE.lightGray,
+        marker: "url(#arr)",
         width: 3,
-        opacity: 0.3,
+        opacity: 0.4,
         showArrow: true,
       });
     }
@@ -323,6 +310,8 @@ export class Edges {
 
   _drawCurves() {
     const GAP = 12;
+    const CURVE_MIN_DIST = 50;
+
     const pal = this.state.palette;
     const labelSet = this.state.labelSet;
 
@@ -336,8 +325,6 @@ export class Edges {
       }
       sentenceKeyMap.get(si).set(t.id, t._key);
     });
-
-    const svgNS = "http://www.w3.org/2000/svg";
 
     this.tokens.forEach((tok) => {
       if (HIDDEN_DEPS.has(tok.dep)) return;
@@ -356,42 +343,52 @@ export class Edges {
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       const isDownward = tok.head_id > tok.id;
-
-      // curvature strength: scale with distance but clamp
-      const curve = Math.min(40, Math.max(10, dist * 0.2));
-
-      // perpendicular direction for nice arc
-      const nx = -dy / (dist || 1);
-      const ny = dx / (dist || 1);
-
-      const cx = (a.x + b.x) / 2 + nx * (isDownward ? curve : -curve);
-      const cy = (a.y + b.y) / 2 + ny * (isDownward ? curve : -curve);
-
-      const color = isDownward ? pal.BLACK : pal.LIGHT_BLUE;
+      const color = isDownward ? PALETTE["02"][1] : PALETTE["01"][5];
       const marker = isDownward ? "url(#arr-black)" : "url(#arr-blue)";
 
-      const path = document.createElementNS(svgNS, "path");
+      const path = document.createElementNS(SVGNS, "path");
 
-      const d = `
-      M ${a.x + (dx / dist) * GAP} ${a.y + (dy / dist) * GAP}
-      Q ${cx} ${cy}
-        ${b.x - (dx / dist) * (GAP + 6)} ${b.y - (dy / dist) * (GAP + 6)}
-    `;
+      let d;
+      let midX, midY;
 
-      path.setAttribute("d", d.trim());
-      path.setAttribute("fill", "none");
+      if (dist < CURVE_MIN_DIST) {
+        const ux = dx / (dist || 1);
+        const uy = dy / (dist || 1);
+
+        const x1 = a.x + ux * GAP;
+        const y1 = a.y + uy * GAP;
+        const x2 = b.x - ux * (GAP + 6);
+        const y2 = b.y - uy * (GAP + 6);
+
+        d = `M ${x1} ${y1} L ${x2} ${y2}`;
+        midX = (x1 + x2) / 2;
+        midY = (y1 + y2) / 2;
+      } else {
+        const curve = Math.min(40, Math.max(10, dist * 0.2));
+        const nx = -dy / dist;
+        const ny = dx / dist;
+
+        const cx = (a.x + b.x) / 2 + nx * (isDownward ? curve : -curve);
+        const cy = (a.y + b.y) / 2 + ny * (isDownward ? curve : -curve);
+
+        const ux = dx / dist;
+        const uy = dy / dist;
+
+        d = `M ${a.x + ux * GAP} ${a.y + uy * GAP} Q ${cx} ${cy} ${b.x - ux * (GAP + 6)} ${b.y - uy * (GAP + 6)}`;
+        midX = cx;
+        midY = cy;
+      }
+
+      path.setAttribute("d", d);
       path.setAttribute("stroke", color);
-      path.setAttribute("stroke-width", "0.9");
-      path.setAttribute("opacity", isDownward ? "0.6" : "0.4");
+      // path.setAttribute("opacity", isDownward ? "0.6" : "0.4");
       path.setAttribute("marker-end", marker);
 
       path.dataset.fromKey = tok._key;
       path.dataset.toKey = headKey;
       path.dataset.dep = tok.dep;
-      path.style.cursor = "pointer";
 
       this.group.appendChild(path);
-
       outgoing[tok._key].push({
         lineEl: path,
         targetKey: headKey,
@@ -399,9 +396,6 @@ export class Edges {
 
       if (!(views.showDeps || views.showDepsLocked)) return;
 
-      const midX = cx;
-      const midY = cy;
-
       const { text } = drawText(
         this.group,
         null,
@@ -410,79 +404,7 @@ export class Edges {
         labelSet[tok.dep],
         9,
         400,
-        pal.LIGHT_GRAY,
-        "middle",
-        "IBM Plex Mono",
-        "dep-labels",
-      );
-
-      text.dataset.fromKey = tok._key;
-      text.dataset.dep = tok.dep;
-    });
-
-    return outgoing;
-  }
-  _drawDepEdges(defs) {
-    const GAP = 12;
-    const pal = this.state.palette;
-    const labelSet = this.state.labelSet;
-    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
-    const sentenceKeyMap = new Map();
-
-    this.tokens.forEach((t) => {
-      const si = t._key.split("_")[0];
-      if (!sentenceKeyMap.has(si)) {
-        sentenceKeyMap.set(si, new Map());
-      }
-      sentenceKeyMap.get(si).set(t.id, t._key);
-    });
-
-    this.tokens.forEach((tok) => {
-      if (HIDDEN_DEPS.has(tok.dep)) return;
-      if (tok.head_id === tok.id) return;
-
-      const si = tok._key.split("_")[0];
-      const headKey = sentenceKeyMap.get(si)?.get(tok.head_id);
-
-      if (!headKey) return;
-
-      const isDownward = tok.head_id > tok.id;
-      const edge = this._createEdge(tok._key, headKey, defs, {
-        gap: GAP,
-        color: isDownward ? pal.BLACK : pal.LIGHT_BLUE,
-        marker: isDownward ? "url(#arr-black)" : "url(#arr-blue)",
-        width: 0.8,
-        dep: tok.dep,
-        showArrow: false,
-      });
-
-      if (!edge) return;
-
-      edge.dataset.immediate = isDownward ? "1" : "0";
-      edge.style.cursor = "pointer";
-
-      outgoing[tok._key].push({
-        lineEl: edge,
-        targetKey: headKey,
-      });
-
-      if (!(views.showDeps || views.showDepsLocked)) return;
-
-      const a = this.tokenPos[tok._key];
-      const b = this.tokenPos[headKey];
-
-      const midX = (a.x + b.x) / 2;
-      const midY = (a.y + b.y) / 2;
-
-      const { text } = drawText(
-        this.group,
-        null,
-        midX,
-        midY - 5,
-        labelSet[tok.dep],
-        9,
-        400,
-        pal.LIGHT_GRAY,
+        PALETTE.lightGray,
         "middle",
         "IBM Plex Mono",
         "dep-labels",
@@ -497,8 +419,7 @@ export class Edges {
 
   _createEdge(fromKey, toKey, defs, opts = {}) {
     // mkArrowMarker(defs, "arr-black", "#000");
-    // mkArrowMarker(defs, "arr-blue", "#509cff");
-    mkArrowMarker(defs, "arr-red", "#ff6565");
+    mkArrowMarker(defs, "arr", PALETTE.lightGray);
     const {
       color = "#999",
       marker = "url(#arr-black)",
@@ -560,7 +481,7 @@ export class Edges {
   restoreEdge(el) {
     const isImmediate = el.dataset.immediate === "1";
     const pal = this.state.palette;
-    el.setAttribute("stroke", isImmediate ? pal.BLACK : "#7bafd4");
+    el.setAttribute("stroke", isImmediate ? PALETTE.black : "#7bafd4");
     // el.setAttribute(
     // "marker-end",
     // isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
@@ -580,7 +501,7 @@ export class ColumnHeader {
 
   _buildGroup() {
     const pal = this.state.palette;
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const g = document.createElementNS(SVGNS, "g");
     g.setAttribute("pointer-events", "none");
     // this.drawPOSHeaders();
     return g;
@@ -597,7 +518,7 @@ export class ColumnHeader {
           COL_LABELS[p] || p,
           11,
           400,
-          pal.LIGHT_GRAY,
+          PALETTE.lightGray,
           "middle",
           "IBM Plex Mono",
         );
@@ -606,7 +527,7 @@ export class ColumnHeader {
     this.svg.appendChild(g);
   }
   _buildHitRect() {
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const rect = document.createElementNS(SVGNS, "rect");
     rect.setAttribute("fill", "transparent");
 
     requestAnimationFrame(() => {
@@ -626,7 +547,7 @@ export class ColumnHeader {
     const pal = this.state.palette;
     this.group
       .querySelectorAll("text")
-      .forEach((el) => el.setAttribute("fill", pal.LIGHT_GRAY));
+      .forEach((el) => el.setAttribute("fill", PALETTE.lightGray));
   }
 
   highlight(posTag) {
@@ -634,19 +555,5 @@ export class ColumnHeader {
     // const pal = this.state.palette;
     // const el = this.group.querySelector(`#rowheader-${posTag}`);
     // if (el) el.setAttribute("fill", pal.BLACK);
-  }
-}
-
-export class VerseDivider {
-  constructor(svg, x1, x2, y, color) {
-    const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    el.setAttribute("x1", x1);
-    el.setAttribute("y1", y);
-    el.setAttribute("x2", x2);
-    el.setAttribute("y2", y);
-    el.setAttribute("stroke", color);
-    el.setAttribute("stroke-width", "0.5");
-    el.setAttribute("stroke-opacity", "0.7");
-    svg.appendChild(el);
   }
 }

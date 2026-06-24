@@ -1,31 +1,22 @@
-// The Brain--is wider than the Sky--
-//  For--put them side by side--
-//  The one the other will contain
-//  Wit  is deeper tha  o Blue--
-//  The one ti  bsorb--
-//  As Sp  s--Buckets--do--
-//  The Brain is just   weight of God--
-//  For--Heft them--Po  und for Pound--
-//  And they will   differ--if they do--
-//  As Syllable from Sound--
-
 // TODO:
-// the traces and shapes matter a lot: word flow and choices
-// 2. word positions: part of speech, word vector? (2d coordinates)
-// 3. try a chinese version => chinese tokenizer | part of speech detector or smth
-// 4. explore n-gram model for better outcome?
-// 5. fix issues with the current POS_TRANSITIONS
+// 2. add color palette
+// 3. add hovering: 
+//     highlight: 1) same row (POS) (maybe)
+//                2) words that have arrows to or from this
+// 4. translation
+//               - try legend/side note type
+// 5. add more examples
+// 6. figure out where the preface goes
 
+// 1. word positions: part of speech, word vector?
 
-// hovering: (attention)
-// what words are related to this one, in what ways? 
-// all the tangly lines...
 
 import "./style.css";
 import { DependencyGraph } from "./weave";
 import { drawLinear } from "./braid";
 import { Translator } from "./translate";
 import { ArcDependencyGraph } from "./arcgraph";
+import { PALETTE } from "./palette";
 
 const POEM_FILES = [
   "borges_art_poetry_full",
