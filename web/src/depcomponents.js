@@ -273,15 +273,15 @@ export class TokenNode {
 }
 
 export class Edges {
-  constructor(svg, tokens, tokenPos, state) {
+  constructor(svg, tokens, tokenPos, state, defs) {
     this.svg = svg;
     this.tokens = tokens;
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this._drawDepEdges= this._drawCurves();
+    this.depEdges = this._drawCurves();
     // this.depEdges = this._drawDepEdges();
-    this.sequentialEdges = this._drawSequentialEdges();
+    this.sequentialEdges = this._drawSequentialEdges(defs);
   }
 
   _createGroup() {
@@ -299,7 +299,7 @@ export class Edges {
     return this.svg.querySelectorAll(".edge-layer text");
   }
 
-  _drawSequentialEdges() {
+  _drawSequentialEdges(defs) {
     const PUNCT = /^[^\p{L}\p{N}]+$/u;
 
     for (let i = 0; i < this.tokens.length - 1; i++) {
@@ -311,7 +311,7 @@ export class Edges {
 
       if (PUNCT.test(currText) || PUNCT.test(nextText)) continue;
 
-      this._createEdge(curr._key, next._key, {
+      this._createEdge(curr._key, next._key, defs,{
         color: "#ff6565",
         marker: "url(#arr-red)",
         width: 3,
@@ -370,7 +370,6 @@ export class Edges {
       const color = isDownward ? pal.BLACK : pal.LIGHT_BLUE;
       const marker = isDownward ? "url(#arr-black)" : "url(#arr-blue)";
 
-      // ---- PATH (CURVED EDGE) ----
       const path = document.createElementNS(svgNS, "path");
 
       const d = `
@@ -398,7 +397,6 @@ export class Edges {
         targetKey: headKey,
       });
 
-      // ---- DEP LABELS (UNCHANGED LOGIC) ----
       if (!(views.showDeps || views.showDepsLocked)) return;
 
       const midX = cx;
@@ -424,7 +422,7 @@ export class Edges {
 
     return outgoing;
   }
-  _drawDepEdges() {
+  _drawDepEdges(defs) {
     const GAP = 12;
     const pal = this.state.palette;
     const labelSet = this.state.labelSet;
@@ -449,7 +447,7 @@ export class Edges {
       if (!headKey) return;
 
       const isDownward = tok.head_id > tok.id;
-      const edge = this._createEdge(tok._key, headKey, {
+      const edge = this._createEdge(tok._key, headKey, defs, {
         gap: GAP,
         color: isDownward ? pal.BLACK : pal.LIGHT_BLUE,
         marker: isDownward ? "url(#arr-black)" : "url(#arr-blue)",
@@ -497,8 +495,7 @@ export class Edges {
     return outgoing;
   }
 
-  _createEdge(fromKey, toKey, opts = {}) {
-    const defs = mkDefs(this.svg);
+  _createEdge(fromKey, toKey, defs, opts = {}) {
     // mkArrowMarker(defs, "arr-black", "#000");
     // mkArrowMarker(defs, "arr-blue", "#509cff");
     mkArrowMarker(defs, "arr-red", "#ff6565");

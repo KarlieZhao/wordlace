@@ -81,7 +81,7 @@ class PoemView {
     const container = document.querySelector(`#${this.containerId}`);
     svg.innerHTML = "";
     const W = container.clientWidth || 600;
-    const H = 900;
+    const H = 500;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.style.height = H + "px";
   }
@@ -100,7 +100,7 @@ class Views {
     this.views = [
       new PoemView(
         "en",
-        "/data/borges_en.json",
+        "/data/tselliot_tokens.json",
         "svg-en",
         "canvas-wrap-en",
       ),
@@ -183,9 +183,9 @@ class Views {
     this.addListener(document.getElementById("tab-pos"), "click", () =>
       this.switchView("lace"),
     );
-    this.addListener(document.getElementById("draw"), "click", () =>
-      this.drawAll(),
-    );
+    // this.addListener(document.getElementById("draw"), "click", () =>
+    //   this.drawAll(),
+    // );
     this.addListener(document.getElementById("prev-demo"), "click", () =>
       this.loadChapter(this.en.chapterIndex - 1),
     );
@@ -223,29 +223,29 @@ class Views {
       this.drawAll();
     });
 
-    this.addListener(
-      document.getElementById("sentence-input"),
-      "keydown",
-      (e) => {
-        if (e.key === "Enter") {
-          this.drawAll();
-        }
-      },
-    );
+    // this.addListener(
+    //   document.getElementById("sentence-input"),
+    //   "keydown",
+    //   (e) => {
+    //     if (e.key === "Enter") {
+    //       this.drawAll();
+    //     }
+    //   },
+    // );
 
-    const resizeHandler = () => {
-      clearTimeout(this._resizeTimer);
+    // const resizeHandler = () => {
+    //   clearTimeout(this._resizeTimer);
 
-      this._resizeTimer = setTimeout(() => {
-        this.drawAll();
-      }, 100);
-    };
+    //   this._resizeTimer = setTimeout(() => {
+    //     this.drawAll();
+    //   }, 100);
+    // };
 
-    window.addEventListener("resize", resizeHandler);
+    // window.addEventListener("resize", resizeHandler);
 
-    this._listeners.push(() =>
-      window.removeEventListener("resize", resizeHandler),
-    );
+    // this._listeners.push(() =>
+    //   window.removeEventListener("resize", resizeHandler),
+    // );
   }
 }
 

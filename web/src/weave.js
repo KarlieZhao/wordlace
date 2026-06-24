@@ -16,10 +16,10 @@ import { views } from "./main";
 // make it an animation, with my own writing, about the friction in language and translations
 
 const PAD_B = -100;
-const PAD_L = 200;
+const PAD_L = 10;
 
-const colW = 30;
-const ROW_H = 30;
+const colW = 10;
+const ROW_H = 80;
 export const PAD_T = 50; //-20 * ROW_H;
 const VERSE_GAP = 5;
 
@@ -43,28 +43,37 @@ export class DependencyGraph {
   draw(tokens, sentences = null) {
     this.svg.innerHTML = "";
     this.nodeMap = {};
-
-    const W = this.svg.clientWidth * 1.1 || 800;
-    const colX = Object.fromEntries(
-      COL_ORDER.map((p, i) => [p, PAD_L + i * colW]),
-    );
+    const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, i * colW]));
 
     // stamp every token with a key: chapter#_verse#
     this._stampKeys(tokens, sentences);
     const verseStartKeys = this._buildVerseStartKeys(sentences);
+    const longestSentence = sentences.reduce((longest, current) => {
+      return current.length > longest.length ? current : longest;
+    }, []);
 
-    const tokenPos = this._buildTokenPositions(tokens, colX, verseStartKeys);
+    const maxWords = Math.min(longestSentence.length, 40);
+
+    const totalW = this.svg.clientWidth ?? 1200;
     const totalH = this._totalHeight(tokens, verseStartKeys);
-    this.svg.setAttribute("viewBox", `0 0 ${totalH} ${800}`);
-    this.svg.style.height = W + "px";
+    this.svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+    this.svg.style.width = totalW;
+    this.svg.style.height = totalH;
 
-    // const defs = mkDefs(this.svg);
+    const tokenPos = this._buildTokenPositions(
+      tokens,
+      colX,
+      (totalW - PAD_L * 2) / maxWords,
+      verseStartKeys,
+    );
+
+    const defs = mkDefs(this.svg);
     const pal = this.state.palette;
     // mkArrowMarker(defs, "arr-black", pal.BLACK);
     // mkArrowMarker(defs, "arr-blue", pal.LIGHT_BLUE);
 
     this.header = new ColumnHeader(this.svg, colX, this.state);
-    this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state);
+    this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state, defs);
 
     // if (sentences && sentences.length > 1) {
     //   this._drawVerseDividers(sentences, tokenPos, W, pal);
@@ -119,14 +128,18 @@ export class DependencyGraph {
     return keys;
   }
 
-  _buildTokenPositions(tokens, colX, verseStartKeys) {
+  _buildTokenPositions(tokens, colX, spacing, verseStartKeys) {
     const positions = {};
     let x = PAD_T;
-
+    let y = PAD_T;
     tokens.forEach((t) => {
-      if (verseStartKeys.has(t._key)) x += VERSE_GAP;
-      positions[t._key] = { x, y: colX[t.pos] ?? PAD_L };
-      x += ROW_H;
+      if (verseStartKeys.has(t._key)) {
+        y += ROW_H;
+        x = PAD_T;
+        // x += VERSE_GAP;
+      }
+      positions[t._key] = { x, y: y + colX[t.pos] ?? PAD_L };
+      x += spacing;
     });
 
     return positions;
@@ -135,10 +148,11 @@ export class DependencyGraph {
   _totalHeight(tokens, verseStartKeys) {
     let h = PAD_T + PAD_B;
     tokens.forEach((t) => {
-      if (verseStartKeys.has(t._key)) h += VERSE_GAP;
-      h += ROW_H;
+      if (verseStartKeys.has(t._key)) {
+        h += ROW_H * 1.6;
+      }
     });
-    return Math.max(h, 300);
+    return Math.max(h, 400);
   }
 
   // _drawVerseDividers(sentences, tokenPos, W, pal) {
