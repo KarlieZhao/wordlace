@@ -337,9 +337,17 @@
   height: max-content;
 }
 
+.intro-overlay-bg {
+  position: fixed;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: white
+}
 
-.intro{
-  margin-top: 3rem;
+.intro {
+  /* position: fixed; */
+  margin-top: 5rem;
   display: flex;
   justify-content: center;
   height: max-content;
@@ -388,4 +396,26 @@ svg path{
 .hidden {
   display: none;
   visibility: hidden;
+}
+
+.close-btn {
+  width: max-content;
+  padding: 0 0.5rem;
+  height: 1.5rem;
+  background-color: rgb(223, 217, 223);
+  position: fixed;
+  top: 5rem;
+  right: 3rem;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.close-btn:hover {
+  background-color: rgb(175, 155, 175);
 }

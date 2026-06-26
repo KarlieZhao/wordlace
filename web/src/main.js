@@ -1,13 +1,10 @@
 // TODO:
-// . figure out the story of the tokens that are not aligned on the Y
-// . add hovering: 
-//     highlight: 1) same row (POS) (maybe)
-//                2) words that have arrows to or from this
 // . add more examples
-// . figure out where the preface goes
 // . translation
 //               - try legend/side note type
 
+// . figure out the story of the tokens that are not aligned on the Y
+// . figure out where the preface goes
 // word Y positions: part of speech, word vector?
 // dual views would be cool
 
@@ -271,6 +268,12 @@ async function createViews(dualViews) {
 }
 
 async function initApp() {
+  const closeIntro = document.getElementById("close-intro");
+  const label = document.getElementById("close-intro-label");
+  closeIntro.addEventListener("click", () => {
+    document.querySelector(".intro-overlay-bg").classList.toggle("hidden");
+    label.textContent = closeIntro.checked ? "show text" : "X";
+  });
   const dualViewBtn = document.getElementById("dual-views");
 
   dualViewBtn.addEventListener("click", async () => {

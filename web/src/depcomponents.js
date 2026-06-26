@@ -1,4 +1,3 @@
-import { views } from "./main";
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER, COL_LABELS, normalize } from "./words";
 import { PAD_T } from "./weave";
@@ -133,8 +132,9 @@ export class GraphState {
   constructor(language = "en") {
     this.selected = [];
     this.selectedChildren = [];
-    this.hovered = "";
-    this.hoveredChildren = [];
+    this.hovered = ""; 
+    this.hoverPos = null; // POS tag of hovered token
+    this.connectedKeys = new Set(); // _keys of dep/seq neighbors
     this.language = language;
   }
 
@@ -150,6 +150,7 @@ export class GraphState {
     return this.selected.length > 0;
   }
 
+  // true when a token is being hovered
   get hasHover() {
     return this.hovered !== "";
   }
@@ -158,25 +159,29 @@ export class GraphState {
     return new Set([
       ...this.selected,
       ...this.selectedChildren,
-      ...(this.hasHover ? [this.hovered, ...this.hoveredChildren] : []),
+      ...(this.hasHover ? [this.hovered, ...this.connectedKeys] : []),
     ]);
   }
 
   selectToken(id, children) {
     this.selected.push(id);
     this.selectedChildren = children;
+    // clear hover so _applyState won't also run hover logic
     this.hovered = "";
-    this.hoveredChildren = [];
+    this.hoverPos = null;
+    this.connectedKeys = new Set();
   }
 
-  hoverToken(id, children) {
+  hoverToken(id, pos, connected) {
     this.hovered = id;
-    this.hoveredChildren = children;
+    this.hoverPos = pos;
+    this.connectedKeys = connected; // Set of _keys
   }
 
   clearHover() {
     this.hovered = "";
-    this.hoveredChildren = [];
+    this.hoverPos = null;
+    this.connectedKeys = new Set();
   }
 }
 
@@ -217,17 +222,6 @@ export class TokenNode {
     textEl.textContent = t.word;
     g.appendChild(textEl);
 
-    // attempt at using dom divs instead of svg text
-    // for easy google translate -- outcome isnt great
-
-    // const textEl = document.createElement("div")
-    // textEl.style.left = 170 + x + 'px';
-    // textEl.style.top = y+80 + 'px';
-    // textEl.setAttribute("fill", pal.BLACK);
-    // textEl.setAttribute("class", "token-label");
-    // textEl.textContent = t.word;
-    // this.svg.parentElement.appendChild(textEl);
-
     const normWord = normalize(t.word);
     if (normWord !== t.word.toLowerCase()) {
       const subEl = document.createElementNS(SVGNS, "text");
@@ -254,8 +248,12 @@ export class TokenNode {
     return g;
   }
 
-  setFill(color) {
-    // this.textEl.setAttribute("fill", color);
+  setOpaque() {
+    this.textEl.setAttribute("opacity", 1.0);
+  }
+
+  setTransparent() {
+    this.textEl.setAttribute("opacity", 0.3);
   }
 
   setPointerEvents(value) {
@@ -270,7 +268,7 @@ export class Edges {
     this.tokenPos = tokenPos;
     this.state = state;
     this.group = this._createGroup();
-    this.depEdges = this._drawCurves();
+    this.depGraph = this._drawCurves();
     this.sequentialEdges = this._drawSequentialEdges(defs);
   }
 
@@ -281,8 +279,14 @@ export class Edges {
     return g;
   }
 
+  // sequential edges are <line> elements
   getLines() {
     return this.svg.querySelectorAll(".edge-layer line");
+  }
+
+  // dependency edges are <path> elements
+  getPaths() {
+    return this.svg.querySelectorAll(".edge-layer path");
   }
 
   getLabels() {
@@ -301,25 +305,31 @@ export class Edges {
 
       if (PUNCT.test(currText) || PUNCT.test(nextText)) continue;
 
-      this._createEdge(curr._key, next._key, defs, {
+      const edge = this._createEdge(curr._key, next._key, defs, {
         color: PALETTE.lightGray,
         marker: "url(#arr)",
         width: 3,
         opacity: 0.4,
         showArrow: true,
       });
+
+      if (edge) {
+        // tag sequential edges so _applyState can find neighbors
+        edge.dataset.sequential = "1";
+      }
     }
   }
 
   _drawCurves() {
     const GAP = 12;
     const CURVE_MIN_DIST = 50;
-
-    const pal = this.state.palette;
     const labelSet = this.state.labelSet;
 
-    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
     const sentenceKeyMap = new Map();
+
+    // both outgoing AND incoming are populated so neighbor lookup works in both directions
+    const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
+    const incoming = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
 
     this.tokens.forEach((t) => {
       const si = t._key.split("_")[0];
@@ -384,7 +394,7 @@ export class Edges {
 
       path.setAttribute("d", d);
       path.setAttribute("stroke", color);
-      // path.setAttribute("opacity", isDownward ? "0.6" : "0.4");
+      path.setAttribute("fill", "none");
       path.setAttribute("marker-end", marker);
 
       path.dataset.fromKey = tok._key;
@@ -392,10 +402,10 @@ export class Edges {
       path.dataset.dep = tok.dep;
 
       this.group.appendChild(path);
-      outgoing[tok._key].push({
-        lineEl: path,
-        targetKey: headKey,
-      });
+
+      // populate BOTH directions so neighbor lookup works regardless of which end is hovered
+      outgoing[tok._key].push({ lineEl: path, targetKey: headKey });
+      incoming[headKey].push({ lineEl: path, sourceKey: tok._key });
 
       const { text } = drawText(
         this.group,
@@ -416,11 +426,10 @@ export class Edges {
       text.classList.add("hidden");
     });
 
-    return outgoing;
+    return { outgoing, incoming };
   }
 
   _createEdge(fromKey, toKey, defs, opts = {}) {
-    // mkArrowMarker(defs, "arr-black", "#000");
     mkArrowMarker(defs, "arr", PALETTE.lightGray);
     const {
       color = "#999",
@@ -477,18 +486,13 @@ export class Edges {
   }
 
   dimAll() {
-    // this.getLines().forEach((el) => (el.style.opacity = "0.08"));
+    this.getLines().forEach((el) => (el.style.opacity = "0.08"));
+    this.getPaths().forEach((el) => (el.style.opacity = "0.08"));
   }
 
   restoreEdge(el) {
     const isImmediate = el.dataset.immediate === "1";
-    const pal = this.state.palette;
     el.setAttribute("stroke", isImmediate ? PALETTE.black : "#7bafd4");
-    // el.setAttribute(
-    // "marker-end",
-    // isImmediate ? "url(#arr-black)" : "url(#arr-blue)",
-    // );
-    // el.style.opacity = "1.0";
   }
 }
 
@@ -502,10 +506,8 @@ export class ColumnHeader {
   }
 
   _buildGroup() {
-    const pal = this.state.palette;
     const g = document.createElementNS(SVGNS, "g");
     g.setAttribute("pointer-events", "none");
-    // this.drawPOSHeaders();
     return g;
   }
 
@@ -513,7 +515,7 @@ export class ColumnHeader {
     COL_ORDER.forEach((p) => {
       if (p !== "PUNCT") {
         drawText(
-          g,
+          this.group,
           `rowheader-${p}`,
           this.colX[p],
           PAD_T - 20,
@@ -526,8 +528,9 @@ export class ColumnHeader {
         );
       }
     });
-    this.svg.appendChild(g);
+    this.svg.appendChild(this.group);
   }
+
   _buildHitRect() {
     const rect = document.createElementNS(SVGNS, "rect");
     rect.setAttribute("fill", "transparent");
@@ -546,16 +549,8 @@ export class ColumnHeader {
   }
 
   dimAll() {
-    const pal = this.state.palette;
     this.group
       .querySelectorAll("text")
       .forEach((el) => el.setAttribute("fill", PALETTE.lightGray));
-  }
-
-  highlight(posTag) {
-    // this.dimAll();
-    // const pal = this.state.palette;
-    // const el = this.group.querySelector(`#rowheader-${posTag}`);
-    // if (el) el.setAttribute("fill", pal.BLACK);
   }
 }

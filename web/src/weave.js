@@ -1,11 +1,6 @@
 import { mkDefs, mkArrowMarker } from "./svgutils";
 import { COL_ORDER } from "./words";
-import {
-  TokenNode,
-  Edges,
-  GraphState,
-  ColumnHeader
-} from "./depcomponents";
+import { TokenNode, Edges, GraphState, ColumnHeader } from "./depcomponents";
 import { views } from "./main";
 import { PALETTE } from "./palette";
 
@@ -30,8 +25,8 @@ export class DependencyGraph {
 
   /**
    * @param {Array}  tokens    - flat array of all tokens in the chapter,
-   *                             each augmented with a `_key` string that is
-   *                             unique across the whole chapter
+   *                             each augmented with a `_key` string unique
+   *                             across the whole chapter
    * @param {Array}  sentences - original sentence[][] structure for verse spacing
    */
   draw(tokens, sentences = null) {
@@ -39,30 +34,32 @@ export class DependencyGraph {
     this.nodeMap = {};
     const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, i * colW]));
 
-    // stamp every token with a key: chapter#_verse#
     this._stampKeys(tokens, sentences);
     const verseStartKeys = this._buildVerseStartKeys(sentences);
-    const longestSentence = sentences.reduce((longest, current) => {
-      return current.length > longest.length ? current : longest;
-    }, []);
+    const longestSentence = sentences
+      ? sentences.reduce(
+          (longest, current) =>
+            current.length > longest.length ? current : longest,
+          [],
+        )
+      : tokens;
 
     const svgWidth = 1000;
     const totalH = this._totalHeight(tokens, verseStartKeys);
 
     this.svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalH}`);
-    // this.svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
     this.svg.style.width = "100%";
-    this.svg.style.height = "auto";  
+    this.svg.style.height = "auto";
 
     const tokenPos = this._buildTokenPositions(
       tokens,
       colX,
-      (svgWidth - PAD_L * 2) / Math.min(MAX_WORDS_PER_LINE, longestSentence.length),
+      (svgWidth - PAD_L * 2) /
+        Math.min(MAX_WORDS_PER_LINE, longestSentence.length),
       verseStartKeys,
     );
 
     const defs = mkDefs(this.svg);
-    const pal = this.state.palette;
 
     this.header = new ColumnHeader(this.svg, colX, this.state);
     this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state, defs);
@@ -87,12 +84,8 @@ export class DependencyGraph {
     this._applyState();
   }
 
-  // layout helpers
-  /**
-   * Stamp every token with a chapter-unique `_key` of the form `"si_ti"`
-   * (sentence index + token id). Mutates in place — safe because these are
-   * transient render objects, not the stored data.
-   */
+  //  layout helpers
+
   _stampKeys(tokens, sentences) {
     if (sentences) {
       sentences.forEach((sentence, si) => {
@@ -116,21 +109,24 @@ export class DependencyGraph {
 
       if (sentence.length > MAX_WORDS_PER_LINE) {
         let splitIndex = -1;
-        for (let i = Math.min(MAX_WORDS_PER_LINE - 1, sentence.length - 1); i >= 0; i--) {
+        for (
+          let i = Math.min(MAX_WORDS_PER_LINE - 1, sentence.length - 1);
+          i >= 0;
+          i--
+        ) {
           if (sentence[i].pos === "PUNCT") {
             splitIndex = i;
             break;
           }
         }
-        // if a split point was found, mark the word after it as a new verse start
         if (splitIndex !== -1 && splitIndex + 1 < sentence.length) {
           keys.add(sentence[splitIndex + 1]._key);
         }
       }
     });
-
     return keys;
   }
+
   _buildTokenPositions(tokens, colX, spacing, verseStartKeys) {
     const positions = {};
     let x = PAD_T;
@@ -140,10 +136,9 @@ export class DependencyGraph {
         y += ROW_H;
         x = PAD_T;
       }
-      positions[t._key] = { x, y: y + colX[t.pos] ?? PAD_L };
+      positions[t._key] = { x, y: y + (colX[t.pos] ?? PAD_L) };
       x += spacing;
     });
-
     return positions;
   }
 
@@ -158,30 +153,39 @@ export class DependencyGraph {
   }
 
   // event handlers
+
   _attachTokenEvents(node, token) {
     const { g } = node;
-    const outgoing = this.edgeLayer.depEdges;
-    // const sequntialEdges = this.edgeLayer.sequentialEdges;
+    const { outgoing, incoming } = this.edgeLayer.depGraph;
 
-    // g.addEventListener("mouseenter", () => {
-    //   this.state.hoverToken(
-    //     token._key,
-    //     outgoing[token._key].map((e) => e.targetKey),
-    //   );
-    //   if (this.translateCallback) this.translateCallback(token.word);
-    //   this._applyState();
-    // });
+    g.addEventListener("mouseenter", () => {
+      // collect all graph-connected _keys (dep edges, both directions)
+      const connected = new Set();
 
-    // g.addEventListener("mouseleave", () => {
-    //   this.state.clearHover();
-    //   this._applyState();
-    // });
+      outgoing[token._key]?.forEach((e) => connected.add(e.targetKey));
+      incoming[token._key]?.forEach((e) => connected.add(e.sourceKey));
+
+      // also collect sequential neighbors (prev/next token in order)
+      this.edgeLayer.getLines().forEach((el) => {
+        if (el.dataset.fromKey === token._key) connected.add(el.dataset.toKey);
+        if (el.dataset.toKey === token._key) connected.add(el.dataset.fromKey);
+      });
+
+      // update state — hovered is a string _key, never a boolean
+      this.state.hoverToken(token._key, token.pos, connected);
+      this._applyState();
+    });
+
+    g.addEventListener("mouseleave", () => {
+      this.state.clearHover();
+      this._applyState();
+    });
 
     g.addEventListener("click", () => {
       this.writer.innerHTML += token.word + " ";
       this.state.selectToken(
         token._key,
-        outgoing[token._key].map((e) => e.targetKey),
+        outgoing[token._key]?.map((e) => e.targetKey) ?? [],
       );
       this._applyState();
     });
@@ -198,8 +202,13 @@ export class DependencyGraph {
           : best,
       );
       this.header.highlight(nearestPos);
+
       Object.values(this.nodeMap).forEach((node) => {
-        node.setFill(node.token.pos === nearestPos ? PALETTE.black : PALETTE.lightGray);
+        if (node.token.pos === nearestPos) {
+          node.setOpaque();
+        } else {
+          node.setTransparent();
+        }
       });
       this.edgeLayer.dimAll();
     });
@@ -214,46 +223,78 @@ export class DependencyGraph {
     const { state } = this;
     const labelSet = state.labelSet;
 
+    // default
     if (!state.hasSelection && !state.hasHover) {
-      Object.values(this.nodeMap).forEach((node) => node.setFill(PALETTE.black));
-      this.edgeLayer.getLines().forEach((el) => this.edgeLayer.restoreEdge(el));
+      Object.values(this.nodeMap).forEach((node) => node.setOpaque());
+      this.edgeLayer.getLines().forEach((el) => {
+        el.style.opacity = "0.4";
+      });
+      this.edgeLayer.getPaths().forEach((el) => {
+        this.edgeLayer.restoreEdge(el);
+        el.style.opacity = "0.6";
+      });
       this.edgeLayer.getLabels().forEach((el) => {
         el.textContent = labelSet[el.dataset.dep];
       });
       return;
     }
 
-    const litIds = state.litIds;
+    const hoveredKey = state.hovered;
+    const hoverPos = state.hoverPos;
+    const connected = state.connectedKeys;
 
+    //token colors
     Object.entries(this.nodeMap).forEach(([key, node]) => {
       const isSelected = state.selected.includes(key);
+      const isHovered = key === hoveredKey;
+      const samePos = hoverPos && node.token.pos === hoverPos;
+      const isNeighbor = connected.has(key);
+
+      if (isSelected || isHovered) {
+        node.setOpaque();
+      } else if (samePos || isNeighbor) {
+        // same POS and graph neighbors stay full black
+        node.setOpaque();
+      } else {
+        node.setTransparent();
+      }
+
       const isClickable =
         !state.hasSelection || state.selectedChildren.includes(key);
-      node.setFill(
-        isSelected ? PALETTE.highlight : litIds.has(key) ? PALETTE.black : PALETTE.lightGray,
-      );
       node.setPointerEvents(isClickable && !isSelected ? "auto" : "none");
     });
 
+    //sequential edges (lines)
     this.edgeLayer.getLines().forEach((el) => {
-      const fromKey = el.dataset.fromKey;
-      const fromLastSelected =
-        state.hasSelection && fromKey === state.lastSelected;
-      const fromHovered = state.hasHover && fromKey === state.hovered;
+      const from = el.dataset.fromKey;
+      const to = el.dataset.toKey;
+      const active =
+        from === hoveredKey || to === hoveredKey || from === state.lastSelected;
 
-      if (fromLastSelected) {
+      el.style.opacity = active ? "0.8" : "0.05";
+    });
+
+    //dependency edges (paths)
+    this.edgeLayer.getPaths().forEach((el) => {
+      const from = el.dataset.fromKey;
+      const to = el.dataset.toKey;
+      const active =
+        from === hoveredKey || to === hoveredKey || from === state.lastSelected;
+
+      if (active) {
+        this.edgeLayer.restoreEdge(el);
         el.style.opacity = "1";
-        this.edgeLayer.restoreEdge(el);
-      } else if (fromHovered) {
-        el.style.opacity = "0.5";
-        this.edgeLayer.restoreEdge(el);
       } else {
-        el.style.opacity = "0.08";
+        el.style.opacity = "0.05";
       }
     });
 
+    //dep labels
     this.edgeLayer.getLabels().forEach((el) => {
       el.textContent = labelSet[el.dataset.dep];
+      const from = el.dataset.fromKey;
+      const isActive = from === hoveredKey || connected.has(from);
+      el.style.opacity = isActive ? "1" : "0";
     });
   }
 }
