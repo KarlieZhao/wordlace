@@ -47,6 +47,10 @@ edges can be weighted by how often they co-occur
 
 - dissecting words
   - https://medium.com/@adecressac/beyond-simple-categories-a80633dfac39
+
+
+- freqency of a word appearing in the language 
+    informaiton theoretic (bits of information in a word)
   
 ### NLP and relationality 
 - words don't have intrinsic categories. (how much do i believe that?)

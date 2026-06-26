@@ -182,7 +182,7 @@ export class GraphState {
 
 export class TokenNode {
   constructor(svg, token, pos, state) {
-    this.svg = svg
+    this.svg = svg;
     this.token = token;
     this.pos = pos;
     this.state = state;
@@ -201,7 +201,7 @@ export class TokenNode {
     g.style.cursor = "default";
 
     const nodeColor = PALETTE.POS[this.token.pos] ?? PALETTE.black;
-    
+
     const textEl = document.createElementNS(SVGNS, "text");
     textEl.setAttribute("x", x);
     textEl.setAttribute("y", y);
@@ -211,7 +211,7 @@ export class TokenNode {
     textEl.setAttribute("font-weight", "400");
     textEl.setAttribute("fill", nodeColor);
     textEl.classList.add("token-label");
-    if (["NOUN", "VERB"].includes(this.token.pos)){
+    if (["NOUN", "VERB"].includes(this.token.pos)) {
       textEl.classList.add("strong");
     }
     textEl.textContent = t.word;
@@ -397,8 +397,6 @@ export class Edges {
         targetKey: headKey,
       });
 
-      if (!(views.showDeps || views.showDepsLocked)) return;
-
       const { text } = drawText(
         this.group,
         null,
@@ -407,14 +405,15 @@ export class Edges {
         labelSet[tok.dep],
         9,
         400,
-        PALETTE.lightGray,
+        PALETTE.darkGray,
         "middle",
         "IBM Plex Mono",
-        "dep-labels",
       );
 
       text.dataset.fromKey = tok._key;
       text.dataset.dep = tok.dep;
+      text.classList.add("dep-label");
+      text.classList.add("hidden");
     });
 
     return outgoing;

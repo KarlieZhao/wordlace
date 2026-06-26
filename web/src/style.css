@@ -379,3 +379,13 @@ svg path{
 .token-label.strong{
     font-weight: 500;
 }
+
+.dep-label {
+  display: block;
+  visibility: visible;
+}
+
+.hidden {
+  display: none;
+  visibility: hidden;
+}

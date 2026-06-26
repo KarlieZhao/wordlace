@@ -1,5 +1,4 @@
 // TODO:
-// . get "show dependency" working again
 // . figure out the story of the tokens that are not aligned on the Y
 // . add hovering: 
 //     highlight: 1) same row (POS) (maybe)
@@ -17,15 +16,14 @@ import "./style.css";
 import { DependencyGraph } from "./weave";
 import { drawLinear } from "./braid";
 import { Translator } from "./translate";
-import { ArcDependencyGraph } from "./arcgraph";
-import { PALETTE } from "./palette";
 
 const POEM_FILES = [
   "borges_art_poetry_full",
   "borges_two_english_poems",
   "tselliot_tokens",
-  "ch_poem_tokens",
-  "aiqing_tokens"
+  // "tselliot_tokens",
+  // "ch_poem_tokens",
+  // "aiqing_tokens"
 ]
 
 class PoemView {
@@ -38,7 +36,6 @@ class PoemView {
     this.view = "lace"; // "lace" | "linear"
     this.showDeps = false;
     this.showDepsLocked = false;
-    // this.graph = new ArcDependencyGraph(this.svgId, lang, translateCallback);
     this.graph = new DependencyGraph(this.svgId, lang, translateCallback);
 
     this._resizeTimer = null;
@@ -191,50 +188,57 @@ class Views {
       this.loadChapter(this.en.chapterIndex + 1),
     );
 
-
     this.addListener(document.getElementById("expand"), "click", () => {
-      this.views.forEach(view => {
-        this.viewScale += 0.1
+      this.views.forEach((view) => {
+        this.viewScale += 0.1;
         this.viewScale = Math.min(3, this.viewScale);
         const svg = document.querySelector(`#${view.svgId}`);
         svg.style.transform = `scale(${this.viewScale})`;
-      })
-    }
-    );
+      });
+    });
     this.addListener(document.getElementById("shrink"), "click", () =>
-      this.views.forEach(view => {
-        this.viewScale -= 0.1
+      this.views.forEach((view) => {
+        this.viewScale -= 0.1;
         this.viewScale = Math.max(0.1, this.viewScale);
         const svg = document.querySelector(`#${view.svgId}`);
         svg.style.transform = `scale(${this.viewScale})`;
-      }));
+      }),
+    );
 
-    const hideBlue = document.getElementById("hide-blue");
-
-    this.addListener(hideBlue, "mouseenter", () => {
+    // ==== show dependency labels ===
+    const showDepBtn = document.getElementById("show-dep");
+    this.addListener(showDepBtn, "mouseenter", () => {
       this.forEachView((v) => {
-        v.showDeps = true;
+        if (!v.showDepsLocked) {
+          const depLabels = document.querySelectorAll(".dep-label");
+          depLabels.forEach((ele) => {
+            ele.classList.remove("hidden");
+          });
+        }
       });
-
-      this.drawAll();
     });
 
-    this.addListener(hideBlue, "mouseleave", () => {
+    this.addListener(showDepBtn, "mouseleave", () => {
       this.forEachView((v) => {
-        v.showDeps = false;
+        if (!v.showDepsLocked) {
+          const depLabels = document.querySelectorAll(".dep-label");
+          depLabels.forEach((ele) => {
+            ele.classList.add("hidden");
+          });
+        }
       });
-
-      this.drawAll();
     });
 
-    this.addListener(hideBlue, "click", () => {
+    this.addListener(showDepBtn, "click", () => {
       const locked = !this.en.showDepsLocked;
-
       this.forEachView((v) => {
         v.showDepsLocked = locked;
+        const depLabels = document.querySelectorAll(".dep-label");
+        depLabels.forEach((ele) => {
+          ele.classList.toggle("hidden", !v.showDepsLocked);
+        });
       });
-      hideBlue.textContent = locked ? "Hide Dependency" : "Show Dependency";
-      this.drawAll();
+      showDepBtn.textContent = locked ? "Hide Dependency" : "Show Dependency";
     });
 
     // const resizeHandler = () => {
