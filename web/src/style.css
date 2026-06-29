@@ -342,7 +342,8 @@
   top: 0;
   width: 100vw;
   height: 100vh;
-  background-color: white
+  background-color: #fffb;
+  overflow: hidden;
 }
 
 .intro {
@@ -357,8 +358,9 @@
 }
 
 .intro div {
-  width: 60%;
+  width: 55%;
   min-width: 200px;
+  max-width: 600px;
 }
 
 .intro p {
@@ -398,24 +400,24 @@ svg path{
   visibility: hidden;
 }
 
-.close-btn {
+.close-btn-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
   width: max-content;
   padding: 0 0.5rem;
-  height: 1.5rem;
-  background-color: rgb(223, 217, 223);
-  position: fixed;
-  top: 5rem;
-  right: 3rem;
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-  border-radius: 3px;
 }
 
-.close-btn:hover {
-  background-color: rgb(175, 155, 175);
+ .close-btn {
+    font-size: 12px;
+}
+
+#close-intro--input{
+  accent-color: black
+}
+.title-topbar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-size: 13px;
 }

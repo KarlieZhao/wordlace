@@ -18,9 +18,9 @@ const POEM_FILES = [
   "borges_art_poetry_full",
   "borges_two_english_poems",
   "tselliot_tokens",
-  // "tselliot_tokens",
-  // "ch_poem_tokens",
-  // "aiqing_tokens"
+  "bolano_ernesto_cardenal_and_i_tokens",
+  "ERNESTO_CARDENAL_Y_YO_tokens",
+  "aiqing_tokens"
 ]
 
 class PoemView {
@@ -93,6 +93,7 @@ class Views {
     this._resizeTimer = null;
     this._listeners = [];
     this.viewScale = 1;
+    this.titleDiv = document.querySelector("#--poem--title");
     this.views = [
       new PoemView(
         "en",
@@ -144,18 +145,21 @@ class Views {
     this._bindUI();
 
     await Promise.all(this.views.map((v) => v.loadAll()));
-
+    this.updateTitle(0)
     this.forEachView((v) => v.loadChapter(0));
   }
 
+  updateTitle(index) {
+    if (this.views[0].poems[index]) this.titleDiv.innerHTML = this.views[0].poems[index][0].title + "<br/>" + this.views[0].poems[index][0].author// TODO: crap...
+    else {
+      this.titleDiv.innerHTML = ""
+    }
+  }
+
   loadChapter(index) {
+    index = ((index % POEM_FILES.length) + POEM_FILES.length) % POEM_FILES.length;
+    this.updateTitle(index)
     this.forEachView((v) => v.loadChapter(index));
-
-    // const input = document.getElementById("sentence-input");
-
-    // if (input) {
-    //   input.value = this.en.currentPoem?.title ?? "";
-    // }
   }
 
   switchView(view) {
@@ -268,11 +272,13 @@ async function createViews(dualViews) {
 }
 
 async function initApp() {
-  const closeIntro = document.getElementById("close-intro");
+  const closeIntro = document.getElementById("close-intro--input");
   const label = document.getElementById("close-intro-label");
+  closeIntro.checked = false;
+  document.querySelector(".intro-overlay-bg").classList.add("hidden");
+
   closeIntro.addEventListener("click", () => {
     document.querySelector(".intro-overlay-bg").classList.toggle("hidden");
-    label.textContent = closeIntro.checked ? "show text" : "X";
   });
   const dualViewBtn = document.getElementById("dual-views");
 

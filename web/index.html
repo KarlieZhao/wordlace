@@ -20,7 +20,7 @@
     <div class="view-tab " id="tab-ngram">N-gram</div>
   </div> -->
   <div id="control-panels">
-    <div style="width: 100%; display: flex; flex-direction: column; gap: 2rem">
+    <div style="display: flex; flex-direction: row; gap: 2rem">
       <div class="input-section">
         <!-- <textarea id="sentence-input" placeholder="Type a sentence…" rows="1"></textarea> -->
         <!-- <button class="weave-btn" id="draw">Weave</button> -->
@@ -29,8 +29,12 @@
         <button class="weave-btn" id="expand">+</button>
         <button class="weave-btn" id="shrink">-</button>
         <button class="weave-btn" id="show-dep">Show Dependency</button>
-        <button class="weave-btn" id="dual-views" aria-pressed="false">Side by Side Views</button>
+        <button class="weave-btn" id="dual-views" aria-pressed="false">Side by Side View</button>
+       <div class="close-btn-container"><input type="checkbox" id="close-intro--input">
+        <label class="close-btn" for="close-intro" id="close-intro-label">Show me some quotes</label>
       </div>
+      </div>
+      <div id="--poem--title" class="title-topbar">Poem title</div>
 
       <!-- <div id="writer-container" class="">
           <button id="enter-key">Enter ↵</button>
@@ -39,9 +43,6 @@
         </div> -->
     </div>
   </div>
-
-  <input type="checkbox" class="close-btn" id="close-intro" name="newsletter" value="yes">
-  <label class="close-btn" for="close-intro" id="close-intro-label">X</label>
 
 
   <div class="intro-overlay-bg">

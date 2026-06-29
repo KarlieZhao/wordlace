@@ -16,18 +16,17 @@ END_PUNCT = re.compile(r'(?:[.!?。！？]+|……+|——+)["\')\]]*$')
 # re.compile(r'[.!?]+["\')\]]*$')
 
 if LANG == "en":
-    nlp = spacy.load("en_core_web_sm")  # type: ignore
+    nlp = spacy.load("en_core_web_sm")
     nlp = en_core_web_sm.load()
 elif LANG == "zh":
-    nlp = spacy.load("zh_core_web_sm")  # type: ignore
+    nlp = spacy.load("zh_core_web_sm")
     nlp = zh_core_web_sm.load()
 elif LANG == "es":
-    nlp = spacy.load("es_core_news_sm")  # type: ignore
+    nlp = spacy.load("es_core_news_sm")
     nlp = es_core_news_sm.load()
 
 
 def get_noun_chunks_zh(doc):
-    """Extract noun phrases using dependency relations."""
     chunks = []
     for token in doc:
         if token.dep_ in (
@@ -78,7 +77,8 @@ def get_phrase_data(doc):
                     }
                 )
         else:
-            # Non-noun tokens (verbs, conjunctions, etc.) cannot be "phrased"
+            # Non-noun tokens (verbs, conjunctions, etc.) cannot be phrase
+            # hmmm...
             phrases.append(
                 {
                     "word": token.text,
@@ -101,10 +101,10 @@ def join_lines(lines):
     for line in lines:
         buffer.append(line.strip())
         if END_PUNCT.search(line.strip()):
-            
+
             sentences.append(" ".join(buffer))
             buffer = []
-    if buffer: 
+    if buffer:
         sentences.append(" ".join(buffer))
     return sentences
 
@@ -132,7 +132,11 @@ def main():
         for sentence in join_lines(chapter["content"]):
             doc_en = nlp(sentence)
             result.append(get_phrase_data(doc_en))
-        data = {"title": chapter["title"], "content": result}
+        data = {
+            "title": chapter["title"],
+            "author": chapter["author"],
+            "content": result,
+        }
         outgoing.append(data)
 
     filename = f"{input_filename.split('.')[0]}_tokens.json"
