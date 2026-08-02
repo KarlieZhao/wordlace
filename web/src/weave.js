@@ -1,6 +1,6 @@
 import { mkDefs } from "./svgutils";
 import { COL_ORDER } from "./words";
-import { TokenNode, Edges, GraphState, ColumnHeader } from "./depcomponents";
+import { TokenNode, Edges, GraphState } from "./depcomponents";
 
 export const PAD_T = 0;
 const PAD_L = 20;
