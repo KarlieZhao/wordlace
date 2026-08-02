@@ -11,7 +11,7 @@ import en_core_web_sm, zh_core_web_sm, es_core_news_sm
 from spacy import displacy
 
 HERE = os.path.dirname(os.path.realpath(__file__))
-LANG = "zh"
+LANG = "en"
 END_PUNCT = re.compile(r'(?:[.!?。！？]+|……+|——+)["\')\]]*$')
 # re.compile(r'[.!?]+["\')\]]*$')
 
@@ -111,7 +111,7 @@ def join_lines(lines):
 
 def main():
     if len(sys.argv) <= 1:
-        print("Must enter input filename.")
+        print("need a input filename. format: ./process.py name.json")
         sys.exit()
 
     input_filename = sys.argv[1]
