@@ -1,11 +1,11 @@
-import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
-import { COL_ORDER, COL_LABELS, normalize } from "./words";
-import { PAD_T } from "./weave";
+import { drawText, line, mkArrowMarker } from "./svgutils";
+import { normalize } from "./words";
 import { PALETTE } from "./palette";
 
 const HIDDEN_DEPS = new Set(["punct"]);
 const SVGNS = "http://www.w3.org/2000/svg";
 
+export const TEXT_SIZE = 8;
 const DEP_LABELS = {
   nsubj: "nominal subject",
   obj: "direct object",
@@ -207,43 +207,22 @@ export class TokenNode {
 
     const nodeColor = PALETTE.POS[this.token.pos] ?? PALETTE.black;
 
-    const textEl = document.createElementNS(SVGNS, "text");
-    textEl.setAttribute("x", x);
-    textEl.setAttribute("y", y);
-    textEl.setAttribute("text-anchor", "middle");
-    textEl.setAttribute("dominant-baseline", "central");
-    textEl.setAttribute("font-size", "12");
-    textEl.setAttribute("font-weight", "400");
-    textEl.setAttribute("fill", nodeColor);
-    textEl.classList.add("token-label");
+    const { text: textEl, hitArea } = drawText(
+      g,
+      t.word + "-label",
+      x,
+      y,
+      t.word,
+      12,
+      500,
+      nodeColor,
+      "middle",
+      undefined,
+      "token-label",
+    );
     if (["NOUN", "VERB"].includes(this.token.pos)) {
       textEl.classList.add("strong");
     }
-    textEl.textContent = t.word;
-    g.appendChild(textEl);
-
-    const normWord = normalize(t.word);
-    if (normWord !== t.word.toLowerCase()) {
-      const subEl = document.createElementNS(SVGNS, "text");
-      subEl.setAttribute("x", x + 16);
-      subEl.setAttribute("y", y);
-      subEl.setAttribute("text-anchor", "start");
-      subEl.setAttribute("dominant-baseline", "central");
-      subEl.setAttribute("font-size", "9");
-      subEl.setAttribute("fill", "#aaaaaa");
-      subEl.textContent = normWord;
-      g.appendChild(subEl);
-    }
-
-    const approxH = 26;
-    const approxW = t.word.length * 10 + 16;
-    const hitRect = document.createElementNS(SVGNS, "rect");
-    hitRect.setAttribute("x", x - approxW / 2);
-    hitRect.setAttribute("y", y - approxH / 2);
-    hitRect.setAttribute("width", approxW);
-    hitRect.setAttribute("height", approxH);
-    hitRect.setAttribute("fill", "transparent");
-    g.appendChild(hitRect);
 
     return g;
   }
@@ -269,7 +248,7 @@ export class Edges {
     this.state = state;
     this.group = this._createGroup();
     this.depGraph = this._drawCurves();
-    this.sequentialEdges = this._drawSequentialEdges(defs);
+    // this.sequentialEdges = this._drawSequentialEdges(defs);
   }
 
   _createGroup() {
@@ -321,13 +300,11 @@ export class Edges {
   }
 
   _drawCurves() {
-    const GAP = 12;
+    const GAP = 8;
     const CURVE_MIN_DIST = 50;
     const labelSet = this.state.labelSet;
 
     const sentenceKeyMap = new Map();
-
-    // both outgoing AND incoming are populated so neighbor lookup works in both directions
     const outgoing = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
     const incoming = Object.fromEntries(this.tokens.map((t) => [t._key, []]));
 
@@ -403,17 +380,17 @@ export class Edges {
 
       this.group.appendChild(path);
 
-      // populate BOTH directions so neighbor lookup works regardless of which end is hovered
       outgoing[tok._key].push({ lineEl: path, targetKey: headKey });
       incoming[headKey].push({ lineEl: path, sourceKey: tok._key });
 
-      const { text } = drawText(
+      // dependency labels
+      const { text, hitArea } = drawText(
         this.group,
         null,
         midX,
         midY - 5,
         labelSet[tok.dep],
-        9,
+        TEXT_SIZE,
         400,
         PALETTE.darkGray,
         "middle",
@@ -424,6 +401,9 @@ export class Edges {
       text.dataset.dep = tok.dep;
       text.classList.add("dep-label");
       text.classList.add("hidden");
+
+      hitArea.classList.add("hidden");
+
     });
 
     return { outgoing, incoming };
@@ -502,7 +482,7 @@ export class ColumnHeader {
     this.colX = colX;
     this.state = state;
     this.group = this._buildGroup();
-    this.hitRect = this._buildHitRect();
+    // this.hitRect = this._buildHitRect();
   }
 
   _buildGroup() {
@@ -511,32 +491,12 @@ export class ColumnHeader {
     return g;
   }
 
-  drawPOSHeaders() {
-    COL_ORDER.forEach((p) => {
-      if (p !== "PUNCT") {
-        drawText(
-          this.group,
-          `rowheader-${p}`,
-          this.colX[p],
-          PAD_T - 20,
-          COL_LABELS[p] || p,
-          11,
-          400,
-          PALETTE.lightGray,
-          "middle",
-          "IBM Plex Mono",
-        );
-      }
-    });
-    this.svg.appendChild(this.group);
-  }
-
   _buildHitRect() {
     const rect = document.createElementNS(SVGNS, "rect");
     rect.setAttribute("fill", "transparent");
 
     requestAnimationFrame(() => {
-      const pad = { x: 12, y: 8 };
+      const pad = { x: 8, y: 5 };
       const bbox = this.group.getBBox();
       rect.setAttribute("x", bbox.x - pad.x);
       rect.setAttribute("y", bbox.y - pad.y);

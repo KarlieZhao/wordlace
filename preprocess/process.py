@@ -134,7 +134,7 @@ def main():
             result.append(get_phrase_data(doc_en))
         data = {
             "title": chapter["title"],
-            "author": chapter["author"],
+            "author": chapter["author"] if "author" in chapter else "",
             "content": result,
         }
         outgoing.append(data)

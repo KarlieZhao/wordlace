@@ -32,36 +32,15 @@
   #canvas-wrap-en,
   #canvas-wrap-lang {
     /* width: max-content; */
-    width: 75%;
-    margin-left: 12.5%;
-
+    flex: 2;
+    overflow: auto;
   }
 
   .main-container {
     width: 100vw;
+    height: 100vh;
     display: flex;
-    margin-top: 5rem;
-  }
-
-  /* ── TOP BAR ── */
-  #topbar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    border-bottom: 1px solid #e8e8e8;
-    padding: 0 2rem;
-    height: 48px;
-    flex-shrink: 0;
-  }
-
-  #topbar h1 {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-right: 2rem;
+    overflow: hidden;
   }
 
   .view-tab {
@@ -90,16 +69,15 @@
   }
 
   #control-panels {
-    position: fixed;
+    position: sticky;
     top: 0;
     left: 0;
-    width: 100vw;
     display: flex;
     align-items: top;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid #e8e8e8;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #bebebe;
     flex-wrap: wrap;
-    background-color: white;
+    background-color: #fffa;
     z-index: 1;
   }
 
@@ -245,17 +223,25 @@
   }
 
   .canvas-wrap svg {
-    /* height: 100%; */
     height: max-content;
     display: block;
     transform-origin: top center;
+    width: 100%;
+    height: auto;
   }
+
+ .svg-en {
+  margin-left: 1rem;
+}
   
 
   #writer-container {
-    width: 100%;
+    flex: 1;
+    /* border: 1px solid pink; */
+    border-left: 1px solid #bebebe;
     font-size: 13px;
-    padding-top: 20px;
+    padding-top: 2rem;
+    overflow: auto;
   }
 
   #enter-key {
@@ -380,7 +366,7 @@ svg path{
 .token-label {
   position: absolute;
   text-anchor: middle;
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 400;
   dominant-baseline: central;
   text-anchor: middle;
@@ -421,3 +407,8 @@ svg path{
   width: 100%;
   font-size: 13px;
 }
+
+/* svg rect{
+  stroke:black;
+  stroke-width: 0.4px;
+} */

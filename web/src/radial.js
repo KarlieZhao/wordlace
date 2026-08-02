@@ -70,7 +70,7 @@ export class RadialDepGraph extends DependencyGraph {
 
       this.nodeMap[t._key] = node;
 
-      this._attachTokenEvents(node, t);
+      this.addMouseEvents(node, t);
     });
 
     this._applyState();

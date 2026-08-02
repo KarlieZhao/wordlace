@@ -1,16 +1,12 @@
-import { mkDefs, mkArrowMarker } from "./svgutils";
+import { mkDefs } from "./svgutils";
 import { COL_ORDER } from "./words";
 import { TokenNode, Edges, GraphState, ColumnHeader } from "./depcomponents";
-import { views } from "./main";
-import { PALETTE } from "./palette";
 
-const PAD_B = -100;
-const PAD_L = 10;
-
-const colW = 10;
-const ROW_H = 110;
-export const PAD_T = 50;
-const MAX_WORDS_PER_LINE = 50;
+export const PAD_T = 0;
+const PAD_L = 20;
+const svgWidth = 700;
+const posHeight = 12;
+const ROW_H = 70;
 
 export class DependencyGraph {
   constructor(svgId, language = "en", translateCallback) {
@@ -32,37 +28,24 @@ export class DependencyGraph {
   draw(tokens, sentences = null) {
     this.svg.innerHTML = "";
     this.nodeMap = {};
-    const colX = Object.fromEntries(COL_ORDER.map((p, i) => [p, i * colW]));
+    const categoryMap = Object.fromEntries(
+      COL_ORDER.map((posGroup, i) =>
+        posGroup.map((pos) => [pos, i * posHeight]),
+      ).flat(),
+    );
 
     this._stampKeys(tokens, sentences);
-    const verseStartKeys = this._buildVerseStartKeys(sentences);
-    const longestSentence = sentences
-      ? sentences.reduce(
-          (longest, current) =>
-            current.length > longest.length ? current : longest,
-          [],
-        )
-      : tokens;
-
-    const svgWidth = 1000;
-    const totalH = this._totalHeight(tokens, verseStartKeys);
-
-    this.svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalH}`);
-    this.svg.style.width = "100%";
-    this.svg.style.height = "auto";
-
-    const tokenPos = this._buildTokenPositions(
+    const { positions, totalH } = this._buildTokenPositions(
       tokens,
-      colX,
-      (svgWidth - PAD_L * 2) /
-        Math.min(MAX_WORDS_PER_LINE, longestSentence.length),
-      verseStartKeys,
+      categoryMap,
     );
+
+    this.svg.setAttribute("viewBox", `0 0 ${svgWidth} ${totalH + 50}`);
 
     const defs = mkDefs(this.svg);
 
-    this.header = new ColumnHeader(this.svg, colX, this.state);
-    this.edgeLayer = new Edges(this.svg, tokens, tokenPos, this.state, defs);
+    // this.header = new ColumnHeader(this.svg, categoryMap, this.state);
+    this.edgeLayer = new Edges(this.svg, tokens, positions, this.state, defs);
 
     const labelGroup = document.createElementNS(
       "http://www.w3.org/2000/svg",
@@ -72,20 +55,18 @@ export class DependencyGraph {
     this.svg.appendChild(labelGroup);
 
     tokens.forEach((t) => {
-      const pos = tokenPos[t._key];
+      const pos = positions[t._key];
       if (!pos) return;
       const node = new TokenNode(this.svg, t, pos, this.state);
       labelGroup.appendChild(node.g);
       this.nodeMap[t._key] = node;
-      this._attachTokenEvents(node, t);
+      this.addMouseEvents(node, t);
     });
 
-    this._attachHeaderEvents(tokens, colX);
     this._applyState();
   }
 
   //  layout helpers
-
   _stampKeys(tokens, sentences) {
     if (sentences) {
       sentences.forEach((sentence, si) => {
@@ -100,61 +81,25 @@ export class DependencyGraph {
     }
   }
 
-  _buildVerseStartKeys(sentences) {
-    const keys = new Set();
-    if (!sentences) return keys;
-    sentences.slice(1).forEach((sentence) => {
-      if (!sentence.length) return;
-      keys.add(sentence[0]._key);
-
-      if (sentence.length > MAX_WORDS_PER_LINE) {
-        let splitIndex = -1;
-        for (
-          let i = Math.min(MAX_WORDS_PER_LINE - 1, sentence.length - 1);
-          i >= 0;
-          i--
-        ) {
-          if (sentence[i].pos === "PUNCT") {
-            splitIndex = i;
-            break;
-          }
-        }
-        if (splitIndex !== -1 && splitIndex + 1 < sentence.length) {
-          keys.add(sentence[splitIndex + 1]._key);
-        }
-      }
-    });
-    return keys;
-  }
-
-  _buildTokenPositions(tokens, colX, spacing, verseStartKeys) {
+  _buildTokenPositions(tokens, categoryMap) {
     const positions = {};
-    let x = PAD_T;
+    let x = PAD_L + tokens[0].word.length * 2;
     let y = PAD_T;
+    let totalH = 0;
+
     tokens.forEach((t) => {
-      if (verseStartKeys.has(t._key)) {
+      if (t._key.split("_")[1] === "0" || x >= svgWidth - PAD_L) {
         y += ROW_H;
-        x = PAD_T;
+        x = PAD_L + t.word.length * 2;
       }
-      positions[t._key] = { x, y: y + (colX[t.pos] ?? PAD_L) };
-      x += spacing;
+      positions[t._key] = { x, y: y + (categoryMap[t.pos] ?? PAD_L) };
+      x += t.word.length * 4 + 10;
+      totalH = y;
     });
-    return positions;
+    return { positions, totalH };
   }
 
-  _totalHeight(tokens, verseStartKeys) {
-    let h = PAD_T + PAD_B;
-    tokens.forEach((t) => {
-      if (verseStartKeys.has(t._key)) {
-        h += ROW_H * 1.6;
-      }
-    });
-    return Math.max(h, 400);
-  }
-
-  // event handlers
-
-  _attachTokenEvents(node, token) {
+  addMouseEvents(node, token) {
     const { g } = node;
     const { outgoing, incoming } = this.edgeLayer.depGraph;
 
@@ -187,34 +132,6 @@ export class DependencyGraph {
         token._key,
         outgoing[token._key]?.map((e) => e.targetKey) ?? [],
       );
-      this._applyState();
-    });
-  }
-
-  _attachHeaderEvents(tokens, colX) {
-    const { hitRect } = this.header;
-
-    hitRect.addEventListener("mousemove", (e) => {
-      const mouseX = e.clientX - this.svg.getBoundingClientRect().left;
-      const nearestPos = COL_ORDER.reduce((best, col) =>
-        Math.abs(colX[col] - mouseX) < Math.abs(colX[best] - mouseX)
-          ? col
-          : best,
-      );
-      this.header.highlight(nearestPos);
-
-      Object.values(this.nodeMap).forEach((node) => {
-        if (node.token.pos === nearestPos) {
-          node.setOpaque();
-        } else {
-          node.setTransparent();
-        }
-      });
-      this.edgeLayer.dimAll();
-    });
-
-    hitRect.addEventListener("mouseleave", () => {
-      this.header.dimAll();
       this._applyState();
     });
   }

@@ -1,13 +1,29 @@
 // TODO:
-// . add more examples
 // . translation
 //               - try legend/side note type
-
-// . figure out the story of the tokens that are not aligned on the Y
-// . figure out where the preface goes
 // word Y positions: part of speech, word vector?
 // dual views would be cool
 
+// TODO: add animation: highlight words one by one follow their order in the text
+// TODO: maybe worth trying an ai model
+// what other nlp methods?
+
+// tokenize the word, project them on a 2d plane/word vector - based on their meanings?
+// Train or download Word2Vec, GloVe, or FastText embeddings: gensim (python, word2vec, fastText, GloVe)
+
+//according to chatgpt i can train my own embeddings
+// https://chatgpt.com/c/6a62bfa6-a958-83ea-8ca0-1e81c055b4d5
+
+// exploring: 
+// 1. pos and dependency chain
+// 2. markov chain
+// 3. word embeddings (word2vec)
+
+// use most translated famous text as examples?
+// 1. identify the center word (based on dependency and other rules maybe)?
+// 2. somehow calculate and decide the positions of other words in the sentence.
+
+// 4 rows: adj+adv, nouns, verbs, everything else
 
 import "./style.css";
 import { DependencyGraph } from "./weave";
@@ -15,13 +31,15 @@ import { drawLinear } from "./braid";
 import { Translator } from "./translate";
 
 const POEM_FILES = [
+  // "karlie_notes2_tokens",
   "borges_art_poetry_full",
   "borges_two_english_poems",
   "tselliot_tokens",
-  "bolano_ernesto_cardenal_and_i_tokens",
-  "ERNESTO_CARDENAL_Y_YO_tokens",
-  "aiqing_tokens"
-]
+  "ch_tokens",
+  // "bolano_ernesto_cardenal_and_i_tokens",
+  // "ERNESTO_CARDENAL_Y_YO_tokens",
+  // "aiqing_tokens"
+];
 
 class PoemView {
   constructor(lang, svgId, containerId, translateCallback = null) {
@@ -62,7 +80,8 @@ class PoemView {
 
   loadChapter(index) {
     this.chapterIndex = ((index % POEM_FILES.length) + POEM_FILES.length) % POEM_FILES.length;
-    this._initSVG();
+    const svg = document.getElementById(this.svgId);
+    svg.innerHTML = "";
     this.draw();
   }
 
@@ -76,11 +95,6 @@ class PoemView {
     }
   }
 
-  _initSVG() {
-    const svg = document.getElementById(this.svgId);
-    const container = document.querySelector(`#${this.containerId}`);
-    svg.innerHTML = "";
-  }
 
   switchView(v) {
     this.view = v;
@@ -280,20 +294,23 @@ async function initApp() {
   closeIntro.addEventListener("click", () => {
     document.querySelector(".intro-overlay-bg").classList.toggle("hidden");
   });
-  const dualViewBtn = document.getElementById("dual-views");
+  
+  // const dualViewBtn = document.getElementById("dual-views");
 
-  dualViewBtn.addEventListener("click", async () => {
-    const pressed = dualViewBtn.getAttribute("aria-pressed") === "true";
+  // if (dualViewBtn) {
+  //   dualViewBtn.addEventListener("click", async () => {
+  //     const pressed = dualViewBtn.getAttribute("aria-pressed") === "true";
 
-    const next = !pressed;
+  //     const next = !pressed;
 
-    dualViewBtn.setAttribute("aria-pressed", String(next));
+  //     dualViewBtn.setAttribute("aria-pressed", String(next));
 
-    dualViewBtn.classList.toggle("on", next);
-    await createViews(next);
-  });
+  //     dualViewBtn.classList.toggle("on", next);
+  //     await createViews(next);
+  //   });
+  // }
 
-  await createViews(dualViewBtn.getAttribute("aria-pressed") === "true");
+  await createViews(false);
 }
 
 initApp();

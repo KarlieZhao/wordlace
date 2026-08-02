@@ -44,7 +44,7 @@ export function drawText(group, id = null, x, y, str, size, weight, fill, anchor
   el.setAttribute("y", y);
   el.setAttribute("text-anchor", anchor || "middle");
   el.setAttribute("dominant-baseline", "middle");
-  el.setAttribute("font-size", size || 16);
+  el.setAttribute("font-size", size || 12);
   el.setAttribute("pointer-events", "none");
   el.setAttribute("font-weight", weight || 400);
   el.setAttribute("fill", fill || "#111111");
