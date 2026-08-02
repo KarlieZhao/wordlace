@@ -15,6 +15,9 @@
     --accent-b: #7bafd4;
     --font: 'IBM Plex Sans', sans-serif;
     --mono: 'IBM Plex Mono', monospace;
+
+    --body-fontsize: 11px;
+    --lg-fontsize: 13px;
   }
 
   body {
@@ -26,36 +29,23 @@
     flex-direction: column;
   }
 
+  #canvas-wrap-en,
+  #canvas-wrap-lang {
+    /* width: max-content; */
+    flex: 2;
+    overflow: auto;
+  }
+
   .main-container {
+    width: 100vw;
+    height: 100vh;
     display: flex;
-    flex-direction: column;
-    height: 85vh;
-  }
-
-  /* ── TOP BAR ── */
-  #topbar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    border-bottom: 1px solid #e8e8e8;
-    padding: 0 2rem;
-    height: 48px;
-    flex-shrink: 0;
-  }
-
-  #topbar h1 {
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 400;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-right: 2rem;
+    overflow: hidden;
   }
 
   .view-tab {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -78,14 +68,17 @@
     border-bottom-color: var(--text);
   }
 
-  /* ── PANELS ── */
-  #right-panels {
+  #control-panels {
+    position: sticky;
+    top: 0;
+    left: 0;
     display: flex;
-    width: 70%;
     align-items: top;
-    padding: 1rem 2rem;
-    border-bottom: 1px solid #e8e8e8;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #bebebe;
     flex-wrap: wrap;
+    background-color: #fffa;
+    z-index: 1;
   }
 
   .input-section {
@@ -131,7 +124,7 @@
     transition: background-color .15s, color .15s ease;
     background: transparent;
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     border: 1px solid var(--text);
     color: var(--text);
   }
@@ -147,7 +140,7 @@
 
   .demo-btn {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: var(--body-fontsize);
     letter-spacing: .06em;
     text-transform: uppercase;
     padding: 7px 14px;
@@ -221,7 +214,6 @@
     cursor: pointer;
   }
 
-  /* ── CANVAS ── */
   #canvas-wrap {
     display: flex !important;
     flex-direction: row;
@@ -230,16 +222,26 @@
     /* overflow: hidden; */
   }
 
-  #canvas-wrap svg {
-    /* height: 100%; */
+  .canvas-wrap svg {
     height: max-content;
     display: block;
+    transform-origin: top center;
+    width: 100%;
+    height: auto;
   }
 
+ .svg-en {
+  margin-left: 1rem;
+}
+  
+
   #writer-container {
-    width: 100%;
+    flex: 1;
+    /* border: 1px solid pink; */
+    border-left: 1px solid #bebebe;
     font-size: 13px;
-    padding-top: 20px;
+    padding-top: 2rem;
+    overflow: auto;
   }
 
   #enter-key {
@@ -303,3 +305,110 @@
   .label-layer .punct{
     display: none;
   }
+
+  #dual-views.on{
+    background: var(--text);
+    color: #fff; 
+  }
+
+  .translation {
+  position: absolute;
+  left: 20vw;
+  height: 20vh;
+  background-color: #fff;
+  border: 1px solid black;
+  width: max-content;
+  padding: 0.6rem 1rem;
+  font-size: var(--lg-fontsize);
+  height: max-content;
+}
+
+.intro-overlay-bg {
+  position: fixed;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #fffb;
+  overflow: hidden;
+}
+
+.intro {
+  /* position: fixed; */
+  margin-top: 5rem;
+  display: flex;
+  justify-content: center;
+  height: max-content;
+  min-height: 40vh;
+  width: 100%;
+  padding: 5rem 0
+}
+
+.intro div {
+  width: 55%;
+  min-width: 200px;
+  max-width: 600px;
+}
+
+.intro p {
+  margin-top: 1rem;
+}
+
+#translation-label{
+  z-index: 100;
+}
+
+svg path{
+  stroke-width: 0.9;
+  fill: none;
+  opacity: 0.7;
+}
+
+.token-label {
+  position: absolute;
+  text-anchor: middle;
+  font-size: 9px;
+  font-weight: 400;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
+.token-label.strong{
+    font-weight: 500;
+}
+
+.dep-label {
+  display: block;
+  visibility: visible;
+}
+
+.hidden {
+  display: none;
+  visibility: hidden;
+}
+
+.close-btn-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  width: max-content;
+  padding: 0 0.5rem;
+}
+
+ .close-btn {
+    font-size: 12px;
+}
+
+#close-intro--input{
+  accent-color: black
+}
+.title-topbar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-size: 13px;
+}
+
+/* svg rect{
+  stroke:black;
+  stroke-width: 0.4px;
+} */

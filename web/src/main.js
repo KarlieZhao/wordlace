@@ -1,158 +1,316 @@
-// The Brain--is wider than the Sky--
-//  For--put them side by side--
-//  The one the other will contain
-//  Wit  is deeper tha  o Blue--
-//  The one ti  bsorb--
-//  As Sp  s--Buckets--do--
-//  The Brain is just   weight of God--
-//  For--Heft them--Po  und for Pound--
-//  And they will   differ--if they do--
-//  As Syllable from Sound--
-
 // TODO:
-// the traces and shapes matter a lot: word flow and choices
-// 1. performance issues (long sentences)
-// 2. explore word positions: part of speech, word vector? (2d coordinates)
-// 3. try a chinese version => chinese tokenizer | part of speech detector or smth
-// 4. explore n-gram model for better outcome?
-// 5. fix issues with the current POS_TRANSITIONS
+// . translation
+//               - try legend/side note type
+// word Y positions: part of speech, word vector?
+// dual views would be cool
+
+// TODO: add animation: highlight words one by one follow their order in the text
+// TODO: maybe worth trying an ai model
+// what other nlp methods?
+
+// tokenize the word, project them on a 2d plane/word vector - based on their meanings?
+// Train or download Word2Vec, GloVe, or FastText embeddings: gensim (python, word2vec, fastText, GloVe)
+
+//according to chatgpt i can train my own embeddings
+// https://chatgpt.com/c/6a62bfa6-a958-83ea-8ca0-1e81c055b4d5
+
+// exploring: 
+// 1. pos and dependency chain
+// 2. markov chain
+// 3. word embeddings (word2vec)
+
+// use most translated famous text as examples?
+// 1. identify the center word (based on dependency and other rules maybe)?
+// 2. somehow calculate and decide the positions of other words in the sentence.
+
+// 4 rows: adj+adv, nouns, verbs, everything else
 
 import "./style.css";
 import { DependencyGraph } from "./weave";
 import { drawLinear } from "./braid";
+import { Translator } from "./translate";
 
-class Views {
-  constructor() {
-    this.poems = []; // [{ title, content: sentence[][] }]
+const POEM_FILES = [
+  // "karlie_notes2_tokens",
+  "borges_art_poetry_full",
+  "borges_two_english_poems",
+  "tselliot_tokens",
+  "ch_tokens",
+  // "bolano_ernesto_cardenal_and_i_tokens",
+  // "ERNESTO_CARDENAL_Y_YO_tokens",
+  // "aiqing_tokens"
+];
+
+class PoemView {
+  constructor(lang, svgId, containerId, translateCallback = null) {
+    this.lang = lang;
+    this.svgId = svgId;
+    this.containerId = containerId;
+    this.poems = [];
     this.chapterIndex = 0;
     this.view = "lace"; // "lace" | "linear"
     this.showDeps = false;
     this.showDepsLocked = false;
-    this.graph = new DependencyGraph("en");
+    this.graph = new DependencyGraph(this.svgId, lang, translateCallback);
 
     this._resizeTimer = null;
   }
 
-  async init() {
-    const res = await fetch("/data/borges_en_tokens.json");
-    this.poems = await res.json();
-    this._bindUI();
-    this._loadChapter(this.chapterIndex);
+  async loadAll() {
+    const results = await Promise.all(
+      POEM_FILES.map(async (url) => {
+        const res = await fetch(`/data/${url}.json`);
+        return res.json();
+      })
+    );
+    this.poems = results;
   }
 
   get currentPoem() {
-    return this.poems[this.chapterIndex] ?? null;
+    const poems = this.poems[this.chapterIndex];
+    if (poems) return poems[0];
+    else return null;
   }
 
-  /** Flatten all sentences in the current chapter into one token list.
-   *  Sentence breaks are preserved via a synthetic separator token so
-   *  the layout can insert visual gaps between verses.
-   */
   get currentTokens() {
     const poem = this.currentPoem;
     if (!poem) return [];
     return poem.content.flat();
   }
 
-  // rendering
-
-  _loadChapter(index) {
-    this.chapterIndex =
-      ((index % this.poems.length) + this.poems.length) % this.poems.length;
-    const poem = this.currentPoem;
-    if (!poem) return;
-
-    const titleEl = document.getElementById("sentence-input");
-    if (titleEl) titleEl.value = poem.title;
-    this._initSVG();
-    this._draw();
+  loadChapter(index) {
+    this.chapterIndex = ((index % POEM_FILES.length) + POEM_FILES.length) % POEM_FILES.length;
+    const svg = document.getElementById(this.svgId);
+    svg.innerHTML = "";
+    this.draw();
   }
 
-  _draw() {
+  draw() {
     const tokens = this.currentTokens;
     if (!tokens.length) return;
-
     if (this.view === "linear") {
-      drawLinear(tokens);
+      drawLinear(tokens, this.svgId);
     } else {
-      this.graph.draw(tokens, this.currentPoem.content);
+      this.graph.draw(tokens, this.currentPoem.content, this.svgId);
     }
   }
 
-  _initSVG() {
-    const svg = document.getElementById("svg");
-    const container = document.querySelector("#canvas-wrap");
-    svg.innerHTML = "";
-    const W = container.clientWidth || 600;
-    const H = 900;
-    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.style.height = H + "px";
-  }
 
-
-  _bindUI() {
-    document
-      .getElementById("tab-ngram")
-      .addEventListener("click", () => this._switchView("linear"));
-
-    document
-      .getElementById("tab-pos")
-      .addEventListener("click", () => this._switchView("lace"));
-
-    document
-      .getElementById("draw")
-      .addEventListener("click", () => this._draw());
-
-    document.getElementById("prev-demo").addEventListener("click", () => {
-      this._loadChapter(this.chapterIndex - 1);
-    });
-
-    document.getElementById("next-demo").addEventListener("click", () => {
-      this._loadChapter(this.chapterIndex + 1);
-    });
-
-    const hideBlue = document.querySelector("#hide-blue");
-    hideBlue.addEventListener("mouseenter", () => {
-      this.showDeps = true;
-      this._draw();
-    });
-     hideBlue.addEventListener("click", () => {
-       this.showDepsLocked = !this.showDepsLocked;
-       if (this.showDepsLocked) {
-         hideBlue.textContent = "Hide Dependency";
-       } else {
-         hideBlue.textContent = "Show Dependency";
-       }
-       this._draw();
-     });
-    hideBlue.addEventListener("mouseout", () => {
-      this.showDeps = false;
-      this._draw();
-    });
-
-    document
-      .getElementById("sentence-input")
-      .addEventListener("keydown", (e) => {
-        if (e.key === "Enter") this._draw();
-      });
-
-    window.addEventListener("resize", () => {
-      clearTimeout(this._resizeTimer);
-      this._resizeTimer = setTimeout(() => this._draw(), 100);
-    });
-  }
-
-  _switchView(v) {
+  switchView(v) {
     this.view = v;
-    document
-      .getElementById("tab-ngram")
-      .classList.toggle("active", v === "linear");
-    document.getElementById("tab-pos").classList.toggle("active", v === "lace");
-    this._draw();
+    this.draw();
   }
 }
 
-const views = new Views();
-views.init();
+class Views {
+  constructor(dualViews = false) {
+    this._resizeTimer = null;
+    this._listeners = [];
+    this.viewScale = 1;
+    this.titleDiv = document.querySelector("#--poem--title");
+    this.views = [
+      new PoemView(
+        "en",
+        "svg-en",
+        "canvas-wrap-en",
+      ),
+    ];
 
-export { views };
+    if (dualViews) {
+      this.translator = new Translator("es", "en");
+
+      const translateCallback = (phrase) => {
+        this.translator.translate(phrase);
+      };
+      this.views.push(
+        new PoemView(
+          "es",
+          "svg-lang",
+          "canvas-wrap-lang",
+          translateCallback,
+        ),
+      );
+    }
+
+    [this.en, this.lang] = this.views;
+  }
+
+  forEachView(fn) {
+    this.views.forEach(fn);
+  }
+
+  addListener(el, event, handler) {
+    el.addEventListener(event, handler);
+    this._listeners.push(() => el.removeEventListener(event, handler));
+  }
+
+  destroy() {
+    this._listeners.forEach((remove) => remove());
+    this._listeners.length = 0;
+
+    clearTimeout(this._resizeTimer);
+  }
+
+  drawAll() {
+    this.forEachView((v) => v.draw());
+  }
+
+  async init() {
+    this._bindUI();
+
+    await Promise.all(this.views.map((v) => v.loadAll()));
+    this.updateTitle(0)
+    this.forEachView((v) => v.loadChapter(0));
+  }
+
+  updateTitle(index) {
+    if (this.views[0].poems[index]) this.titleDiv.innerHTML = this.views[0].poems[index][0].title + "<br/>" + this.views[0].poems[index][0].author// TODO: crap...
+    else {
+      this.titleDiv.innerHTML = ""
+    }
+  }
+
+  loadChapter(index) {
+    index = ((index % POEM_FILES.length) + POEM_FILES.length) % POEM_FILES.length;
+    this.updateTitle(index)
+    this.forEachView((v) => v.loadChapter(index));
+  }
+
+  switchView(view) {
+    this.forEachView((v) => v.switchView(view));
+
+    document
+      .getElementById("tab-ngram")
+      .classList.toggle("active", view === "linear");
+
+    document
+      .getElementById("tab-pos")
+      .classList.toggle("active", view === "lace");
+  }
+
+  _bindUI() {
+    // this.addListener(document.getElementById("tab-ngram"), "click", () =>
+    //   this.switchView("linear"),
+    // );
+    // this.addListener(document.getElementById("tab-pos"), "click", () =>
+    //   this.switchView("lace"),
+    // );
+
+    this.addListener(document.getElementById("prev-demo"), "click", () =>
+      this.loadChapter(this.en.chapterIndex - 1),
+    );
+    this.addListener(document.getElementById("next-demo"), "click", () =>
+      this.loadChapter(this.en.chapterIndex + 1),
+    );
+
+    this.addListener(document.getElementById("expand"), "click", () => {
+      this.views.forEach((view) => {
+        this.viewScale += 0.1;
+        this.viewScale = Math.min(3, this.viewScale);
+        const svg = document.querySelector(`#${view.svgId}`);
+        svg.style.transform = `scale(${this.viewScale})`;
+      });
+    });
+    this.addListener(document.getElementById("shrink"), "click", () =>
+      this.views.forEach((view) => {
+        this.viewScale -= 0.1;
+        this.viewScale = Math.max(0.1, this.viewScale);
+        const svg = document.querySelector(`#${view.svgId}`);
+        svg.style.transform = `scale(${this.viewScale})`;
+      }),
+    );
+
+    // ==== show dependency labels ===
+    const showDepBtn = document.getElementById("show-dep");
+    this.addListener(showDepBtn, "mouseenter", () => {
+      this.forEachView((v) => {
+        if (!v.showDepsLocked) {
+          const depLabels = document.querySelectorAll(".dep-label");
+          depLabels.forEach((ele) => {
+            ele.classList.remove("hidden");
+          });
+        }
+      });
+    });
+
+    this.addListener(showDepBtn, "mouseleave", () => {
+      this.forEachView((v) => {
+        if (!v.showDepsLocked) {
+          const depLabels = document.querySelectorAll(".dep-label");
+          depLabels.forEach((ele) => {
+            ele.classList.add("hidden");
+          });
+        }
+      });
+    });
+
+    this.addListener(showDepBtn, "click", () => {
+      const locked = !this.en.showDepsLocked;
+      this.forEachView((v) => {
+        v.showDepsLocked = locked;
+        const depLabels = document.querySelectorAll(".dep-label");
+        depLabels.forEach((ele) => {
+          ele.classList.toggle("hidden", !v.showDepsLocked);
+        });
+      });
+      showDepBtn.textContent = locked ? "Hide Dependency" : "Show Dependency";
+    });
+
+    // const resizeHandler = () => {
+    //   clearTimeout(this._resizeTimer);
+
+    //   this._resizeTimer = setTimeout(() => {
+    //     this.drawAll();
+    //   }, 100);
+    // };
+
+    // window.addEventListener("resize", resizeHandler);
+
+    // this._listeners.push(() =>
+    //   window.removeEventListener("resize", resizeHandler),
+    // );
+  }
+}
+
+export let views;
+
+async function createViews(dualViews) {
+  if (views) {
+    views.destroy();
+    document.querySelector("#svg-en").innerHTML = "";
+    document.querySelector("#svg-lang").innerHTML = "";
+  }
+
+  views = new Views(dualViews);
+  await views.init();
+}
+
+async function initApp() {
+  const closeIntro = document.getElementById("close-intro--input");
+  const label = document.getElementById("close-intro-label");
+  closeIntro.checked = false;
+  document.querySelector(".intro-overlay-bg").classList.add("hidden");
+
+  closeIntro.addEventListener("click", () => {
+    document.querySelector(".intro-overlay-bg").classList.toggle("hidden");
+  });
+  
+  // const dualViewBtn = document.getElementById("dual-views");
+
+  // if (dualViewBtn) {
+  //   dualViewBtn.addEventListener("click", async () => {
+  //     const pressed = dualViewBtn.getAttribute("aria-pressed") === "true";
+
+  //     const next = !pressed;
+
+  //     dualViewBtn.setAttribute("aria-pressed", String(next));
+
+  //     dualViewBtn.classList.toggle("on", next);
+  //     await createViews(next);
+  //   });
+  // }
+
+  await createViews(false);
+}
+
+initApp();

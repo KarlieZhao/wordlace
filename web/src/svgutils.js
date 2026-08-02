@@ -7,10 +7,10 @@ export function mkDefs(svg) {
 export function mkArrowMarker(defs, id, color) {
   const m = document.createElementNS("http://www.w3.org/2000/svg", "marker");
   m.setAttribute("id", id);
-  m.setAttribute("markerWidth", "8");
-  m.setAttribute("markerHeight", "8");
-  m.setAttribute("refX", "7");
-  m.setAttribute("refY", "4");
+  m.setAttribute("markerWidth", "3");
+  m.setAttribute("markerHeight", "3");
+  m.setAttribute("refX", "4");
+  m.setAttribute("refY", "2");
   m.setAttribute("orient", "auto");
   const p = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   p.setAttribute("points", "0 0, 8 4, 0 8");
@@ -44,7 +44,7 @@ export function drawText(group, id = null, x, y, str, size, weight, fill, anchor
   el.setAttribute("y", y);
   el.setAttribute("text-anchor", anchor || "middle");
   el.setAttribute("dominant-baseline", "middle");
-  el.setAttribute("font-size", size || 16);
+  el.setAttribute("font-size", size || 12);
   el.setAttribute("pointer-events", "none");
   el.setAttribute("font-weight", weight || 400);
   el.setAttribute("fill", fill || "#111111");

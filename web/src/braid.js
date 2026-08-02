@@ -1,4 +1,5 @@
 import { drawText, line, mkDefs, mkArrowMarker } from "./svgutils";
+import {TEXT_SIZE} from "./depcomponents"
 const BLACK = "#111111";
 
 export function drawLinear(tokens) {
@@ -22,6 +23,6 @@ export function drawLinear(tokens) {
       line(svg, cx, arrowY1, cx, arrowY2, BLACK, 1, "url(#arr)");
     }
 
-    drawText(wordGroup, null, cx, y, t.word, 18, 400, BLACK, "middle");
+    drawText(wordGroup, null, cx, y, t.word, TEXT_SIZE, 400, BLACK, "middle");
   });
 }

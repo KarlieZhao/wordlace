@@ -14,35 +14,91 @@
 <body>
   <script type="module" src="/src/main.js"></script>
 
-  <div id="topbar">
+  <!-- <div id="topbar">
     <h1>Wordlace</h1>
     <div class="view-tab active" id="tab-pos">Part of Speech</div>
     <div class="view-tab " id="tab-ngram">N-gram</div>
-  </div>
-    <div id="right-panels">
-      <div style="width: 100%; display: flex; flex-direction: column; gap: 2rem">
-        <div class="input-section">
-          <textarea id="sentence-input" placeholder="Type a sentence…" rows="1"></textarea>
-          <button class="weave-btn" id="draw">Weave</button>
-          <button class="weave-btn" id="prev-demo">&lt;</button>
-          <button class="weave-btn" id="next-demo">></button>
-          <button class="weave-btn" id="hide-blue">Show Dependency</button>
-        </div>
+  </div> -->
 
-        <!-- <div id="writer-container" class="">
+
+  <div class="intro-overlay-bg">
+    <div class="intro">
+      <div>
+        All language is but a poor translation. ― Franz Kafka<br />
+        All language is but an attempt to communicate.<br />
+
+        <p>
+          There are dimensions to language that are very difficult to describe with language, and yet it is only in
+          language—in
+          trying to move through it—that one has the privilege of experiencing these dimensions.
+          <br>
+          ― Renée Gladman, Prose Architectures
+        </p>
+        <p>
+          The struggle of literature is in fact a struggle to escape from the confines of language; it stretches out
+          from
+          the
+          utmost limits of what can be said; what stirs literature is the call and attraction of what is not in the
+          dictionary.
+          <br>
+
+          ― Italo Calvino
+        </p>
+        <p>
+          Poetry is the inscription of impossibility into a language: when we cannot say something directly yet we
+          nonetheless
+          insist in speaking, we unavoidably get caught in repetitions, postponements, indirectness, surprising cuts
+          <br>
+          ― Slavoj Žižek
+        </p>
+        <p>
+          Nothing survives transcription, nothing doesn't survive transcription.
+          In the face of all this, Susan Howe concludes that there is no editorial approach to Dickinson that could be
+          truly
+          faithful to her poetic innovations. “Words are only frames. No comfortable conclusions. Letters are scrawls,
+          turnabouts,
+          astonishments, strokes, cuts, masks.… [Dickinson’s] manuscripts should be understood as visual productions.
+          ...it's that traces of language are insufficient even to tell us what language is like.
+          <br>
+          ― Allison Parrish <a href="https://posts.decontextualize.com/nothing-survives-transcription/">link</a>
+        </p>
+        <br />
+      </div>
+    </div>
+  </div>
+
+  <main class="main-container">
+    <div id="canvas-wrap-en" class="canvas-wrap">
+      <div id="control-panels">
+        <div style="display: flex; flex-direction: row; gap: 2rem">
+          <div class="input-section">
+            <button class="weave-btn" id="prev-demo">&lt;</button>
+            <button class="weave-btn" id="next-demo">></button>
+            <button class="weave-btn" id="expand">+</button>
+            <button class="weave-btn" id="shrink">-</button>
+            <button class="weave-btn" id="show-dep">Dependency</button>
+            <!-- <button class="weave-btn" id="dual-views" aria-pressed="false">Side by Side View</button> -->
+            <div class="close-btn-container"><input type="checkbox" id="close-intro--input">
+              <label class="close-btn" for="close-intro" id="close-intro-label">Show me some quotes</label>
+            </div>
+          </div>
+          <div id="--poem--title" class="title-topbar">Poem title</div>
+        </div>
+      </div>
+      <svg id="svg-en"></svg>
+    </div>
+
+      <div id="writer-container" class="">
           <button id="enter-key">Enter ↵</button>
           <button id="clear-key">Clear</button>
           <div id="writer"></div>
-        </div> -->
       </div>
-    </div>
-
-  <main class="main-container">
-    <div id="canvas-wrap">
-      <svg id="svg"></svg>
-
-    </div>
   </main>
+
+  <!-- <overlay-panel id="translation-label" class="translation">
+    translation
+  </overlay-panel> -->
+
 
 </body>
 
