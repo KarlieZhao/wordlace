@@ -1,29 +1,5 @@
 import type { DepDoc, DepEdgeRaw } from "./types";
-import { POS_COLOR_MAP } from "./types";
-/**
- * Words are stacked vertically (one per row) in sentence order. Each
- * word's HORIZONTAL position (x) is now determined by its POS tag —
- * every distinct POS gets its own column, so e.g. all NOUNs line up
- * under one another, all VERBs under another, etc. Each dependency
- * draws a curved SVG path from the head's (row, pos-column) to the
- * child's (row, pos-column), bulging left through a "lane" so
- * overlapping dependencies don't cross each other. An arrowhead marks
- * the child (dependent) end. Root words get a small dot instead of an
- * incoming arrow.
- *
- * Lane assignment is the same greedy interval-graph coloring used
- * before — it decides how far a arc bulges perpendicular to the
- * head->child line.
- *
- *
- *
- * TODO:
- * left side: full text as pixel bit map
- * right side: user editor
- *
- *
- * use lem, fea
- */
+import { escapeXml, POS_COLOR_MAP } from "./utils";
 
 interface Edge {
   child: number;
@@ -38,11 +14,9 @@ const CURVATURE = 2;
 const MARGIN = { left: 50, top: 30 };
 const SENTENCE_GAP = 20;
 const fontsize = 12;
-const COLUMN_WIDTH = 30;
+const COLUMN_WIDTH = 20;
 
-// Fixed column order for POS tags, derived once from POS_COLOR_MAP so
-// every sentence/document uses the same x position for a given POS.
-const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
+export const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
 const UNKNOWN_POS_COLUMN = POS_ORDER.length; // fallback column for unmapped POS tags
 
 function posColumn(posTag: string | undefined): number {
@@ -53,7 +27,7 @@ function posColumn(posTag: string | undefined): number {
   return UNKNOWN_POS_COLUMN;
 }
 
-function posX(posTag: string | undefined): number {
+export function posX(posTag: string | undefined): number {
   return MARGIN.left + posColumn(posTag) * COLUMN_WIDTH;
 }
 
@@ -92,10 +66,6 @@ function assignLanes(edges: Edge[]): number {
     }
   }
   return laneEnds.length;
-}
-
-function escapeXml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderSentenceSvg(
@@ -200,7 +170,8 @@ export function renderDocSvg(doc: DepDoc): string {
   });
   const height = y;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
+  class="dependency-svg">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#aaa" />
