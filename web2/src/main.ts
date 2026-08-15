@@ -9,11 +9,11 @@ import "./style.css";
 // render
 // draw lines (svg lines)
 
-import { renderDocSvg } from './dep';
-import type { DepDoc } from './types';
+import { renderDocSvg } from "./dep";
+import type { DepDoc } from "./types";
 import data from "../public/data.json";
 
 const doc = data as DepDoc;
 
-const el = document.getElementById('app') as HTMLDivElement;
+const el = document.getElementById("app") as HTMLDivElement;
 el.innerHTML = renderDocSvg(doc);

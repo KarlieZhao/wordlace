@@ -9,18 +9,17 @@ import type { DepDoc, DepEdgeRaw } from "./types";
  * incoming arrow.
  *
  * Lane assignment is the same greedy interval-graph coloring used
-* before — it decides how far left an arc bulges, standing in for a
+ * before — it decides how far left an arc bulges, standing in for a
  * real x-axis layout.
- * 
- * 
- * 
- * TODO: 
+ *
+ *
+ *
+ * TODO:
  * left side: full text as pixel bit map
  * right side: user editor
- * 
- * try turning it 90 degree => landscape mode 
+ *
+ * try turning it 90 degree => landscape mode
  */
-
 
 interface Edge {
   child: number;
@@ -30,10 +29,9 @@ interface Edge {
   lane: number;
 }
 
-const ROW_HEIGHT = 30;
-const LANE_GAP = 13;
-const LEFT_MARGIN = 50;
-const SENTENCE_GAP = 40;
+const ROW_HEIGHT = 220;
+const CURVATURE = 10;
+const MARGIN = { left: 10, top: 30 };
 
 const INDENT_WIDTH = 40;
 
@@ -78,7 +76,6 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-
 function renderSentenceSvg(
   tokens: string[],
   deps: DepEdgeRaw[],
@@ -93,7 +90,7 @@ function renderSentenceSvg(
 
   // build word x positions
   // TODO: the words with dependencies/edges connecting them are pulled closer together
-  // but maybe also influenced by part of speech? or something else? 
+  // but maybe also influenced by part of speech? or something else?
   // x position makes it look interesting and less generic
 
   // heads[r] = head token index for word r (1-indexed); heads[0] is a dummy/unused slot
@@ -122,40 +119,49 @@ function renderSentenceSvg(
 
   textX.push(0);
   for (let r = 1; r <= tokens.length; r++) {
-    textX.push(LEFT_MARGIN + depth[r] * INDENT_WIDTH );//+ Math.random()*100);
+    textX.push(MARGIN.left + depth[r] * INDENT_WIDTH); //+ Math.random()*100);
   }
   // arcs
-  edges.forEach((e, i) => {
-    const yHead = offsetY + (e.head - 0.5) * ROW_HEIGHT;
-    const yChild = offsetY + (e.child - 0.5) * ROW_HEIGHT;
-    const xHead = textX[e.head];
-    const xChild = textX[e.child];
-    const anchorX = (yHead + yChild) / 2;
-    const ctrlX = anchorX - e.lane * LANE_GAP;
+  edges.forEach((e) => {
+    const xHead = MARGIN.left + 50 * e.head;
+    const xChild = MARGIN.left + 50 * e.child;
+    const yHead = textX[e.head] + offsetY;
+    const yChild = textX[e.child] + offsetY;
+
+    const dx = xChild - xHead;
+    const dy = yChild - yHead;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    const px = -dy / len;
+    const py = dx / len;
+
+    const dist = Math.sqrt(
+      Math.pow(xHead - xChild, 2) + Math.pow(yHead - yChild, 2),
+    );
+
+    const bulge = ((e.lane + 1) * CURVATURE * dist) / 100;
+
+    const ctrl1x = xHead + dx * 0.3 + px * bulge;
+    const ctrl1y = yHead + dy * 0.3 + py * bulge;
+    const ctrl2x = xHead + dx * 0.7 + px * bulge;
+    const ctrl2y = yHead + dy * 0.7 + py * bulge;
+
     parts.push(
-      `<path d="M ${yHead} ${xHead} C ${ctrlX} ${xHead}, ${ctrlX} ${xChild}, ${yChild} ${xChild}" class="dep-arc" marker-start="url(#arrow)" />`,
-      // `<path d="M ${xHead} ${yHead} C ${ctrlX} ${yHead}, ${ctrlX} ${yChild}, ${xChild} ${yChild}" class="dep-arc" marker-start="url(#arrow)" />`,
+      `<path d="M ${xHead} ${yHead} C ${ctrl1x} ${ctrl1y}, ${ctrl2x} ${ctrl2y}, ${xChild} ${yChild}" class="dep-arc" marker-start="url(#arrow)" />`,
     );
   });
 
   // words
   for (let r = 1; r <= tokens.length; r++) {
-    // vertical positions
-    const cy = offsetY + (r - 0.5) * ROW_HEIGHT;
-
-    // landscape
-    const cx = LEFT_MARGIN + 50 * r;
+    const cx = MARGIN.left + 50 * r;
+    const cy = textX[r] + offsetY;
     const isRoot = !hasHead.has(r);
     if (isRoot) {
-      parts.push(
-        `<circle cx="${cx}" cy="${textX[r]}" r="4" class="dep-root-dot" />`,
-        // `<circle cx="${textX[r] - 6}" cy="${cy}" r="4" class="dep-root-dot" />`,
-      );
+      parts.push(`<circle cx="${cx}" cy="${cy}" r="4" class="dep-root-dot" />`);
     }
     const cls = isRoot ? "dep-word dep-root" : "dep-word";
     parts.push(
-      `<text x="${cx}" y="${textX[r] + offsetY}" class="${cls}">${escapeXml(tokens[r - 1])}</text>`,
-      // `<text x="${textX[r]}" y="${cy}" class="${cls}">${escapeXml(tokens[r - 1])}</text>`,
+      `<text x="${cx}" y="${cy}" class="${cls}">${escapeXml(tokens[r - 1])}</text>`,
     );
   }
 
@@ -175,12 +181,12 @@ export function renderDocSvg(doc: DepDoc): string {
     tokens.forEach((t) => (maxWordLen = Math.max(maxWordLen, t.length)));
   });
 
-  const width = 800; //TODO: calcuate the width correctly 
-  let y = 20;
+  const width = 2000; //TODO: calcuate the width correctly
+  let y = MARGIN.top;
   const bodies: string[] = [];
   doc.tok.forEach((tokens, i) => {
     bodies.push(renderSentenceSvg(tokens, doc.dep[i], y));
-    y += tokens.length * ROW_HEIGHT; //+ SENTENCE_GAP;
+    y += ROW_HEIGHT;
   });
   const height = y;
 
