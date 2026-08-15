@@ -29,7 +29,8 @@ interface Edge {
   lane: number;
 }
 
-const ROW_HEIGHT = 220;
+const COL_WIDTH = 30;
+const ROW_HEIGHT = 250;
 const CURVATURE = 10;
 const MARGIN = { left: 10, top: 30 };
 
@@ -122,9 +123,9 @@ function renderSentenceSvg(
     textX.push(MARGIN.left + depth[r] * INDENT_WIDTH); //+ Math.random()*100);
   }
   // arcs
-  edges.forEach((e) => {
-    const xHead = MARGIN.left + 50 * e.head;
-    const xChild = MARGIN.left + 50 * e.child;
+  edges.forEach((e, index) => {
+    const xHead = MARGIN.left + COL_WIDTH * e.head;
+    const xChild = MARGIN.left + COL_WIDTH * e.child;
     const yHead = textX[e.head] + offsetY;
     const yChild = textX[e.child] + offsetY;
 
@@ -135,9 +136,11 @@ function renderSentenceSvg(
     const px = -dy / len;
     const py = dx / len;
 
-    const dist = Math.sqrt(
-      Math.pow(xHead - xChild, 2) + Math.pow(yHead - yChild, 2),
-    );
+    const dist =
+      index === edges.length - 1
+        ? -0.2 *
+          Math.sqrt(Math.pow(xHead - xChild, 2) + Math.pow(yHead - yChild, 2))
+        : Math.sqrt(Math.pow(xHead - xChild, 2) + Math.pow(yHead - yChild, 2));
 
     const bulge = ((e.lane + 1) * CURVATURE * dist) / 100;
 
@@ -153,7 +156,7 @@ function renderSentenceSvg(
 
   // words
   for (let r = 1; r <= tokens.length; r++) {
-    const cx = MARGIN.left + 50 * r;
+    const cx = MARGIN.left + COL_WIDTH * r;
     const cy = textX[r] + offsetY;
     const isRoot = !hasHead.has(r);
     if (isRoot) {
