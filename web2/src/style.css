@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap');
+
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
@@ -29,6 +32,7 @@
     font-size: 16px;
   }
 }
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -165,7 +169,8 @@ code {
   text-align: center;
   min-height: 100svh;
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
+  flex-direction: row;
   box-sizing: border-box;
 }
 
@@ -308,7 +313,7 @@ pre {
 }
 
 #app {
-  font-family: 'Courier New', monospace;
+  font-family: "Roboto Slab", serif;
   white-space: pre;
   line-height: 1.4;
   padding: 24px;
@@ -323,7 +328,8 @@ pre {
 }
 
 .dep-word {
-  fill: #666;
+  /* fill: #222; */
+  font-weight: 500;
 }
 
 .dep-root {
@@ -338,10 +344,12 @@ pre {
 
 svg {
   font-size: 12px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: "Roboto Slab",  "Helvetica Neue", Arial, sans-serif;
+  font-weight: 600;
   /* 'IBM Plex Sans', sans-serif; */
 
 
   text {
     cursor: pointer;
-  }}
+  }
+}

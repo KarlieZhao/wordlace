@@ -1,16 +1,19 @@
 import type { DepDoc, DepEdgeRaw } from "./types";
 import { POS_COLOR_MAP } from "./types";
 /**
- * Words are stacked vertically (one per row) in sentence order, at a
- * shared x position. Each dependency draws a curved SVG path from the
- * head's row to the child's row, bulging left through a "lane" so
+ * Words are stacked vertically (one per row) in sentence order. Each
+ * word's HORIZONTAL position (x) is now determined by its POS tag —
+ * every distinct POS gets its own column, so e.g. all NOUNs line up
+ * under one another, all VERBs under another, etc. Each dependency
+ * draws a curved SVG path from the head's (row, pos-column) to the
+ * child's (row, pos-column), bulging left through a "lane" so
  * overlapping dependencies don't cross each other. An arrowhead marks
  * the child (dependent) end. Root words get a small dot instead of an
  * incoming arrow.
  *
  * Lane assignment is the same greedy interval-graph coloring used
- * before — it decides how far left an arc bulges, standing in for a
- * real x-axis layout.
+ * before — it decides how far a arc bulges perpendicular to the
+ * head->child line.
  *
  *
  *
@@ -31,11 +34,28 @@ interface Edge {
 }
 
 const ROW_HEIGHT = 15;
-const CURVATURE = 10;
-const MARGIN = { left: 150, top: 30 };
+const CURVATURE = 2;
+const MARGIN = { left: 50, top: 30 };
 const SENTENCE_GAP = 20;
 const fontsize = 12;
-const INDENT_WIDTH = 40;
+const COLUMN_WIDTH = 30;
+
+// Fixed column order for POS tags, derived once from POS_COLOR_MAP so
+// every sentence/document uses the same x position for a given POS.
+const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
+const UNKNOWN_POS_COLUMN = POS_ORDER.length; // fallback column for unmapped POS tags
+
+function posColumn(posTag: string | undefined): number {
+  if (posTag) {
+    const idx = POS_ORDER.indexOf(posTag);
+    if (idx !== -1) return idx;
+  }
+  return UNKNOWN_POS_COLUMN;
+}
+
+function posX(posTag: string | undefined): number {
+  return MARGIN.left + posColumn(posTag) * COLUMN_WIDTH;
+}
 
 function buildEdges(deps: DepEdgeRaw[]): Edge[] {
   const edges: Edge[] = [];
@@ -89,36 +109,13 @@ function renderSentenceSvg(
   const hasHead = new Set(edges.map((e) => e.child));
 
   const parts: string[] = [];
-  const textX: number[] = [];
 
-  const heads: number[] = [0];
-  deps.forEach(([head]) => heads.push(head));
-
-  const depth: number[] = new Array(tokens.length + 1).fill(-1);
-
-  function getDepth(r: number, seen: Set<number>): number {
-    if (depth[r] !== -1) return depth[r];
-    const h = heads[r];
-    if (h === 0 || seen.has(r)) {
-      depth[r] = 0;
-      return 0;
-    }
-    seen.add(r);
-    depth[r] = getDepth(h, seen) + 1;
-    return depth[r];
-  }
-
-  for (let r = 1; r <= tokens.length; r++) {
-    getDepth(r, new Set());
-  }
-
-  textX.push(0);
-  for (let r = 1; r <= tokens.length; r++) {
-    textX.push(MARGIN.left + depth[r] * INDENT_WIDTH);
-  }
-
-  // word row -> y, depth -> x
+  // word row -> y, POS -> x
   const rowY = (r: number) => offsetY + (r - 0.5) * ROW_HEIGHT;
+  const textX: number[] = [0]; // index 0 unused (rows are 1-based)
+  for (let r = 1; r <= tokens.length; r++) {
+    textX.push(posX(pos[r - 1]));
+  }
 
   // arcs
   edges.forEach((e) => {
@@ -160,11 +157,10 @@ function renderSentenceSvg(
       );
     }
     const cls = isRoot ? "dep-word dep-root" : "dep-word";
-
-      const fillColor =
-        pos[r - 1] && pos[r - 1] in POS_COLOR_MAP
-          ? POS_COLOR_MAP[pos[r - 1]]
-          : "#666";
+    const fillColor =
+      pos[r - 1] && pos[r - 1] in POS_COLOR_MAP
+        ? POS_COLOR_MAP[pos[r - 1]]
+        : "#666";
     parts.push(
       `<text x="${cx}" y="${cy}" class="${cls}" fill="${fillColor}">${escapeXml(tokens[r - 1])}</text>`,
     );
@@ -174,7 +170,7 @@ function renderSentenceSvg(
 }
 export function renderDocSvg(doc: DepDoc): string {
   let maxLaneCount = 0;
-  let maxDepth = 0;
+  let maxColumn = 0;
   const perSentenceLanes: number[] = [];
 
   doc.tok.forEach((tokens, i) => {
@@ -183,29 +179,17 @@ export function renderDocSvg(doc: DepDoc): string {
     perSentenceLanes.push(laneCount);
     maxLaneCount = Math.max(maxLaneCount, laneCount);
 
-    // depth pass, mirrors renderSentenceSvg's own depth calc
-    const heads: number[] = [0];
-    doc.dep[i].forEach(([head]) => heads.push(head));
-    const depth: number[] = new Array(tokens.length + 1).fill(-1);
-    function getDepth(r: number, seen: Set<number>): number {
-      if (depth[r] !== -1) return depth[r];
-      const h = heads[r];
-      if (h === 0 || seen.has(r)) {
-        depth[r] = 0;
-        return 0;
-      }
-      seen.add(r);
-      depth[r] = getDepth(h, seen) + 1;
-      return depth[r];
-    }
-    for (let r = 1; r <= tokens.length; r++) getDepth(r, new Set());
+    const pos = doc.pos[i];
     for (let r = 1; r <= tokens.length; r++) {
-      maxDepth = Math.max(maxDepth, depth[r]);
+      maxColumn = Math.max(maxColumn, posColumn(pos[r - 1]));
     }
   });
 
   const width =
-    MARGIN.left + maxDepth * INDENT_WIDTH + maxLaneCount * CURVATURE + 100; // + room for text
+    MARGIN.left +
+    (maxColumn + 1) * COLUMN_WIDTH +
+    maxLaneCount * CURVATURE +
+    100; // + room for text
 
   let y = 20;
   const bodies: string[] = [];
