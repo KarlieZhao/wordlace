@@ -1,12 +1,13 @@
 import "./style.css";
-import { renderDocSvg, addHoverEvents } from "./dep";
-import { renderSdp } from "./sdp";
+import { NetDependencyRenderer } from "./rendernet";
+import { SdpDependencyRenderer, type SdpDoc, type SdpMode } from "./rendersdp";
 import type { DepDoc } from "./types";
 import data from "../public/data.json";
 import data_ch from "../public/data_ch.json";
 
-const doc = data as DepDoc;
-const doc_ch = data_ch as DepDoc;
+const doc = data as DepDoc & SdpDoc;
+const doc_ch = data_ch as DepDoc & SdpDoc;
+
 const navbar = document.querySelector(".nav-bar");
 const allBtns = navbar?.querySelectorAll<HTMLElement>(".btn");
 const elLeft = document.getElementById("en") as HTMLDivElement;
@@ -27,15 +28,11 @@ function setActiveButton(btn: HTMLElement) {
 }
 
 function renderView(mode: ViewMode) {
-  if (mode === "syntactic-tree") {
-    elLeft.innerHTML = renderDocSvg(doc,"tree");
-    addHoverEvents(elLeft);
-  } else if (mode === "syntactic-net") {
-
-    elLeft.innerHTML = renderDocSvg(doc, "net");
-    addHoverEvents(elLeft);
+  if (mode === "syntactic-tree" || mode === "syntactic-net") {
+    const layout = mode === "syntactic-tree" ? "tree" : "net";
+    new NetDependencyRenderer(layout).render(elLeft, doc);
   } else {
-    renderSdp(elLeft, doc, mode);
+    new SdpDependencyRenderer(mode as SdpMode).render(elLeft, doc);
   }
 }
 
@@ -45,10 +42,11 @@ buttonConfig.forEach(({ id, mode }) => {
     setActiveButton(btn);
     renderView(mode);
   });
+
+  if (btn?.classList.contains("active")) {
+    renderView(mode);
+  }
 });
 
-renderView("syntactic-tree");
-
 // const elRight = document.getElementById("ch") as HTMLDivElement;
-// elRight.innerHTML = renderDocSvg(doc_ch);
-// addHoverEvents(elRight);
+// new NetDependencyRenderer("net").render(elRight, doc_ch);
