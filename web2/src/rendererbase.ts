@@ -18,10 +18,9 @@
  */
 
 import { escapeXml, POS_COLOR_MAP } from "./utils";
-
 export const SENTENCE_GAP = 15; // vertical gap between per-sentence <svg> wrappers
 export const FONT_SIZE = 12;
-export const ROW_HEIGHT = 20;
+export const ROW_HEIGHT = 50;
 export interface LaneAssignable {
   start: number;
   end: number;
@@ -54,9 +53,37 @@ export interface HoverBinding {
   leaveEvent?: "mouseout" | "mouseleave";
 }
 
+
+interface LayoutConfig {
+  marginLeft: number;
+  marginTop: number;
+  curvature: number;
+  unitWidth: number;
+}
+
+export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
+  net: { marginLeft: 50, marginTop: 20, curvature: 10, unitWidth: 0 },
+  tree: {
+    marginLeft: 150,
+    marginTop: 20,
+    curvature: 6,
+    unitWidth: FONT_SIZE * 3,
+  },
+};
+
+
+export const COLUMN_WIDTH = LAYOUT_CONFIG.net.unitWidth;
+
 export abstract class BaseDependencyRenderer {
-  /** CSS class every per-sentence <svg> gets, used for hover */
+  xpad: number[];
   protected readonly svgClass: string = "dependency-svg";
+
+  constructor() {
+    this.xpad = Array.from(
+      { length: 200 },
+      () => window.innerWidth / 4 + Math.random() * 200,
+    );
+  }
 
   protected static assignLanes<T extends LaneAssignable>(edges: T[]): number {
     const laneEnds: number[] = [];
@@ -143,7 +170,6 @@ export abstract class BaseDependencyRenderer {
         xmlns="http://www.w3.org/2000/svg"
         width="${width}"
         height="${height}"
-        viewBox="0 0 ${width} ${height}"
         ${extraAttrs}
       >
         <defs>${defs}</defs>
@@ -152,9 +178,6 @@ export abstract class BaseDependencyRenderer {
     `;
   }
 
-  /**
-   * Generic mouseover + leave-event across every per-sentence
-   */
   protected attachHover(root: HTMLElement, binding: HoverBinding): void {
     const svgs = root.querySelectorAll<SVGSVGElement>(`.${this.svgClass}`);
     const leaveEvent = binding.leaveEvent ?? "mouseout";

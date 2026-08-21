@@ -1,8 +1,24 @@
-import { posX, COLUMN_WIDTH } from "./rendernet";
+// DM: DELPH-IN MRS (DM) semantic dependency representation.
+
+// Predicate:
+// A predicate is generally an event/action/state, and its arguments are the participants.
+
+// PSD = Prague Semantic Dependencies
+// originating from the Prague school of linguistics
+// It represents semantic relationships using a set of relations designed around the meaning/function of words in a sentence,
+// rather than their surface grammatical configuration.
+
+// sdp/dm	What semantic relationships exist between words?
+// sdp/pas	Who did what to whom / what are the predicate's arguments?
+// sdp/psd	What semantic functions do words have in the sentence?
+
+import { posX } from "./rendersyntax";
 import {
   BaseDependencyRenderer,
   ROW_HEIGHT,
   SENTENCE_GAP,
+  LAYOUT_CONFIG,
+  COLUMN_WIDTH,
 } from "./rendererbase";
 
 export type SdpRelation = [number, string];
@@ -17,55 +33,67 @@ export interface SdpDoc {
   "sdp/psd"?: SdpSentence[];
 }
 
+export type SdpRepresentation = "dm" | "pas" | "psd";
+
 interface Edge {
   id: string;
   sentence: number;
   child: number;
   head: number;
   relation: string;
+  representation: SdpRepresentation;
   start: number;
   end: number;
   lane: number;
 }
 
-const CURVATURE = 12;
-const MARGIN = { left: 50, right: 80, top: 30, bottom: 30 };
-const MIN_WIDTH = 500;
-
-//  converts a relation into a CSS class.
+// Converts a relation into a CSS class.
 function relationClass(relation: string): string {
   return "relation-" + relation.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
-/**
- * Renders semantic-dependency-parse (SDP) sentences
- */
-export class SdpDependencyRenderer extends BaseDependencyRenderer {
-  private readonly mode: SdpMode;
+// Converts an SDP representation into a CSS class.
+function representationClass(representation: SdpRepresentation): string {
+  return `sdp-${representation}`;
+}
 
-  constructor(mode: SdpMode = "dm") {
+// Renders semantic-dependency-parse sentences.
+export class SdpDependencyRenderer extends BaseDependencyRenderer {
+  constructor() {
     super();
-    this.mode = mode;
   }
 
-  private buildEdges(sentence: SdpSentence, sentenceIndex: number): Edge[] {
+  /**
+   * Build edges for one SDP representation.
+   */
+  private buildEdges(
+    sentence: SdpSentence,
+    sentenceIndex: number,
+    representation: SdpRepresentation,
+  ): Edge[] {
     const edges: Edge[] = [];
 
     sentence.forEach((relations, childIndex) => {
-      // childIndex is 0-based
+      // childIndex is 0-based.
       const child = childIndex;
 
       relations.forEach(([hanlpHead, relation], relationIndex) => {
-        // HanLP head is 1-based, convert to 0-based
+        // HanLP head is 1-based, convert to 0-based.
         const head = hanlpHead - 1;
-        if (head <= 0 || head >= sentence.length || head === child) return;
+        // Ignore invalid heads
+        if (head < 0 || head >= sentence.length || head === child) {
+          return;
+        }
 
         edges.push({
-          id: [sentenceIndex, head, child, relationIndex].join("-"),
+          id: [sentenceIndex, representation, head, child, relationIndex].join(
+            "-",
+          ),
           sentence: sentenceIndex,
           child,
           head,
           relation,
+          representation,
           start: Math.min(child, head),
           end: Math.max(child, head),
           lane: -1,
@@ -76,50 +104,97 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     return edges;
   }
 
+  /**
+   * Build the complete semantic dependency graph by overlaying
+   * DM, PAS, and PSD.
+   */
+  private buildAllEdges(doc: SdpDoc, sentenceIndex: number): Edge[] {
+    const representations: Array<{
+      mode: SdpRepresentation;
+      data?: SdpSentence[];
+    }> = [
+      {
+        mode: "dm",
+        data: doc["sdp/dm"],
+      },
+      {
+        mode: "pas",
+        data: doc["sdp/pas"],
+      },
+      {
+        mode: "psd",
+        data: doc["sdp/psd"],
+      },
+    ];
+
+    const edges: Edge[] = [];
+
+    representations.forEach(({ mode, data }) => {
+      const sentence = data?.[sentenceIndex];
+
+      if (!sentence) return;
+
+      edges.push(...this.buildEdges(sentence, sentenceIndex, mode));
+    });
+
+    SdpDependencyRenderer.assignLanes(edges);
+
+    return edges;
+  }
+
   private calculateTextX(
     tokens: string[],
     pos: string[],
     startX: number,
   ): number[] {
     const textX: number[] = [];
-    for (let i = 0; i <= tokens.length; i++) {
-      textX.push(i === 0 ? MARGIN.left : posX(pos[i]) + startX);
+
+    for (let i = 0; i < tokens.length; i++) {
+      textX.push(posX(pos[i]) + startX);
     }
+
     return textX;
   }
 
-  //renders a single sentence
+  /**
+   * Renders a single sentence with DM, PAS, and PSD overlaid.
+   */
   renderSentenceSvg(
     tokens: string[],
     pos: string[],
-    sentence: SdpSentence,
+    doc: SdpDoc,
     sentenceIndex: number,
   ): string {
-    const edges = this.buildEdges(sentence, sentenceIndex);
-    const laneCount = SdpDependencyRenderer.assignLanes(edges);
+    const edges = this.buildAllEdges(doc, sentenceIndex);
+    const startX = this.xpad[sentenceIndex % this.xpad.length];
 
-    // TODO: what should the x-pos of each sentence be?
-    const startX = Math.random() * 400;
     const textX = this.calculateTextX(tokens, pos, startX);
-    const rowY = (token: number) => MARGIN.top + (token - 0.5) * ROW_HEIGHT;
 
-    const tokenWidth =
-      MARGIN.left + Math.max(0, tokens.length - 1) * COLUMN_WIDTH;
-    const arcWidth = laneCount * CURVATURE * 2;
-    const width = Math.max(MIN_WIDTH, tokenWidth + arcWidth + MARGIN.right);
+    const rowY = (token: number) =>
+      LAYOUT_CONFIG.net.marginTop + (token - 0.5) * ROW_HEIGHT;
+
+    const width = Math.max(
+      500,
+      LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX),
+    );
+
     const height = Math.max(
-      MARGIN.top + tokens.length * ROW_HEIGHT + MARGIN.bottom,
+      LAYOUT_CONFIG.net.marginTop * 2 + tokens.length * ROW_HEIGHT,
       100,
     );
 
     const parts: string[] = [];
 
-    // arcs + relation labels
+    // --------------------------------------------------
+    // Arcs + relation labels
+    // --------------------------------------------------
+
     edges.forEach((edge) => {
-      const xHead = textX[edge.head + 1] + MARGIN.left;
-      const xChild = textX[edge.child + 1] + MARGIN.left;
-      const yHead = rowY(edge.head + 1);
-      const yChild = rowY(edge.child + 1);
+      const xHead = textX[edge.head] + COLUMN_WIDTH / 2;
+      const xChild = textX[edge.child] + COLUMN_WIDTH / 2;
+
+      const yHead = rowY(edge.head);
+      const yChild = rowY(edge.child);
 
       const { ctrl1x, ctrl1y, ctrl2x, ctrl2y, midx, midy } =
         SdpDependencyRenderer.computeCurve(
@@ -128,34 +203,39 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
           xChild,
           yChild,
           edge.lane,
-          CURVATURE,
+          LAYOUT_CONFIG.net.curvature,
         );
 
       const relationCls = relationClass(edge.relation);
+
+      const representationCls = representationClass(edge.representation);
+
       const arcId = `sdp-edge-${edge.id}`;
 
       parts.push(`
         <path
           id="${arcId}"
-          class="sdp-arc ${relationCls}"
+          class="sdp-arc ${representationCls} ${relationCls}"
           data-sentence="${sentenceIndex}"
           data-edge="${SdpDependencyRenderer.escape(edge.id)}"
           data-head="${edge.head}"
           data-child="${edge.child}"
           data-relation="${SdpDependencyRenderer.escape(edge.relation)}"
+          data-sdp="${edge.representation}"
           d="M ${xHead} ${yHead}
              C ${ctrl1x} ${ctrl1y},
                ${ctrl2x} ${ctrl2y},
                ${xChild} ${yChild}"
-          marker-end="url(#sdp-arrow-${sentenceIndex})"
+          marker-end="url(#sdp-arrow-${sentenceIndex}-${edge.representation})"
         />
       `);
 
       parts.push(`
         <text
-          class="sdp-relation ${relationCls}"
+          class="sdp-relation ${representationCls} ${relationCls}"
           data-sentence="${sentenceIndex}"
           data-edge="${SdpDependencyRenderer.escape(edge.id)}"
+          data-sdp="${edge.representation}"
           x="${midx}"
           y="${midy - 3}"
           text-anchor="middle"
@@ -164,9 +244,12 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       `);
     });
 
-    // words
+    // --------------------------------------------------
+    // Words
+    // --------------------------------------------------
+
     tokens.forEach((token, index) => {
-      const word = index + 1;
+      const word = index;
       const x = textX[word];
       const y = rowY(word);
       const posTag = pos[index] ?? "";
@@ -185,9 +268,13 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       `);
     });
 
+    // --------------------------------------------------
+    // Arrow markers
+    // --------------------------------------------------
+
     const defs = `
       <marker
-        id="sdp-arrow-${sentenceIndex}"
+        id="sdp-arrow-${sentenceIndex}-dm"
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
@@ -195,7 +282,40 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         markerHeight="6"
         orient="auto"
       >
-        <path d="M 0 0 L 10 5 L 0 10 z" class="sdp-arrow" />
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="sdp-arrow sdp-dm"
+        />
+      </marker>
+
+      <marker
+        id="sdp-arrow-${sentenceIndex}-pas"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="sdp-arrow sdp-pas"
+        />
+      </marker>
+
+      <marker
+        id="sdp-arrow-${sentenceIndex}-psd"
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto"
+      >
+        <path
+          d="M 0 0 L 10 5 L 0 10 z"
+          class="sdp-arrow sdp-psd"
+        />
       </marker>
     `;
 
@@ -204,25 +324,42 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       height,
       sentenceIndex,
       defs,
-      body: `<g class="sdp-sentence" data-sentence="${sentenceIndex}">${parts.join("\n")}</g>`,
-      extraAttrs: `data-sdp-mode="${this.mode}"`,
+      body: `
+        <g
+          class="sdp-sentence"
+          data-sentence="${sentenceIndex}"
+        >
+          ${parts.join("\n")}
+        </g>
+      `,
+      extraAttrs: `data-sdp-mode="overlay"`,
     });
   }
 
-  /** Renders every sentence for the configured mode as an array of standalone <svg> strings. */
   renderSentences(doc: SdpDoc): string[] {
-    const sdpKey = `sdp/${this.mode}` as "sdp/dm" | "sdp/pas" | "sdp/psd";
-    const sdpData = doc[sdpKey];
+    const hasAnySdp = doc["sdp/dm"] || doc["sdp/pas"] || doc["sdp/psd"];
 
-    if (!sdpData) {
-      console.warn(`HanLP document does not contain ${sdpKey}`);
+    if (!hasAnySdp) {
+      console.warn("HanLP document does not contain any SDP data");
+
       return [
-        `<svg class="${this.svgClass}" xmlns="http://www.w3.org/2000/svg"><text x="20" y="30">No ${sdpKey} data available.</text></svg>`,
+        `<svg class="${this.svgClass}" xmlns="http://www.w3.org/2000/svg">
+          <text x="20" y="30">
+            No SDP data available.
+          </text>
+        </svg>`,
       ];
     }
 
-    return sdpData.map((sentence, i) =>
-      this.renderSentenceSvg(doc.tok[i] ?? [], doc.pos[i] ?? [], sentence, i),
+    const sentenceCount = Math.max(
+      doc.tok.length,
+      doc["sdp/dm"]?.length ?? 0,
+      doc["sdp/pas"]?.length ?? 0,
+      doc["sdp/psd"]?.length ?? 0,
+    );
+
+    return Array.from({ length: sentenceCount }, (_, i) =>
+      this.renderSentenceSvg(doc.tok[i] ?? [], doc.pos[i] ?? [], doc, i),
     );
   }
 
@@ -230,10 +367,24 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const sentences = this.renderSentences(doc)
       .map(
         (svg, i) =>
-          `<div class="sdp-sentence-wrap" data-sentence="${i}" style="margin-bottom:${SENTENCE_GAP}px">${svg}</div>`,
+          `<div
+            class="sdp-sentence-wrap"
+            data-sentence="${i}"
+            style="margin-bottom:${SENTENCE_GAP}px"
+          >
+            ${svg}
+          </div>`,
       )
       .join("\n");
-    return `<div class="dependency-doc" data-sdp-mode="${this.mode}">${sentences}</div>`;
+
+    return `
+      <div
+        class="dependency-doc"
+        data-sdp-mode="overlay"
+      >
+        ${sentences}
+      </div>
+    `;
   }
 
   render(container: HTMLElement, doc: SdpDoc): void {
@@ -241,19 +392,23 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     this.setupHover(container);
   }
 
-  // ---------------------------------------------------------------------
-  // hover
-  // ---------------------------------------------------------------------
+  // --------------------------------------------------
+  // Hover
+  // --------------------------------------------------
 
   setupHover(container: HTMLElement): void {
     this.attachHover(container, {
       wordSelector: ".sdp-word",
       arcSelector: ".sdp-arc",
+
       onWordHover: (svg, sentence, word) =>
         this.highlightWord(svg, sentence, word),
+
       onArcHover: (svg, sentence, head, child, edgeId) =>
         this.highlightEdge(svg, sentence, head, child, edgeId),
+
       onClear: (svg) => this.clearHighlight(svg),
+
       leaveEvent: "mouseleave",
     });
   }
@@ -264,6 +419,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     wordIndex: number,
   ): void {
     this.clearHighlight(svg);
+
     svg.classList.add("has-sdp-hover");
 
     svg
@@ -275,14 +431,20 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const edges = svg.querySelectorAll<SVGPathElement>(
       `.sdp-arc[data-sentence="${sentenceIndex}"]`,
     );
+
     edges.forEach((edge) => {
       const head = Number(edge.dataset.head);
+
       const child = Number(edge.dataset.child);
-      if (head !== wordIndex && child !== wordIndex) return;
+
+      if (head !== wordIndex && child !== wordIndex) {
+        return;
+      }
 
       edge.classList.add("is-sdp-highlighted");
 
       const edgeId = edge.dataset.edge;
+
       if (edgeId) {
         svg
           .querySelector(`.sdp-relation[data-edge="${edgeId}"]`)
@@ -290,6 +452,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       }
 
       const otherWord = head === wordIndex ? child : head;
+
       svg
         .querySelector(
           `.sdp-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`,
@@ -304,8 +467,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     head: number,
     child: number,
     edgeId?: string,
-  ): void {
-    this.clearHighlight(svg);
+  ): void {    this.clearHighlight(svg);
+
     svg.classList.add("has-sdp-hover");
 
     let edge: SVGPathElement | null = edgeId

@@ -1,6 +1,6 @@
 import type { DepDoc, DepEdgeRaw } from "./types";
 import { POS_COLOR_MAP } from "./utils";
-import { BaseDependencyRenderer, ROW_HEIGHT } from "./rendererbase";
+import { BaseDependencyRenderer, ROW_HEIGHT, LAYOUT_CONFIG } from "./rendererbase";
 import { SENTENCE_GAP } from "./rendererbase";
 
 export type LayoutMode = "tree" | "net";
@@ -13,32 +13,14 @@ interface Edge {
   lane: number;
 }
 
-interface LayoutConfig {
-  marginLeft: number;
-  marginTop: number;
-  curvature: number;
-  unitWidth: number;
-}
-
 const FONT_SIZE = 12;
 const MARGIN_BOTTOM = 20;
 const EXTRA_TEXT_SPACE = 100; // room for the trailing word's text
 
-const LAYOUT_CONFIG: Record<LayoutMode, LayoutConfig> = {
-  net: { marginLeft: 50, marginTop: 20, curvature: 5, unitWidth: 20 },
-  tree: {
-    marginLeft: 150,
-    marginTop: 20,
-    curvature: 10,
-    unitWidth: FONT_SIZE * 3,
-  },
-};
 
 export const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
 const UNKNOWN_POS_COLUMN = POS_ORDER.length; // fallback
 
-/** Net-mode column width, reused by other renderers (e.g. the SDP renderer). */
-export const COLUMN_WIDTH = LAYOUT_CONFIG.net.unitWidth;
 
 function posColumn(posTag: string | undefined): number {
   if (posTag) {
@@ -54,15 +36,17 @@ export function posX(posTag: string | undefined): number {
 }
 
 /**
- * Renders dependency tree or net
- *  - net:  words positioned by POS-tag column
- *  - tree: words positioned by dependency-tree depth
+ * renders syntactic dependency tree or net
  */
-export class NetDependencyRenderer extends BaseDependencyRenderer {
-  private readonly mode: LayoutMode;
+export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
+  mode: LayoutMode;
 
   constructor(mode: LayoutMode = "net") {
     super();
+    this.mode = mode;
+  }
+
+  setMode(mode: LayoutMode) {
     this.mode = mode;
   }
 
@@ -79,6 +63,7 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
         lane: -1,
       });
     });
+    SyntacticDependencyRenderer.assignLanes(edges);
     return edges;
   }
 
@@ -154,20 +139,16 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
   ): string {
     const cfg = LAYOUT_CONFIG[this.mode];
     const edges = this.buildEdges(deps);
-    const laneCount = NetDependencyRenderer.assignLanes(edges);
     const hasHead = new Set(edges.map((e) => e.child));
 
     // TODO: what should the x-pos of each sentence be?
-    const startX = Math.random() * 400;
+    const startX = this.xpad[sentenceIndex % this.xpad.length];
     const textX = this.calculateTextX(tokens, deps, pos, startX);
-    const rowY = (r: number) => cfg.marginTop + (r - 0.5) * ROW_HEIGHT;
-
-    const extent = this.measureExtent(tokens, deps, pos);
-    const width =
-      cfg.marginLeft +
-      (extent + 1) * cfg.unitWidth +
-      laneCount * cfg.curvature +
-      EXTRA_TEXT_SPACE;
+    const rowY = (r: number) => cfg.marginTop + (r - 0.5) * ROW_HEIGHT;   
+    const width = Math.max(
+      500,
+      LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX),
+    );
     const height = cfg.marginTop + tokens.length * ROW_HEIGHT + MARGIN_BOTTOM;
 
     const parts: string[] = [];
@@ -180,7 +161,7 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
       const yChild = rowY(e.child);
 
       const { ctrl1x, ctrl1y, ctrl2x, ctrl2y } =
-        NetDependencyRenderer.computeCurve(
+        SyntacticDependencyRenderer.computeCurve(
           xHead,
           yHead,
           xChild,
@@ -225,7 +206,7 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
       }
 
       const cls = isRoot ? "dep-word dep-root" : "dep-word";
-      const fillColor = NetDependencyRenderer.posColor(pos[r - 1]);
+      const fillColor = SyntacticDependencyRenderer.posColor(pos[r - 1]);
 
       parts.push(`
         <text
@@ -235,7 +216,7 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
           data-sentence="${sentenceIndex}"
           data-word="${r}"
           fill="${fillColor}"
-        >${NetDependencyRenderer.escape(tokens[r - 1])}</text>
+        >${SyntacticDependencyRenderer.escape(tokens[r - 1])}</text>
       `);
     }
 
@@ -283,10 +264,7 @@ export class NetDependencyRenderer extends BaseDependencyRenderer {
     this.addHoverEvents(container);
   }
 
-  // ---------------------------------------------------------------------
   // hover
-  // ---------------------------------------------------------------------
-
   addHoverEvents(container: HTMLElement): void {
     this.attachHover(container, {
       wordSelector: ".dep-word",
