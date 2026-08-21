@@ -21,7 +21,7 @@
 import { escapeXml, POS_COLOR_MAP } from "./utils";
 export const SENTENCE_GAP = 15; // vertical gap between per-sentence <svg> wrappers
 export const FONT_SIZE = 12;
-export const ROW_HEIGHT = 30;
+export const ROW_HEIGHT = 40;
 
 interface LayoutConfig {
   marginLeft: number;
@@ -31,7 +31,7 @@ interface LayoutConfig {
 }
 
 export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
-  net: { marginLeft: 50, marginTop: 20, curvature: 5, unitWidth: 20 },
+  net: { marginLeft: 50, marginTop: 20, curvature: 5, unitWidth: 10 },
   tree: {
     marginLeft: 150,
     marginTop: 20,

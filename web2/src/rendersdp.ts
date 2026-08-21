@@ -187,11 +187,11 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
 
     // Arcs + relation labels
     edges.forEach((edge) => {
-      const xHead = textX[edge.head] + COLUMN_WIDTH / 2;
-      const xChild = textX[edge.child] + COLUMN_WIDTH / 2;
+      const xHead = rowY(edge.head);
+      const xChild = rowY(edge.child);
 
-      const yHead = rowY(edge.head);
-      const yChild = rowY(edge.child);
+      const yHead = textX[edge.head] + COLUMN_WIDTH / 2;
+      const yChild = textX[edge.child] + COLUMN_WIDTH / 2;
 
       const { ctrl1x, ctrl1y, ctrl2x, ctrl2y, midx, midy } =
         SdpDependencyRenderer.computeCurve(
@@ -244,8 +244,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     // Words
     tokens.forEach((token, index) => {
       const word = index;
-      const x = textX[word];
-      const y = rowY(word);
+      const x = rowY(word);
+      const y = textX[word];
       const posTag = pos[index] ?? "";
       const fillColor = SdpDependencyRenderer.posColor(posTag);
 
