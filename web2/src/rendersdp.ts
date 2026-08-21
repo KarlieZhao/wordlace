@@ -185,10 +185,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
 
     const parts: string[] = [];
 
-    // --------------------------------------------------
     // Arcs + relation labels
-    // --------------------------------------------------
-
     edges.forEach((edge) => {
       const xHead = textX[edge.head] + COLUMN_WIDTH / 2;
       const xChild = textX[edge.child] + COLUMN_WIDTH / 2;
@@ -244,10 +241,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       `);
     });
 
-    // --------------------------------------------------
     // Words
-    // --------------------------------------------------
-
     tokens.forEach((token, index) => {
       const word = index;
       const x = textX[word];
@@ -268,9 +262,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       `);
     });
 
-    // --------------------------------------------------
     // Arrow markers
-    // --------------------------------------------------
 
     const defs = `
       <marker
@@ -392,9 +384,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     this.setupHover(container);
   }
 
-  // --------------------------------------------------
   // Hover
-  // --------------------------------------------------
 
   setupHover(container: HTMLElement): void {
     this.attachHover(container, {
@@ -467,7 +457,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     head: number,
     child: number,
     edgeId?: string,
-  ): void {    this.clearHighlight(svg);
+  ): void {
+    this.clearHighlight(svg);
 
     svg.classList.add("has-sdp-hover");
 

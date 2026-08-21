@@ -14,13 +14,34 @@
  * left side: full text as pixel bit map
  * right side: user editor
  *
- * use lem, fea
+ * show lem, fea as labels
+ * shouldnt be colored by POS, maybe opacity show word emphasis
  */
 
 import { escapeXml, POS_COLOR_MAP } from "./utils";
 export const SENTENCE_GAP = 15; // vertical gap between per-sentence <svg> wrappers
 export const FONT_SIZE = 12;
-export const ROW_HEIGHT = 50;
+export const ROW_HEIGHT = 30;
+
+interface LayoutConfig {
+  marginLeft: number;
+  marginTop: number;
+  curvature: number;
+  unitWidth: number;
+}
+
+export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
+  net: { marginLeft: 50, marginTop: 20, curvature: 5, unitWidth: 20 },
+  tree: {
+    marginLeft: 150,
+    marginTop: 20,
+    curvature: 6,
+    unitWidth: FONT_SIZE * 3,
+  },
+};
+
+
+export const COLUMN_WIDTH = LAYOUT_CONFIG.net.unitWidth;
 export interface LaneAssignable {
   start: number;
   end: number;
@@ -52,27 +73,6 @@ export interface HoverBinding {
    * "mouseleave" fires only when the pointer actually leaves the svg. */
   leaveEvent?: "mouseout" | "mouseleave";
 }
-
-
-interface LayoutConfig {
-  marginLeft: number;
-  marginTop: number;
-  curvature: number;
-  unitWidth: number;
-}
-
-export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
-  net: { marginLeft: 50, marginTop: 20, curvature: 10, unitWidth: 0 },
-  tree: {
-    marginLeft: 150,
-    marginTop: 20,
-    curvature: 6,
-    unitWidth: FONT_SIZE * 3,
-  },
-};
-
-
-export const COLUMN_WIDTH = LAYOUT_CONFIG.net.unitWidth;
 
 export abstract class BaseDependencyRenderer {
   xpad: number[];
