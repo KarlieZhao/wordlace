@@ -19,9 +19,8 @@
  */
 
 import { escapeXml, POS_COLOR_MAP } from "./utils";
-export const SENTENCE_GAP = 15; // vertical gap between per-sentence <svg> wrappers
 export const FONT_SIZE = 12;
-export const ROW_HEIGHT = 40;
+export const ROW_HEIGHT = 30;
 
 interface LayoutConfig {
   marginLeft: number;
@@ -31,7 +30,7 @@ interface LayoutConfig {
 }
 
 export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
-  net: { marginLeft: 50, marginTop: 20, curvature: 5, unitWidth: 10 },
+  net: { marginLeft: 10, marginTop: 50, curvature: 5, unitWidth: 10 },
   tree: {
     marginLeft: 150,
     marginTop: 20,
@@ -39,7 +38,6 @@ export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
     unitWidth: FONT_SIZE * 3,
   },
 };
-
 
 export const COLUMN_WIDTH = LAYOUT_CONFIG.net.unitWidth;
 export interface LaneAssignable {
@@ -61,13 +59,7 @@ export interface HoverBinding {
   wordSelector: string;
   arcSelector: string;
   onWordHover: (svg: SVGSVGElement, sentence: number, word: number) => void;
-  onArcHover: (
-    svg: SVGSVGElement,
-    sentence: number,
-    head: number,
-    child: number,
-    edgeId?: string,
-  ) => void;
+  onArcHover: (svg: SVGSVGElement, sentence: number, head: number, child: number, edgeId?: string) => void;
   onClear: (svg: SVGSVGElement) => void;
   /** "mouseout" (default) checks relatedTarget so bubbling within one svg doesn't clear.
    * "mouseleave" fires only when the pointer actually leaves the svg. */
@@ -75,21 +67,13 @@ export interface HoverBinding {
 }
 
 export abstract class BaseDependencyRenderer {
-  xpad: number[];
   protected readonly svgClass: string = "dependency-svg";
 
-  constructor() {
-    this.xpad = Array.from(
-      { length: 200 },
-      () => window.innerWidth / 4 + Math.random() * 200,
-    );
-  }
+  constructor() {}
 
   protected static assignLanes<T extends LaneAssignable>(edges: T[]): number {
     const laneEnds: number[] = [];
-    const sorted = [...edges].sort(
-      (a, b) => a.start - b.start || a.end - b.end,
-    );
+    const sorted = [...edges].sort((a, b) => a.start - b.start || a.end - b.end);
 
     for (const edge of sorted) {
       let placed = false;
@@ -155,14 +139,7 @@ export abstract class BaseDependencyRenderer {
     body: string;
     extraAttrs?: string;
   }): string {
-    const {
-      width,
-      height,
-      sentenceIndex,
-      defs,
-      body,
-      extraAttrs = "",
-    } = params;
+    const { width, height, sentenceIndex, defs, body, extraAttrs = "" } = params;
     return `
       <svg
         class="${this.svgClass}"
@@ -189,11 +166,7 @@ export abstract class BaseDependencyRenderer {
 
         const word = target.closest<SVGTextElement>(binding.wordSelector);
         if (word) {
-          binding.onWordHover(
-            svg,
-            Number(word.dataset.sentence),
-            Number(word.dataset.word),
-          );
+          binding.onWordHover(svg, Number(word.dataset.sentence), Number(word.dataset.word));
           return;
         }
 
@@ -219,16 +192,10 @@ export abstract class BaseDependencyRenderer {
     });
   }
 
-  protected clearHighlightClasses(
-    svg: SVGSVGElement,
-    hoverClass: string,
-    ...classes: string[]
-  ): void {
+  protected clearHighlightClasses(svg: SVGSVGElement, hoverClass: string, ...classes: string[]): void {
     svg.classList.remove(hoverClass);
-    svg
-      .querySelectorAll(classes.map((c) => `.${c}`).join(", "))
-      .forEach((el) => {
-        el.classList.remove(...classes);
-      });
+    svg.querySelectorAll(classes.map((c) => `.${c}`).join(", ")).forEach((el) => {
+      el.classList.remove(...classes);
+    });
   }
 }

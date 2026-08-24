@@ -1,7 +1,7 @@
 import type { DepDoc, DepEdgeRaw } from "./types";
 import { POS_COLOR_MAP } from "./utils";
 import { BaseDependencyRenderer, ROW_HEIGHT, LAYOUT_CONFIG } from "./rendererbase";
-import { SENTENCE_GAP } from "./rendererbase";
+import { markerSize } from "./rendersdp";
 
 export type LayoutMode = "tree" | "net";
 
@@ -14,13 +14,10 @@ interface Edge {
 }
 
 const FONT_SIZE = 12;
-const MARGIN_BOTTOM = 20;
-const EXTRA_TEXT_SPACE = 100; // room for the trailing word's text
-
+const MARGIN_BOTTOM = 10;
 
 export const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
 const UNKNOWN_POS_COLUMN = POS_ORDER.length; // fallback
-
 
 function posColumn(posTag: string | undefined): number {
   if (posTag) {
@@ -91,18 +88,12 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
   }
 
   // x-position per row (1-indexed, index 0 unused)
-  private calculateTextX(
-    tokens: string[],
-    deps: DepEdgeRaw[],
-    pos: string[],
-    startX: number,
-  ): number[] {
+  private calculateTextX(tokens: string[], deps: DepEdgeRaw[], pos: string[], startX: number): number[] {
     const cfg = LAYOUT_CONFIG[this.mode];
     const textX: number[] = [startX];
 
     if (this.mode === "net") {
-      for (let r = 1; r <= tokens.length; r++)
-        textX.push(posX(pos[r - 1]) + startX);
+      for (let r = 1; r <= tokens.length; r++) textX.push(posX(pos[r - 1]) + startX);
     } else {
       const depth = this.computeDepths(tokens, deps);
       for (let r = 1; r <= tokens.length; r++) {
@@ -114,15 +105,10 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
   }
 
   // max POS column ("net" mode) or max tree depth ("tree" mode) for this sentence
-  private measureExtent(
-    tokens: string[],
-    deps: DepEdgeRaw[],
-    pos: string[],
-  ): number {
+  private measureExtent(tokens: string[], deps: DepEdgeRaw[], pos: string[]): number {
     if (this.mode === "net") {
       let max = 0;
-      for (let r = 1; r <= tokens.length; r++)
-        max = Math.max(max, posColumn(pos[r - 1]));
+      for (let r = 1; r <= tokens.length; r++) max = Math.max(max, posColumn(pos[r - 1]));
       return max;
     }
     const depth = this.computeDepths(tokens, deps);
@@ -131,24 +117,14 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
     return max;
   }
 
-  renderSentenceSvg(
-    tokens: string[],
-    deps: DepEdgeRaw[],
-    pos: string[],
-    sentenceIndex: number,
-  ): string {
+  renderSentenceSvg(tokens: string[], deps: DepEdgeRaw[], pos: string[], sentenceIndex: number): string {
     const cfg = LAYOUT_CONFIG[this.mode];
     const edges = this.buildEdges(deps);
     const hasHead = new Set(edges.map((e) => e.child));
 
-    // TODO: what should the x-pos of each sentence be?
-    const startX = this.xpad[sentenceIndex % this.xpad.length];
-    const textX = this.calculateTextX(tokens, deps, pos, startX);
-    const rowY = (r: number) => cfg.marginTop + (r - 0.5) * ROW_HEIGHT;   
-    const width = Math.max(
-      500,
-      LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX),
-    );
+    const textX = this.calculateTextX(tokens, deps, pos, 0);
+    const rowY = (r: number) => cfg.marginTop + (r - 0.5) * ROW_HEIGHT;
+    const width = Math.max(500, LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX));
     const height = cfg.marginTop + tokens.length * ROW_HEIGHT + MARGIN_BOTTOM;
 
     const parts: string[] = [];
@@ -160,19 +136,18 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
       const yHead = rowY(e.head);
       const yChild = rowY(e.child);
 
-      const { ctrl1x, ctrl1y, ctrl2x, ctrl2y } =
-        SyntacticDependencyRenderer.computeCurve(
-          xHead,
-          yHead,
-          xChild,
-          yChild,
-          e.lane,
-          cfg.curvature,
-        );
+      const { ctrl1x, ctrl1y, ctrl2x, ctrl2y } = SyntacticDependencyRenderer.computeCurve(
+        xHead,
+        yHead,
+        xChild,
+        yChild,
+        e.lane,
+        cfg.curvature,
+      );
 
       parts.push(`
         <path
-          class="dep-arc"
+          class="dep-arc hidden"
           data-sentence="${sentenceIndex}"
           data-edge="${edgeIndex}"
           data-head="${e.head}"
@@ -226,8 +201,8 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
-        markerWidth="7"
-        markerHeight="7"
+        markerWidth="${markerSize}"
+        markerHeight="${markerSize}"
         orient="auto-start-reverse"
       >
         <path d="M 0 0 L 10 5 L 0 10 z" class="dep-arrow" />
@@ -244,17 +219,12 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
   }
 
   renderSentences(doc: DepDoc): string[] {
-    return doc.tok.map((tokens, i) =>
-      this.renderSentenceSvg(tokens, doc.dep[i], doc.pos[i], i),
-    );
+    return doc.tok.map((tokens, i) => this.renderSentenceSvg(tokens, doc.dep[i], doc.pos[i], i));
   }
 
   renderDocSvg(doc: DepDoc): string {
     const sentences = this.renderSentences(doc)
-      .map(
-        (svg, i) =>
-          `<div class="dep-sentence-wrap" data-sentence="${i}" style="margin-bottom:${SENTENCE_GAP}px">${svg}</div>`,
-      )
+      .map((svg, i) => `<div class="dep-sentence-wrap" data-sentence="${i}">${svg}</div>`)
       .join("\n");
     return `<div class="dependency-doc">${sentences}</div>`;
   }
@@ -269,37 +239,25 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
     this.attachHover(container, {
       wordSelector: ".dep-word",
       arcSelector: ".dep-arc",
-      onWordHover: (svg, sentence, word) =>
-        this.highlightWord(svg, sentence, word),
-      onArcHover: (svg, sentence, head, child) =>
-        this.highlightEdge(svg, sentence, head, child),
+      onWordHover: (svg, sentence, word) => this.highlightWord(svg, sentence, word),
+      onArcHover: (svg, sentence, head, child) => this.highlightEdge(svg, sentence, head, child),
       onClear: (svg) => this.clearHighlights(svg),
       leaveEvent: "mouseout",
     });
   }
 
-  private highlightWord(
-    svg: SVGSVGElement,
-    sentenceIndex: number,
-    wordIndex: number,
-  ): void {
+  private highlightWord(svg: SVGSVGElement, sentenceIndex: number, wordIndex: number): void {
     this.clearHighlights(svg);
     svg.classList.add("has-hover");
 
     svg
-      .querySelector(
-        `.dep-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`,
-      )
+      .querySelector(`.dep-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
       ?.classList.add("is-highlighted");
     svg
-      .querySelector(
-        `.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`,
-      )
+      .querySelector(`.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
       ?.classList.add("is-highlighted");
 
-    const edges = svg.querySelectorAll<SVGPathElement>(
-      `.dep-arc[data-sentence="${sentenceIndex}"]`,
-    );
+    const edges = svg.querySelectorAll<SVGPathElement>(`.dep-arc[data-sentence="${sentenceIndex}"]`);
     edges.forEach((edge) => {
       const head = Number(edge.dataset.head);
       const child = Number(edge.dataset.child);
@@ -309,57 +267,34 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
       const otherWord = head === wordIndex ? child : head;
 
       svg
-        .querySelector(
-          `.dep-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`,
-        )
+        .querySelector(`.dep-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`)
         ?.classList.add("is-connected");
       svg
-        .querySelector(
-          `.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`,
-        )
+        .querySelector(`.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`)
         ?.classList.add("is-connected");
     });
   }
 
-  private highlightEdge(
-    svg: SVGSVGElement,
-    sentenceIndex: number,
-    head: number,
-    child: number,
-  ): void {
+  private highlightEdge(svg: SVGSVGElement, sentenceIndex: number, head: number, child: number): void {
     this.clearHighlights(svg);
     svg.classList.add("has-hover");
 
-    const edge = Array.from(
-      svg.querySelectorAll<SVGPathElement>(
-        `.dep-arc[data-sentence="${sentenceIndex}"]`,
-      ),
-    ).find(
-      (el) =>
-        Number(el.dataset.head) === head && Number(el.dataset.child) === child,
+    const edge = Array.from(svg.querySelectorAll<SVGPathElement>(`.dep-arc[data-sentence="${sentenceIndex}"]`)).find(
+      (el) => Number(el.dataset.head) === head && Number(el.dataset.child) === child,
     );
     edge?.classList.add("is-highlighted");
 
     [head, child].forEach((wordIndex) => {
       svg
-        .querySelector(
-          `.dep-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`,
-        )
+        .querySelector(`.dep-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
         ?.classList.add("is-highlighted");
       svg
-        .querySelector(
-          `.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`,
-        )
+        .querySelector(`.dep-root-dot[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
         ?.classList.add("is-highlighted");
     });
   }
 
   private clearHighlights(svg: SVGSVGElement): void {
-    this.clearHighlightClasses(
-      svg,
-      "has-hover",
-      "is-highlighted",
-      "is-connected",
-    );
+    this.clearHighlightClasses(svg, "has-hover", "is-highlighted", "is-connected");
   }
 }

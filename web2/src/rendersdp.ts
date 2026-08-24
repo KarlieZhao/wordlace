@@ -13,13 +13,7 @@
 // sdp/psd	What semantic functions do words have in the sentence?
 
 import { posX } from "./rendersyntax";
-import {
-  BaseDependencyRenderer,
-  ROW_HEIGHT,
-  SENTENCE_GAP,
-  LAYOUT_CONFIG,
-  COLUMN_WIDTH,
-} from "./rendererbase";
+import { BaseDependencyRenderer, ROW_HEIGHT, LAYOUT_CONFIG, COLUMN_WIDTH } from "./rendererbase";
 
 export type SdpRelation = [number, string];
 export type SdpSentence = SdpRelation[][];
@@ -34,7 +28,7 @@ export interface SdpDoc {
 }
 
 export type SdpRepresentation = "dm" | "pas" | "psd";
-
+export const markerSize = 4;
 interface Edge {
   id: string;
   sentence: number;
@@ -47,30 +41,51 @@ interface Edge {
   lane: number;
 }
 
-// Converts a relation into a CSS class.
 function relationClass(relation: string): string {
   return "relation-" + relation.replace(/[^a-zA-Z0-9_-]/g, "-");
 }
 
-// Converts an SDP representation into a CSS class.
 function representationClass(representation: SdpRepresentation): string {
   return `sdp-${representation}`;
 }
 
-// Renders semantic-dependency-parse sentences.
 export class SdpDependencyRenderer extends BaseDependencyRenderer {
-  constructor() {
+  hoverCallback: (words: string[]) => void;
+
+  constructor(hoverCallback: (words: string[]) => void) {
     super();
+    this.hoverCallback = hoverCallback;
   }
 
-  /**
-   * Build edges for one SDP representation.
-   */
-  private buildEdges(
-    sentence: SdpSentence,
-    sentenceIndex: number,
-    representation: SdpRepresentation,
-  ): Edge[] {
+  private static linkCountColor(count: number, max: number): string {
+    if (max === 0) {
+      return "#ccc";
+    }
+
+    const t = count / max;
+
+    const start = [220, 235, 255];
+    const end = [20, 70, 160];
+
+    const r = Math.round(start[0] + (end[0] - start[0]) * t);
+    const g = Math.round(start[1] + (end[1] - start[1]) * t);
+    const b = Math.round(start[2] + (end[2] - start[2]) * t);
+
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  private getWordLinkCounts(edges: Edge[], tokenCount: number): number[] {
+    const counts = new Array(tokenCount).fill(0);
+
+    edges.forEach((edge) => {
+      counts[edge.head]++;
+      counts[edge.child]++;
+    });
+
+    return counts;
+  }
+
+  private buildEdges(sentence: SdpSentence, sentenceIndex: number, representation: SdpRepresentation): Edge[] {
     const edges: Edge[] = [];
 
     sentence.forEach((relations, childIndex) => {
@@ -86,9 +101,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         }
 
         edges.push({
-          id: [sentenceIndex, representation, head, child, relationIndex].join(
-            "-",
-          ),
+          id: [sentenceIndex, representation, head, child, relationIndex].join("-"),
           sentence: sentenceIndex,
           child,
           head,
@@ -142,11 +155,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     return edges;
   }
 
-  private calculateTextX(
-    tokens: string[],
-    pos: string[],
-    startX: number,
-  ): number[] {
+  private calculateTextX(tokens: string[], pos: string[], startX: number): number[] {
     const textX: number[] = [];
 
     for (let i = 0; i < tokens.length; i++) {
@@ -159,29 +168,19 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
   /**
    * Renders a single sentence with DM, PAS, and PSD overlaid.
    */
-  renderSentenceSvg(
-    tokens: string[],
-    pos: string[],
-    doc: SdpDoc,
-    sentenceIndex: number,
-  ): string {
+  renderSentenceSvg(tokens: string[], pos: string[], doc: SdpDoc, sentenceIndex: number): string {
     const edges = this.buildAllEdges(doc, sentenceIndex);
-    const startX = this.xpad[sentenceIndex % this.xpad.length];
+    const linkCounts = this.getWordLinkCounts(edges, tokens.length);
+    const maxLinks = Math.max(...linkCounts, 0);
 
+    const startX = 0;
     const textX = this.calculateTextX(tokens, pos, startX);
 
-    const rowY = (token: number) =>
-      LAYOUT_CONFIG.net.marginTop + (token - 0.5) * ROW_HEIGHT;
+    const rowY = (token: number) => LAYOUT_CONFIG.net.marginTop + (token - 0.5) * ROW_HEIGHT;
 
-    const width = Math.max(
-      500,
-      LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX),
-    );
+    const width = Math.max(500, LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX));
 
-    const height = Math.max(
-      LAYOUT_CONFIG.net.marginTop * 2 + tokens.length * ROW_HEIGHT,
-      100,
-    );
+    const height = ROW_HEIGHT * 2;
 
     const parts: string[] = [];
 
@@ -193,15 +192,14 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       const yHead = textX[edge.head] + COLUMN_WIDTH / 2;
       const yChild = textX[edge.child] + COLUMN_WIDTH / 2;
 
-      const { ctrl1x, ctrl1y, ctrl2x, ctrl2y, midx, midy } =
-        SdpDependencyRenderer.computeCurve(
-          xHead,
-          yHead,
-          xChild,
-          yChild,
-          edge.lane,
-          LAYOUT_CONFIG.net.curvature,
-        );
+      const { ctrl1x, ctrl1y, ctrl2x, ctrl2y, midx, midy } = SdpDependencyRenderer.computeCurve(
+        xHead,
+        yHead,
+        xChild,
+        yChild,
+        edge.lane,
+        LAYOUT_CONFIG.net.curvature,
+      );
 
       const relationCls = relationClass(edge.relation);
 
@@ -212,7 +210,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       parts.push(`
         <path
           id="${arcId}"
-          class="sdp-arc ${representationCls} ${relationCls}"
+          class="sdp-arc hidden ${representationCls} ${relationCls}"
           data-sentence="${sentenceIndex}"
           data-edge="${SdpDependencyRenderer.escape(edge.id)}"
           data-head="${edge.head}"
@@ -247,7 +245,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       const x = rowY(word);
       const y = textX[word];
       const posTag = pos[index] ?? "";
-      const fillColor = SdpDependencyRenderer.posColor(posTag);
+      const fillColor = SdpDependencyRenderer.linkCountColor(linkCounts[index], maxLinks);
+      // SdpDependencyRenderer.posColor(posTag);
 
       parts.push(`
         <text
@@ -270,8 +269,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
-        markerWidth="6"
-        markerHeight="6"
+        markerWidth="${markerSize}"
+        markerHeight="${markerSize}"
         orient="auto"
       >
         <path
@@ -285,8 +284,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
-        markerWidth="6"
-        markerHeight="6"
+        markerWidth="${markerSize}"
+        markerHeight="${markerSize}"
         orient="auto"
       >
         <path
@@ -300,8 +299,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         viewBox="0 0 10 10"
         refX="8"
         refY="5"
-        markerWidth="6"
-        markerHeight="6"
+        markerWidth="${markerSize}"
+        markerHeight="${markerSize}"
         orient="auto"
       >
         <path
@@ -362,7 +361,6 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
           `<div
             class="sdp-sentence-wrap"
             data-sentence="${i}"
-            style="margin-bottom:${SENTENCE_GAP}px"
           >
             ${svg}
           </div>`,
@@ -384,18 +382,12 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     this.setupHover(container);
   }
 
-  // Hover
-
   setupHover(container: HTMLElement): void {
     this.attachHover(container, {
       wordSelector: ".sdp-word",
       arcSelector: ".sdp-arc",
-
-      onWordHover: (svg, sentence, word) =>
-        this.highlightWord(svg, sentence, word),
-
-      onArcHover: (svg, sentence, head, child, edgeId) =>
-        this.highlightEdge(svg, sentence, head, child, edgeId),
+      onWordHover: (svg, sentence, word) => this.highlightWord(svg, sentence, word),
+      onArcHover: (svg, sentence, head, child, edgeId) => this.highlightEdge(svg, sentence, head, child, edgeId),
 
       onClear: (svg) => this.clearHighlight(svg),
 
@@ -403,61 +395,49 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     });
   }
 
-  private highlightWord(
-    svg: SVGSVGElement,
-    sentenceIndex: number,
-    wordIndex: number,
-  ): void {
+  private highlightWord(svg: SVGSVGElement, sentenceIndex: number, wordIndex: number): void {
     this.clearHighlight(svg);
-
     svg.classList.add("has-sdp-hover");
 
+    const highlightedWordIndices = new Set<number>([wordIndex]);
+
     svg
-      .querySelector(
-        `.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`,
-      )
+      .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
       ?.classList.add("is-sdp-highlighted");
 
-    const edges = svg.querySelectorAll<SVGPathElement>(
-      `.sdp-arc[data-sentence="${sentenceIndex}"]`,
-    );
+    const edges = svg.querySelectorAll<SVGPathElement>(`.sdp-arc[data-sentence="${sentenceIndex}"]`);
 
     edges.forEach((edge) => {
       const head = Number(edge.dataset.head);
-
       const child = Number(edge.dataset.child);
-
       if (head !== wordIndex && child !== wordIndex) {
         return;
       }
-
       edge.classList.add("is-sdp-highlighted");
-
       const edgeId = edge.dataset.edge;
-
       if (edgeId) {
-        svg
-          .querySelector(`.sdp-relation[data-edge="${edgeId}"]`)
-          ?.classList.add("is-sdp-highlighted");
+        svg.querySelector(`.sdp-relation[data-edge="${edgeId}"]`)?.classList.add("is-sdp-highlighted");
       }
-
       const otherWord = head === wordIndex ? child : head;
-
+      highlightedWordIndices.add(otherWord);
       svg
-        .querySelector(
-          `.sdp-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`,
-        )
+        .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`)
         ?.classList.add("is-sdp-connected");
     });
+
+    const words = [...highlightedWordIndices]
+      .sort((a, b) => a - b)
+      .map(
+        (wordIndex) =>
+          svg
+            .querySelector<SVGElement>(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
+            ?.textContent?.trim() ?? "",
+      );
+
+    this.hoverCallback(words);
   }
 
-  private highlightEdge(
-    svg: SVGSVGElement,
-    sentenceIndex: number,
-    head: number,
-    child: number,
-    edgeId?: string,
-  ): void {
+  private highlightEdge(svg: SVGSVGElement, sentenceIndex: number, head: number, child: number, edgeId?: string): void {
     this.clearHighlight(svg);
 
     svg.classList.add("has-sdp-hover");
@@ -467,42 +447,27 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       : null;
 
     if (!edge) {
-      const edges = svg.querySelectorAll<SVGPathElement>(
-        `.sdp-arc[data-sentence="${sentenceIndex}"]`,
-      );
+      const edges = svg.querySelectorAll<SVGPathElement>(`.sdp-arc[data-sentence="${sentenceIndex}"]`);
       edge =
         Array.from(edges).find(
-          (candidate) =>
-            Number(candidate.dataset.head) === head &&
-            Number(candidate.dataset.child) === child,
+          (candidate) => Number(candidate.dataset.head) === head && Number(candidate.dataset.child) === child,
         ) ?? null;
     }
     edge?.classList.add("is-sdp-highlighted");
 
     if (edgeId) {
-      svg
-        .querySelector(`.sdp-relation[data-edge="${edgeId}"]`)
-        ?.classList.add("is-sdp-highlighted");
+      svg.querySelector(`.sdp-relation[data-edge="${edgeId}"]`)?.classList.add("is-sdp-highlighted");
     }
 
     svg
-      .querySelector(
-        `.sdp-word[data-sentence="${sentenceIndex}"][data-word="${head}"]`,
-      )
+      .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${head}"]`)
       ?.classList.add("is-sdp-highlighted");
     svg
-      .querySelector(
-        `.sdp-word[data-sentence="${sentenceIndex}"][data-word="${child}"]`,
-      )
+      .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${child}"]`)
       ?.classList.add("is-sdp-connected");
   }
 
   private clearHighlight(svg: SVGSVGElement): void {
-    this.clearHighlightClasses(
-      svg,
-      "has-sdp-hover",
-      "is-sdp-highlighted",
-      "is-sdp-connected",
-    );
+    this.clearHighlightClasses(svg, "has-sdp-hover", "is-sdp-highlighted", "is-sdp-connected");
   }
 }

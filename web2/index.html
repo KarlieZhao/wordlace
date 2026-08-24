@@ -14,16 +14,49 @@
 
 <body>
   <div id="app">
-    <div class="nav-bar">
-      <button id="syntactic-btn" class="btn">Syntactic Tree</button>
-      <!-- <button id="syntactic-net-btn" class="btn">Syntactic net</button> -->
-      <button id="semantic-relationship-btn" class="btn active">Semantic relationship</button>
-      <button id="predicate-btn" class="btn">Predicate</button>
-      <button id="semantic-functions-btn" class="btn">Semantic functions</button>
-    </div>
+
     <main>
-      <div id="en"></div>
-      <div id="ch"></div>
+
+      <div class="top-section">
+        <div class="quilt-wrapper">
+          <div id="quilt">
+          </div>
+        </div>
+      
+        <div class="center">
+          <div class="blur-overlay"></div>
+          <div id="en-visualizer"></div>
+          
+         <div class="nav-bar">
+          <button id="syntactic-btn" class="btn">Syntactic Tree</button>
+          <button id="semantic-relationship-btn" class="btn active">Semantic relationship</button>
+          <button id="predicate-btn" class="btn">Predicate</button>
+          <button id="semantic-functions-btn" class="btn">Semantic functions</button>
+        </div>
+    
+          <!-- TODO: show normalized words construction;
+             highlight the word thats being hovered  -->
+        </div>
+      </div>
+
+    <div class="bottom-section">
+      <div class="bottom-bookmark">
+        <div class="grammar">
+          <h3>indistinguishable</h3>
+          <div>in·dis·tin·guish·a·ble</div>
+          <div>adjective</div>
+          <div>not able to be identified as different or distinct.</div>
+          <div><small>"the counterfeit bills were virtually indistinguishable from the real thing"</small></div>
+        </div>
+        <div class="reconstruct-wrapper">
+          <h3>Reconstruction</h3>
+          <div id="reconstruction"></div>
+        </div>
+
+        </div>
+    </div>
+
+       
     </main>
   </div>
   <script type="module" src="/src/main.ts"></script>
