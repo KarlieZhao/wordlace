@@ -123,7 +123,15 @@ code {
   text-wrap: wrap;
 }
 
+.checkboxes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
 
+.checkboxes input[type="checkbox"]{
+  accent-color: var(--button-active);
+}
 .slider {
   width: 5em;
   display: flex;
@@ -152,7 +160,7 @@ code {
   margin-top: -5px;
   border: none;
   /* border-radius: 50%; */
-  background: #111;
+  background: var(--button-active);
   cursor: pointer;
 }
 
@@ -210,6 +218,7 @@ main {
     width: 100%;
   }
   .dependency-doc{
+      /* cursor: pointer; */
     width: max-content;
   }
 }
@@ -244,10 +253,16 @@ main {
 .nav-bar {
   position: fixed;
   display: flex;
-  flex-direction: row;
-  height: 2em;
-  gap: 0.5em;
-}
+  width: inherit;
+    flex-direction: column;
+    height: 2em;
+    gap: 0.5em;
+    background-color: #fff8;
+  
+    >div {
+      gap: 0.5em;
+    }
+  }
 
 .reconstruct-wrapper {
   display: flex;
@@ -464,6 +479,7 @@ svg {
   display: block;
   overflow: visible;
   user-select: none;
+
 }
 
 
@@ -482,7 +498,7 @@ svg {
 
 .dependency-svg .sdp-word {
   cursor: pointer;
-  font-size: 10px;
+  font-size: 14px;
   transition:
     transform 0.5s ease,
     opacity 120ms ease,
@@ -493,8 +509,7 @@ svg {
 
 /*
    Arcs
-  */
-
+*/
 .dependency-svg .sdp-arc {
   /* display: none; */
   fill: none;
@@ -581,10 +596,10 @@ svg {
   stroke-width: 1px;
 
 }
-/* 
+
 .hidden {
   opacity: 0 !important;
-} */
+}
 
 
 /* .blur-overlay {

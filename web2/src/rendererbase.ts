@@ -30,7 +30,7 @@ interface LayoutConfig {
 }
 
 export const FONT_SIZE = 6;
-export const ROW_HEIGHT = 20; // in landscape mode, this is actually X pos
+export const ROW_HEIGHT = 20; // in landscape mode, this is actually COLUMN_WIDTH2
 
 export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
   net: { marginLeft: 10, marginTop: 50, curvature: 5, unitWidth: FONT_SIZE },
@@ -71,8 +71,14 @@ export interface HoverBinding {
 
 export abstract class BaseDependencyRenderer {
   protected readonly svgClass: string = "dependency-svg";
+  container: HTMLDivElement | null;
 
-  constructor() {}
+  constructor() {
+    this.container = document.querySelector("#en-visualizer");
+    if (!this.container) {
+      throw new Error("#en-visualizer container not found");
+    }
+  }
 
   protected static assignLanes<T extends LaneAssignable>(edges: T[]): number {
     const laneEnds: number[] = [];

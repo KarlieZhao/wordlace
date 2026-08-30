@@ -12,7 +12,7 @@
 // sdp/pas	Who did what to whom / what are the predicate's arguments?
 // sdp/psd	What semantic functions do words have in the sentence?
 
-import { posColumn, POS_ORDER } from "./rendersyntax";
+import { posColumn } from "./rendersyntax";
 import { BaseDependencyRenderer, ROW_HEIGHT, LAYOUT_CONFIG, COLUMN_WIDTH } from "./rendererbase";
 
 export type SdpRelation = [number, string];
@@ -51,17 +51,13 @@ function representationClass(representation: SdpRepresentation): string {
   return `sdp-${representation}`;
 }
 
-function posY(posTag: string | undefined): number {
-  const cfg = LAYOUT_CONFIG.net;
-  return cfg.marginLeft + posColumn(posTag) * cfg.unitWidth;
-}
 
 export class SdpDependencyRenderer extends BaseDependencyRenderer {
-  hoverCallback: (words: string[]) => void;
+  hoverCallbackReconstruct: (words: string[]) => void;
 
-  constructor(hoverCallback: (words: string[]) => void) {
+  constructor(hoverCallbackReconstruct: (words: string[]) => void) {
     super();
-    this.hoverCallback = hoverCallback;
+    this.hoverCallbackReconstruct = hoverCallbackReconstruct;
   }
 
   private static linkCountColor(count: number, max: number): string {
@@ -165,7 +161,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
   private calculateTextY(tokens: string[], pos: string[]): number[] {
     const textY: number[] = [];
     for (let i = 0; i < tokens.length; i++) {
-      textY.push(posY(pos[i]));
+      textY.push(posColumn(pos[i]) * LAYOUT_CONFIG.net.unitWidth);
     }
     return textY;
   }
@@ -173,13 +169,14 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
   /**
    * Renders a single sentence with DM, PAS, and PSD overlaid.
    */
-  renderSentenceSvg(tokens: string[], pos: string[], doc: SdpDoc, sentenceIndex: number): string {
+  renderSentenceSvg(tokens: string[], pos: string[], doc: SdpDoc, sentenceIndex: number, containerWidth: number): string {
     const edges = this.buildAllEdges(doc, sentenceIndex);
     const linkCounts = this.getWordLinkCounts(edges, tokens.length);
     const maxLinks = Math.max(...linkCounts, 0);
 
     const textY = this.calculateTextY(tokens, pos);
-    const rowX = (token: number) => LAYOUT_CONFIG.net.marginLeft + (token - 0.5) * ROW_HEIGHT;
+    const rowX = (token: number) => (token * 550) / tokens.length;
+    // LAYOUT_CONFIG.net.marginLeft + (token - 0.5) * ROW_HEIGHT;
     const tokenLength = tokens.map((t) => t.length);
 
     // dimensions of the svg
@@ -319,30 +316,20 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       sentenceIndex,
       defs,
       body: `
-        <g
-          class="sdp-sentence"
-          data-sentence="${sentenceIndex}"
-        >
-          ${parts.join("\n")}
-        </g>
+<g class="sdp-sentence"
+          data-sentence="${sentenceIndex}">
+          ${parts.join("")}</g>
       `,
       extraAttrs: `data-sdp-mode="overlay"`,
     });
   }
 
-  renderSentences(doc: SdpDoc): string[] {
+  renderSentences(doc: SdpDoc, containerWidth:number): string[] {
     const hasAnySdp = doc["sdp/dm"] || doc["sdp/pas"] || doc["sdp/psd"];
 
     if (!hasAnySdp) {
       console.warn("HanLP document does not contain any SDP data");
-
-      return [
-        `<svg class="${this.svgClass}" xmlns="http://www.w3.org/2000/svg">
-          <text x="20" y="30">
-            No SDP data available.
-          </text>
-        </svg>`,
-      ];
+      return [""];
     }
 
     const sentenceCount = Math.max(
@@ -353,20 +340,19 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     );
 
     return Array.from({ length: sentenceCount }, (_, i) =>
-      this.renderSentenceSvg(doc.tok[i] ?? [], doc.pos[i] ?? [], doc, i),
+      this.renderSentenceSvg(doc.tok[i] ?? [], doc.pos[i] ?? [], doc, i, containerWidth),
     );
   }
 
   renderDocSvg(doc: SdpDoc): string {
-    const sentences = this.renderSentences(doc)
+    const containerWidth = this.container?.getBoundingClientRect().width || 600;
+    const sentences = this.renderSentences(doc, containerWidth - 20)
       .map(
         (svg, i) =>
           `<div
             class="sdp-sentence-wrap"
             data-sentence="${i}"
-          >
-            ${svg}
-          </div>`,
+          >${svg}</div>`,
       )
       .join("\n");
 
@@ -374,9 +360,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       <div
         class="dependency-doc"
         data-sdp-mode="overlay"
-      >
-        ${sentences}
-      </div>
+      >${sentences}</div>
     `;
   }
 
@@ -402,13 +386,12 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     this.clearHighlight(svg);
     svg.classList.add("has-sdp-hover");
 
-    const highlightedWordIndices = new Set<number>([wordIndex]);
-
     svg
       .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
       ?.classList.add("is-sdp-highlighted");
 
     const edges = svg.querySelectorAll<SVGPathElement>(`.sdp-arc[data-sentence="${sentenceIndex}"]`);
+    const highlightedWordIndices = new Set<number>([wordIndex]);
 
     edges.forEach((edge) => {
       const head = Number(edge.dataset.head);
@@ -422,6 +405,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         svg.querySelector(`.sdp-relation[data-edge="${edgeId}"]`)?.classList.add("is-sdp-highlighted");
       }
       const otherWord = head === wordIndex ? child : head;
+
       highlightedWordIndices.add(otherWord);
       svg
         .querySelector(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${otherWord}"]`)
@@ -437,7 +421,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
             ?.textContent?.trim() ?? "",
       );
 
-    this.hoverCallback(words);
+    this.hoverCallbackReconstruct(words);
   }
 
   private highlightEdge(svg: SVGSVGElement, sentenceIndex: number, head: number, child: number, edgeId?: string): void {

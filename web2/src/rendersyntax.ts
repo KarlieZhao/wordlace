@@ -146,7 +146,7 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
 
       parts.push(`
         <path
-          class="dep-arc hidden"
+          class="dep-arc"
           data-sentence="${sentenceIndex}"
           data-edge="${edgeIndex}"
           data-head="${e.head}"

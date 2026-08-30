@@ -29,15 +29,22 @@
           <div id="en-visualizer"></div>
           
          <div class="nav-bar">
+          <div style="display: flex;flex-direction: row;">
           <button id="syntactic-btn" class="btn">Syntactic Tree</button>
           <button id="semantic-relationship-btn" class="btn active">Semantic relationship</button>
           <button id="predicate-btn" class="btn">Predicate</button>
           <button id="semantic-functions-btn" class="btn">Semantic functions</button>
-
-          <div class="slider">
-            <input id="gap-size-slider" type="range" min="0" max="100" value="30" />
-          </div>
         </div>
+
+        <div style="display: flex;flex-direction: row;">
+            <div class="slider">
+            <input id="gap-size-slider" type="range" min="20" max="120" value="90" />
+          </div>
+          <div class="checkboxes">
+           <input type="checkbox" id="show-all-hidden" name="show">
+           <label for="show">Show all dependency curves</label>
+          </div>
+       </div> </div>
 
     
           <!-- TODO: show normalized words construction;
@@ -53,8 +60,10 @@
               <div><small>"the counterfeit bills were virtually indistinguishable from the real thing"</small></div>
             </div>
             <div class="reconstruct-wrapper">
+              <h3>Line</h3>
+               <div id="original--line"></div>
               <h3>Reconstruction</h3>
-              <div id="reconstruction"></div>
+               <div id="reconstruction"></div>
             </div>
         
           </div>

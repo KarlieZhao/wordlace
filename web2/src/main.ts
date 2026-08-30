@@ -10,7 +10,7 @@ const doc = data as DepDoc & SdpDoc;
 const poem = txt as string[];
 // const doc_ch = data_ch as DepDoc & SdpDoc;
 
-type ViewMode = "syntactic-net" | "syntactic-tree" | "dm" | "pas" | "psd";
+type ViewMode = "syntactic-tree" | "dm" | "pas" | "psd";
 
 const buttonConfig: { id: string; mode: ViewMode }[] = [
   { id: "syntactic-btn", mode: "syntactic-tree" },
@@ -21,17 +21,26 @@ const buttonConfig: { id: string; mode: ViewMode }[] = [
 ];
 
 class Renderer {
+  tileDiv: HTMLDivElement;
+  navbar: HTMLDivElement;
   allBtns: HTMLElement[] | null;
   enVisualizerDiv: HTMLDivElement;
   syntaticRenderer: SyntacticDependencyRenderer;
   sdpRenderer: SdpDependencyRenderer;
-  tileDiv: HTMLDivElement;
+  fullLineDiv: HTMLDivElement;
+
+  mode: ViewMode;
+  showingAllArcs = false;
 
   constructor() {
-    const navbar = document.querySelector(".nav-bar");
+    this.tileDiv = document.querySelector("#quilt") as HTMLDivElement;
     this.allBtns = [];
+    this.fullLineDiv = document.querySelector("#original--line") as HTMLDivElement;
+    this.enVisualizerDiv = document.getElementById("en-visualizer") as HTMLDivElement;
 
-    const gapSlider = navbar?.querySelector("#gap-size-slider") as HTMLInputElement;
+    // nav
+    this.navbar = document.querySelector(".nav-bar") as HTMLDivElement;
+    const gapSlider = this.navbar?.querySelector("#gap-size-slider") as HTMLInputElement;
     if (gapSlider) {
       gapSlider.addEventListener("input", (event: InputEvent) => {
         const target = event.target as HTMLInputElement;
@@ -39,33 +48,53 @@ class Renderer {
       });
     }
 
-    const subSentenceDiv = document.querySelector("#reconstruction") as HTMLDivElement;
-
+    // right side divs
+    const reconstructDiv = document.querySelector("#reconstruction") as HTMLDivElement;
     const updateReconstruction = (words: string[]) => {
       // TODO: only use "|" for word indexes that are not consecutive
-      subSentenceDiv.textContent = words.join(" | ");
+      reconstructDiv.textContent = words.join(" | ");
     };
-    this.sdpRenderer = new SdpDependencyRenderer(updateReconstruction);
 
+    // === MAIN RENDER ===
+    this.mode = "dm";
+    this.sdpRenderer = new SdpDependencyRenderer(updateReconstruction);
     this.syntaticRenderer = new SyntacticDependencyRenderer("tree");
-    this.tileDiv = document.querySelector("#quilt") as HTMLDivElement;
-    const buttonsNodeList = navbar?.querySelectorAll<HTMLElement>(".btn");
+
+    const buttonsNodeList = this.navbar?.querySelectorAll<HTMLElement>(".btn");
     if (buttonsNodeList) this.allBtns = [...buttonsNodeList];
-    this.enVisualizerDiv = document.getElementById("en-visualizer") as HTMLDivElement;
 
     buttonConfig.forEach(({ id, mode }) => {
-      const btn = navbar?.querySelector<HTMLElement>(`#${id}`);
+      const btn = this.navbar?.querySelector<HTMLElement>(`#${id}`);
       btn?.addEventListener("click", () => {
+        this.mode = mode;
         this.setActiveButton(btn);
-        this.renderView(mode);
+        this.renderView();
       });
 
       if (btn?.classList.contains("active")) {
-        this.renderView(mode);
+        this.mode = mode;
+        this.renderView();
       }
     });
     this.populatequilt();
     this.addTileLineListeners();
+    this.setupShowAllArcs();
+  }
+
+  setupShowAllArcs() {
+    const showAllDeps = this.navbar?.querySelector("#show-all-hidden");
+    const allSdpArcs = [...this.enVisualizerDiv.querySelectorAll(".sdp-arc")];
+
+    showAllDeps?.addEventListener("change", (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.checked) {
+        allSdpArcs.forEach((arc) => arc.classList.remove("hidden"));
+        this.showingAllArcs = true;
+      } else {
+        allSdpArcs.forEach((arc) => arc.classList.add("hidden"));
+        this.showingAllArcs = false;
+      }
+    });
   }
 
   setActiveButton(btn: HTMLElement) {
@@ -73,10 +102,9 @@ class Renderer {
     btn.classList.add("active");
   }
 
-  renderView(mode: ViewMode) {
-    if (mode === "syntactic-tree" || mode === "syntactic-net") {
-      const layout = mode === "syntactic-tree" ? "tree" : "net";
-      this.syntaticRenderer.setMode(layout);
+  renderView() {
+    if (this.mode === "syntactic-tree") {
+      this.syntaticRenderer.setMode("tree");
       this.syntaticRenderer.render(this.enVisualizerDiv, doc);
     } else {
       this.sdpRenderer.render(this.enVisualizerDiv, doc);
@@ -97,9 +125,8 @@ class Renderer {
   addTileLineListeners() {
     const lineDivs = [...this.enVisualizerDiv.querySelectorAll<HTMLElement>(".sdp-sentence-wrap")];
     const tileLines = [...this.tileDiv.querySelectorAll<HTMLSpanElement>(".tile-line")];
-    const allPaths = [...this.enVisualizerDiv.querySelectorAll<SVGPathElement>("path")];
+    const allArcs = [...this.enVisualizerDiv.querySelectorAll<SVGPathElement>("path")];
     const allText = [...this.enVisualizerDiv.querySelectorAll<SVGTextElement>("text")];
-
     const sentenceMap = new Map<
       string,
       {
@@ -129,26 +156,42 @@ class Renderer {
 
         if (!id) return;
 
-        const sentence = sentenceMap.get(id);
-        if (!sentence) return;
-        const tileRect = tileLine.getBoundingClientRect();
-        const graphRect = sentence.graph.getBoundingClientRect();
+        if (this.mode === "dm") {
+          const sentence = sentenceMap.get(id);
+          if (!sentence) return;
 
-        console.log(sentence.graph, tileRect.top, graphRect.top - tileRect.top);
-        this.enVisualizerDiv.scrollBy({
-          top: graphRect.top - tileRect.top + 80,
-          behavior: "smooth",
-        });
+          const tileRect = tileLine.getBoundingClientRect();
+          const graphRect = sentence.graph.getBoundingClientRect();
 
-        allPaths.forEach((path) => path.classList.add("hidden"));
-        allText.forEach((text) => text.classList.add("lighter"));
+          // console.log(sentence.graph, tileRect.top, graphRect.top - tileRect.top);
 
-        sentence.paths.forEach((path) => path.classList.remove("hidden"));
-        sentence.text.forEach((text) => text.classList.remove("lighter"));
+          // === scroll to view ===
+          this.enVisualizerDiv.scrollBy({
+            top: graphRect.top - tileRect.top + 80,
+            behavior: "smooth",
+          });
 
-        activeTileLine?.classList.remove("tile-line-active");
-        tileLine.classList.add("tile-line-active");
-        activeTileLine = tileLine;
+          if (!this.showingAllArcs) {
+            allArcs.forEach((path) => path.classList.add("hidden"));
+          }
+          allText.forEach((text) => text.classList.add("lighter"));
+          sentence.paths.forEach((path) => path.classList.remove("hidden"));
+          sentence.text.forEach((text) => text.classList.remove("lighter"));
+
+          activeTileLine?.classList.remove("tile-line-active");
+          tileLine.classList.add("tile-line-active");
+          activeTileLine = tileLine;
+        } else if (this.mode === "syntactic-tree") {
+        }
+
+        // get the full sentence from SVG
+        //   sentence.text
+        //     .filter((el) => el.classList.contains("sdp-word"))
+        //     .map((el) => el.textContent)
+        //     .join(" "),
+
+        // get full sentence from txt
+        this.fullLineDiv.textContent = poem[parseInt(id)] || "";
       });
     });
   }
