@@ -19,7 +19,7 @@ const MARGIN_BOTTOM = 10;
 export const POS_ORDER: string[] = Object.keys(POS_COLOR_MAP);
 const UNKNOWN_POS_COLUMN = POS_ORDER.length; // fallback
 
-function posColumn(posTag: string | undefined): number {
+export function posColumn(posTag: string | undefined): number {
   if (posTag) {
     const idx = POS_ORDER.indexOf(posTag);
     if (idx !== -1) return idx;
@@ -27,7 +27,7 @@ function posColumn(posTag: string | undefined): number {
   return UNKNOWN_POS_COLUMN;
 }
 
-export function posX(posTag: string | undefined): number {
+function posX(posTag: string | undefined): number {
   const cfg = LAYOUT_CONFIG.net;
   return cfg.marginLeft + posColumn(posTag) * cfg.unitWidth;
 }
@@ -100,22 +100,21 @@ export class SyntacticDependencyRenderer extends BaseDependencyRenderer {
         textX.push(cfg.marginLeft + depth[r] * cfg.unitWidth + startX);
       }
     }
-
     return textX;
   }
 
-  // max POS column ("net" mode) or max tree depth ("tree" mode) for this sentence
-  private measureExtent(tokens: string[], deps: DepEdgeRaw[], pos: string[]): number {
-    if (this.mode === "net") {
-      let max = 0;
-      for (let r = 1; r <= tokens.length; r++) max = Math.max(max, posColumn(pos[r - 1]));
-      return max;
-    }
-    const depth = this.computeDepths(tokens, deps);
-    let max = 0;
-    for (let r = 1; r <= tokens.length; r++) max = Math.max(max, depth[r]);
-    return max;
-  }
+  // // max POS column ("net" mode) or max tree depth ("tree" mode) for this sentence
+  // private measureExtent(tokens: string[], deps: DepEdgeRaw[], pos: string[]): number {
+  //   if (this.mode === "net") {
+  //     let max = 0;
+  //     for (let r = 1; r <= tokens.length; r++) max = Math.max(max, posColumn(pos[r - 1]));
+  //     return max;
+  //   }
+  //   const depth = this.computeDepths(tokens, deps);
+  //   let max = 0;
+  //   for (let r = 1; r <= tokens.length; r++) max = Math.max(max, depth[r]);
+  //   return max;
+  // }
 
   renderSentenceSvg(tokens: string[], deps: DepEdgeRaw[], pos: string[], sentenceIndex: number): string {
     const cfg = LAYOUT_CONFIG[this.mode];

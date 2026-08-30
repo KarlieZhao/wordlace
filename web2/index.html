@@ -18,13 +18,14 @@
     <main>
 
       <div class="top-section">
+        
         <div class="quilt-wrapper">
           <div id="quilt">
           </div>
         </div>
       
         <div class="center">
-          <div class="blur-overlay"></div>
+          <!-- <div class="blur-overlay"></div> -->
           <div id="en-visualizer"></div>
           
          <div class="nav-bar">
@@ -32,29 +33,37 @@
           <button id="semantic-relationship-btn" class="btn active">Semantic relationship</button>
           <button id="predicate-btn" class="btn">Predicate</button>
           <button id="semantic-functions-btn" class="btn">Semantic functions</button>
+
+          <div class="slider">
+            <input id="gap-size-slider" type="range" min="0" max="100" value="30" />
+          </div>
         </div>
+
     
           <!-- TODO: show normalized words construction;
              highlight the word thats being hovered  -->
         </div>
-      </div>
+        <div class="right">
+          <div class="bookmark">
+            <div class="grammar">
+              <h3>indistinguishable</h3>
+              <div>in·dis·tin·guish·a·ble</div>
+              <div>adjective</div>
+              <div>not able to be identified as different or distinct.</div>
+              <div><small>"the counterfeit bills were virtually indistinguishable from the real thing"</small></div>
+            </div>
+            <div class="reconstruct-wrapper">
+              <h3>Reconstruction</h3>
+              <div id="reconstruction"></div>
+            </div>
+        
+          </div>
+        </div>
+        </div>
+        
+        <!-- <div class="bottom-section">
 
-    <div class="bottom-section">
-      <div class="bottom-bookmark">
-        <div class="grammar">
-          <h3>indistinguishable</h3>
-          <div>in·dis·tin·guish·a·ble</div>
-          <div>adjective</div>
-          <div>not able to be identified as different or distinct.</div>
-          <div><small>"the counterfeit bills were virtually indistinguishable from the real thing"</small></div>
-        </div>
-        <div class="reconstruct-wrapper">
-          <h3>Reconstruction</h3>
-          <div id="reconstruction"></div>
-        </div>
-
-        </div>
-    </div>
+    </div> -->
 
        
     </main>

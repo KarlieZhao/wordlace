@@ -12,12 +12,14 @@
 // sdp/pas	Who did what to whom / what are the predicate's arguments?
 // sdp/psd	What semantic functions do words have in the sentence?
 
-import { posX } from "./rendersyntax";
+import { posColumn, POS_ORDER } from "./rendersyntax";
 import { BaseDependencyRenderer, ROW_HEIGHT, LAYOUT_CONFIG, COLUMN_WIDTH } from "./rendererbase";
 
 export type SdpRelation = [number, string];
 export type SdpSentence = SdpRelation[][];
 export type SdpMode = "dm" | "pas" | "psd";
+
+export const TOP_GAP = -150;
 
 export interface SdpDoc {
   tok: string[][];
@@ -47,6 +49,11 @@ function relationClass(relation: string): string {
 
 function representationClass(representation: SdpRepresentation): string {
   return `sdp-${representation}`;
+}
+
+function posY(posTag: string | undefined): number {
+  const cfg = LAYOUT_CONFIG.net;
+  return cfg.marginLeft + posColumn(posTag) * cfg.unitWidth;
 }
 
 export class SdpDependencyRenderer extends BaseDependencyRenderer {
@@ -93,7 +100,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
       const child = childIndex;
 
       relations.forEach(([hanlpHead, relation], relationIndex) => {
-        // HanLP head is 1-based, convert to 0-based.
+        // HanLP head is 1-based, convert to 0-based
         const head = hanlpHead - 1;
         // Ignore invalid heads
         if (head < 0 || head >= sentence.length || head === child) {
@@ -155,14 +162,12 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     return edges;
   }
 
-  private calculateTextX(tokens: string[], pos: string[], startX: number): number[] {
-    const textX: number[] = [];
-
+  private calculateTextY(tokens: string[], pos: string[]): number[] {
+    const textY: number[] = [];
     for (let i = 0; i < tokens.length; i++) {
-      textX.push(posX(pos[i]) + startX);
+      textY.push(posY(pos[i]));
     }
-
-    return textX;
+    return textY;
   }
 
   /**
@@ -173,24 +178,23 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const linkCounts = this.getWordLinkCounts(edges, tokens.length);
     const maxLinks = Math.max(...linkCounts, 0);
 
-    const startX = 0;
-    const textX = this.calculateTextX(tokens, pos, startX);
+    const textY = this.calculateTextY(tokens, pos);
+    const rowX = (token: number) => LAYOUT_CONFIG.net.marginLeft + (token - 0.5) * ROW_HEIGHT;
+    const tokenLength = tokens.map((t) => t.length);
 
-    const rowY = (token: number) => LAYOUT_CONFIG.net.marginTop + (token - 0.5) * ROW_HEIGHT;
-
-    const width = Math.max(500, LAYOUT_CONFIG.net.marginLeft * 1.5 + Math.max(...textX));
-
-    const height = ROW_HEIGHT * 2;
+    // dimensions of the svg
+    const height = Math.abs(Math.max(...textY));
+    const width = Math.max(50, LAYOUT_CONFIG.net.marginLeft * 2 + 4 * rowX(Math.max(...tokenLength)));
 
     const parts: string[] = [];
 
     // Arcs + relation labels
     edges.forEach((edge) => {
-      const xHead = rowY(edge.head);
-      const xChild = rowY(edge.child);
+      const xHead = rowX(edge.head);
+      const xChild = rowX(edge.child);
 
-      const yHead = textX[edge.head] + COLUMN_WIDTH / 2;
-      const yChild = textX[edge.child] + COLUMN_WIDTH / 2;
+      const yHead = textY[edge.head] + COLUMN_WIDTH / 2;
+      const yChild = textY[edge.child] + COLUMN_WIDTH / 2;
 
       const { ctrl1x, ctrl1y, ctrl2x, ctrl2y, midx, midy } = SdpDependencyRenderer.computeCurve(
         xHead,
@@ -241,9 +245,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
 
     // Words
     tokens.forEach((token, index) => {
-      const word = index;
-      const x = rowY(word);
-      const y = textX[word];
+      const x = rowX(index);
+      const y = textY[index];
       const posTag = pos[index] ?? "";
       const fillColor = SdpDependencyRenderer.linkCountColor(linkCounts[index], maxLinks);
       // SdpDependencyRenderer.posColor(posTag);
@@ -252,7 +255,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
         <text
           class="sdp-word"
           data-sentence="${sentenceIndex}"
-          data-word="${word}"
+          data-word="${index}"
           data-pos="${SdpDependencyRenderer.escape(posTag)}"
           x="${x}"
           y="${y}"

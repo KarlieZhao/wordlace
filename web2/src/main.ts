@@ -4,7 +4,7 @@ import { SdpDependencyRenderer, type SdpDoc } from "./rendersdp";
 import type { DepDoc } from "./types";
 import data from "../public/Not_Even_This_tokens.json";
 import txt from "../public/not_even_this_fulltxt.json";
-// import data_ch from "../public/data_ch.json";
+// import data from "../public/data_ch.json";
 
 const doc = data as DepDoc & SdpDoc;
 const poem = txt as string[];
@@ -30,6 +30,15 @@ class Renderer {
   constructor() {
     const navbar = document.querySelector(".nav-bar");
     this.allBtns = [];
+
+    const gapSlider = navbar?.querySelector("#gap-size-slider") as HTMLInputElement;
+    if (gapSlider) {
+      gapSlider.addEventListener("input", (event: InputEvent) => {
+        const target = event.target as HTMLInputElement;
+        document.documentElement.style.setProperty("--sentence-height", `${target.value}px`);
+      });
+    }
+
     const subSentenceDiv = document.querySelector("#reconstruction") as HTMLDivElement;
 
     const updateReconstruction = (words: string[]) => {
@@ -75,8 +84,12 @@ class Renderer {
   }
 
   populatequilt() {
-    let html = `<span class="tile-line" data-id="0">`;
-    poem.forEach((line, index) => (html += line + `</span>\n<span class="tile-line" data-id="${index + 1}">`));
+    let html = "";
+    // poem.forEach((line, index) => (html += line + `</span>\n<span class="tile-line" data-id="${index + 1}">`));
+    poem.forEach(
+      (line, index) =>
+        (html += `<span class="tile-line" data-id=${index} style="width: ${line.length * 1.5}px"></span>\n`),
+    );
 
     this.tileDiv.innerHTML = html;
   }

@@ -15,12 +15,12 @@
  * right side: user editor
  *
  * show lem, fea as labels
- * shouldnt be colored by POS, maybe opacity show word emphasis
+ * change the view buttons as toggles 
+ * Semantic search
  */
 
+
 import { escapeXml, POS_COLOR_MAP } from "./utils";
-export const FONT_SIZE = 12;
-export const ROW_HEIGHT = 30;
 
 interface LayoutConfig {
   marginLeft: number;
@@ -29,8 +29,11 @@ interface LayoutConfig {
   unitWidth: number;
 }
 
+export const FONT_SIZE = 6;
+export const ROW_HEIGHT = 20; // in landscape mode, this is actually X pos
+
 export const LAYOUT_CONFIG: Record<string, LayoutConfig> = {
-  net: { marginLeft: 10, marginTop: 50, curvature: 5, unitWidth: 10 },
+  net: { marginLeft: 10, marginTop: 50, curvature: 5, unitWidth: FONT_SIZE },
   tree: {
     marginLeft: 150,
     marginTop: 20,
