@@ -175,13 +175,13 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const maxLinks = Math.max(...linkCounts, 0);
 
     const textY = this.calculateTextY(tokens, pos);
-    const rowX = (token: number) => (token * 550) / tokens.length;
+    const rowX = (token: number) => (token * containerWidth) / tokens.length;
     // LAYOUT_CONFIG.net.marginLeft + (token - 0.5) * ROW_HEIGHT;
     const tokenLength = tokens.map((t) => t.length);
 
     // dimensions of the svg
     const height = Math.abs(Math.max(...textY));
-    const width = Math.max(50, LAYOUT_CONFIG.net.marginLeft * 2 + 4 * rowX(Math.max(...tokenLength)));
+    const width = Math.max(50, LAYOUT_CONFIG.net.marginLeft * 2 + rowX(Math.max(...tokenLength)));
 
     const parts: string[] = [];
 
@@ -346,6 +346,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
 
   renderDocSvg(doc: SdpDoc): string {
     const containerWidth = this.container?.getBoundingClientRect().width || 600;
+    console.log(containerWidth);
     const sentences = this.renderSentences(doc, containerWidth - 20)
       .map(
         (svg, i) =>
