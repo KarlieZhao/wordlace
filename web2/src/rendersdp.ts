@@ -53,9 +53,9 @@ function representationClass(representation: SdpRepresentation): string {
 
 
 export class SdpDependencyRenderer extends BaseDependencyRenderer {
-  hoverCallbackReconstruct: (words: string[]) => void;
+  hoverCallbackReconstruct: (words: string[], keyword: string) => void;
 
-  constructor(hoverCallbackReconstruct: (words: string[]) => void) {
+  constructor(hoverCallbackReconstruct: (words: string[], keyword: string) => void) {
     super();
     this.hoverCallbackReconstruct = hoverCallbackReconstruct;
   }
@@ -169,7 +169,13 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
   /**
    * Renders a single sentence with DM, PAS, and PSD overlaid.
    */
-  renderSentenceSvg(tokens: string[], pos: string[], doc: SdpDoc, sentenceIndex: number, containerWidth: number): string {
+  renderSentenceSvg(
+    tokens: string[],
+    pos: string[],
+    doc: SdpDoc,
+    sentenceIndex: number,
+    containerWidth: number,
+  ): string {
     const edges = this.buildAllEdges(doc, sentenceIndex);
     const linkCounts = this.getWordLinkCounts(edges, tokens.length);
     const maxLinks = Math.max(...linkCounts, 0);
@@ -324,7 +330,7 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     });
   }
 
-  renderSentences(doc: SdpDoc, containerWidth:number): string[] {
+  renderSentences(doc: SdpDoc, containerWidth: number): string[] {
     const hasAnySdp = doc["sdp/dm"] || doc["sdp/pas"] || doc["sdp/psd"];
 
     if (!hasAnySdp) {
@@ -416,13 +422,16 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const words = [...highlightedWordIndices]
       .sort((a, b) => a - b)
       .map(
-        (wordIndex) =>
+        (index) =>
           svg
-            .querySelector<SVGElement>(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
+            .querySelector<SVGElement>(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${index}"]`)
             ?.textContent?.trim() ?? "",
       );
-
-    this.hoverCallbackReconstruct(words);
+    const keyword =
+      svg
+        .querySelector<SVGElement>(`.sdp-word[data-sentence="${sentenceIndex}"][data-word="${wordIndex}"]`)
+        ?.textContent?.trim() ?? "";
+    this.hoverCallbackReconstruct(words, keyword);
   }
 
   private highlightEdge(svg: SVGSVGElement, sentenceIndex: number, head: number, child: number, edgeId?: string): void {

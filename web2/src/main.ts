@@ -1,13 +1,17 @@
 import "./style.css";
 import { SyntacticDependencyRenderer } from "./rendersyntax";
 import { SdpDependencyRenderer, type SdpDoc } from "./rendersdp";
-import type { DepDoc } from "./types";
+import type { DepDoc, WordVecs } from "./types";
 import data from "../public/Not_Even_This_tokens.json";
+import vecsjson from "../public/example.json";
 import txt from "../public/not_even_this_fulltxt.json";
+import { findSimilarWords } from "./utils";
 // import data from "../public/data_ch.json";
 
 const doc = data as DepDoc & SdpDoc;
 const poem = txt as string[];
+
+const vecs = vecsjson as WordVecs;
 // const doc_ch = data_ch as DepDoc & SdpDoc;
 
 type ViewMode = "syntactic-tree" | "dm" | "pas" | "psd";
@@ -34,6 +38,7 @@ class Renderer {
 
   constructor() {
     this.tileDiv = document.querySelector("#quilt") as HTMLDivElement;
+
     this.allBtns = [];
     this.fullLineDiv = document.querySelector("#original--line") as HTMLDivElement;
     this.enVisualizerDiv = document.getElementById("en-visualizer") as HTMLDivElement;
@@ -49,10 +54,19 @@ class Renderer {
     }
 
     // right side divs
+    const similarWordsDiv = document.querySelector("#similar-words") as HTMLDivElement;
     const reconstructDiv = document.querySelector("#reconstruction") as HTMLDivElement;
-    const updateReconstruction = (words: string[]) => {
-      // TODO: only use "|" for word indexes that are not consecutive
+    const updateReconstruction = (words: string[], keyword: string) => {
+      // TODO: only use "|" for word indexes that are not consecutive;
+
       reconstructDiv.textContent = words.join(" | ");
+      similarWordsDiv.textContent =
+        keyword +
+        "\n" +
+        findSimilarWords(vecs, keyword, 0.95)
+          .slice(0, 9)
+          .map((re) => `${re.word}: ${re.score}`)
+          .join("\n");
     };
 
     // === MAIN RENDER ===

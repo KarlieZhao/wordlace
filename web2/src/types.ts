@@ -14,3 +14,5 @@ export interface DepDoc {
   lem?: string[][];
   fea?: string[][];
 }
+
+export type WordVecs = Record<string, number[]>;

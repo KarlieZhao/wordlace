@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&display=swap"
+    rel="stylesheet" />
+  <title>vector plot</title>
+  <style>
+    .vector-plot, .word-plot{
+      position: absolute;
+      display: flex;
+      width: 550vw;
+      height: 95vh;
+    }
+
+    .top-bar{
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      width: max-content;
+      position: fixed;
+      z-index: 100;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="top-bar">
+  <button id="next-sentence">></button>
+  <div class="full-line"></div>
+  </div>
+  <div class="vector-plot"></div>
+  <div class="word-plot"></div>
+  <script type="module" src="/src/vecplot.ts"></script>
+</body>
+
+</html>
