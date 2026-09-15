@@ -26,7 +26,7 @@ def clean_list(strings):
 
 
 def run():
-    filename = "wasted_land"
+    filename = "emily_dickinson"
     with open(f"./input/{filename}.json", "r") as file:
         input = json.load(file)
         print()
@@ -38,7 +38,7 @@ def run():
 
         print()
         print("Creating word vectors...")
-        vecs = run_word2vec(filtered_tokens)
+        vecs = run_word2vec(filtered_tokens, ["light", "dark"],["positive", "negative"])
 
         destination = os.path.join(os.path.dirname(HERE), "web2", "public")
 

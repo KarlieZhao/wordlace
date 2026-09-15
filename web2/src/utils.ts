@@ -99,3 +99,28 @@ export function findSimilarWords(
 
   return results;
 }
+
+export async function loadJson(url: string) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to load tokens from ${url}: ${res.status} ${res.statusText}`);
+  }
+  return await res.json();
+}
+
+export function smoothScrollTo(targetLeft: number, duration: number) {
+  const startLeft = window.scrollX;
+  const distance = targetLeft - startLeft;
+  const startTime = performance.now();
+
+  function step(now: number) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    // ease-in-out to mirror the CSS easing on the words
+    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    window.scrollTo(startLeft + distance * eased, window.scrollY);
+    if (t < 1) requestAnimationFrame(step);
+  }
+
+  requestAnimationFrame(step);
+}
