@@ -11,5 +11,9 @@
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "@types/d3-force": "^3.0.10",
+    "d3-force": "^3.0.0"
   }
 }
