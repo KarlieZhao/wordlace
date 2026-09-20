@@ -29,11 +29,77 @@
     top: 0px;
     transform: translate(-50%, -50%);
     padding: 2px 6px;
-    font-size: 24px;
+    font-size: 14px;
     font-family: "Roboto Slab", "Helvetica Neue", Arial, sans-serif;
-    columns: #6d8daa;
     border-radius: 4px;
     white-space: nowrap;
+    transition: left .5s ease-in-out, 
+    top .5s ease-in-out,
+            opacity 0.7s ease,
+            transform 0.7s ease,
+            z-index 0.2s ease,
+            font-size 0.7s ease;
+    opacity: 0.7;
     z-index: 1;
-    transition: left .5s ease-in-out, top .5s ease-in-out, opacity 0.2s ease, transform 0.2s ease, z-index 0.2s ease;
+    transform: translate(-50%, -50%);
+    color: #59656e88;
+}
+
+.highlighted-word {
+    font-size: 20px;
+    opacity: 1;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+    color: #283541;
+}
+
+.word-plot {
+    pointer-events: none;
+}
+
+.vector-word {
+    pointer-events: auto;
+}
+
+/* ---- edges ---- */
+.wv-dep-arc {
+    opacity: 0.3;
+    stroke-width: 1;
+    transition: opacity 0.7s, stroke-width 0.7s;
+}
+
+.wv-dep-arc.wv-hot {
+    opacity: 1;
+    stroke-width: 2;
+}
+
+.vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
+    opacity: 0.3;
+}
+
+.wv-dep-hit {
+    stroke: transparent;
+    pointer-events: stroke;
+}
+
+.word-plot.wv-focus .vector-word:not(.wv-hot) {
+    opacity: 0.15;
+}
+
+/* ---- labels ---- */
+.wv-dep-label {
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.wv-label-dm {
+    fill: #4d5a63;
+}
+
+.wv-label-pas {
+    fill: #5b6f70;
+}
+
+.wv-label-psd {
+    fill: #4a7a5f;
 }

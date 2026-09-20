@@ -1,0 +1,50 @@
+/* Words sit above the edge layer; only the words themselves catch the mouse,
+   so the (transparent) hit paths under the container stay hoverable. */
+.word-plot {
+  pointer-events: none;
+}
+.vector-word {
+  pointer-events: auto;
+}
+
+/* ---- edges ---- */
+.wv-dep-arc {
+  opacity: 0.3;
+  transition: opacity 120ms, stroke-width 120ms;
+}
+.wv-dep-arc.wv-hot {
+  opacity: 1;
+  stroke-width: 3.5;
+}
+.vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
+  opacity: 0.05;
+}
+
+.wv-dep-hit {
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+}
+
+/* ---- words ---- */
+.vector-word.wv-hot {
+  font-weight: 600;
+}
+.word-plot.wv-focus .vector-word:not(.wv-hot) {
+  opacity: 0.15;
+}
+
+/* ---- labels ---- */
+.wv-dep-label {
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  /* halo keeps the text readable over arcs and words */
+  paint-order: stroke;
+  stroke: var(--wv-label-halo, #fff);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.wv-label-dm  { fill: #4d5a63; }
+.wv-label-pas { fill: #5b6f70; }
+.wv-label-psd { fill: #4a7a5f; }

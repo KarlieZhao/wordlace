@@ -1,4 +1,53 @@
+import { type SimulationNodeDatum } from "d3-force";
 import { escapeXml, POS_COLOR_MAP } from "../utils";
+
+export type Vectors = Record<string, [number, number]>;
+export type Point = { px: number; py: number };
+
+export type VectorPos = Record<string, Point>;
+export type Sentences = string[][];
+export type TokenEntry = { word: string; el: HTMLElement };
+
+export type RenderMode = 0 | 1;
+export type Axis = "x" | "y";
+type DepRelation = [number, string];
+export type DepSentence = DepRelation[][];
+export type DepRepresentation = "dm" | "pas" | "psd";
+
+export interface DepEdge {
+  id: string;
+  child: number;
+  head: number;
+  relation: string;
+  representation: DepRepresentation;
+}
+
+/** Edge -> global token indices, kept so ticks can update paths without any DOM queries. */
+export interface EdgeRef {
+  path: SVGPathElement;
+  head: number;
+  child: number;
+}
+
+export interface ForceNode extends SimulationNodeDatum {
+  id: number;
+  /** Shared reference to the persistent position of this token. */
+  point: Point;
+  anchorX: number;
+  anchorY: number;
+}
+
+export interface ForceLink {
+  source: number | ForceNode;
+  target: number | ForceNode;
+}
+
+export interface Bounds {
+  minX: number;
+  minY: number;
+  spanX: number;
+  spanY: number;
+}
 
 export interface CurveGeometry {
   ctrl1x: number;
@@ -18,6 +67,74 @@ export interface HoverBinding {
   leaveEvent?: "mouseout" | "mouseleave";
 }
 
+const PADDING = 40;
+
+/* Helpers */
+export const hasOwn = (obj: object, key: string): boolean => Object.prototype.hasOwnProperty.call(obj, key);
+
+export const round1 = (n: number): number => Math.round(n * 10) / 10;
+
+export function elementSize(el: HTMLElement, fallbackW: number, fallbackH: number): { width: number; height: number } {
+  const rect = el.getBoundingClientRect();
+  return {
+    width: rect.width || el.clientWidth || fallbackW,
+    height: rect.height || el.clientHeight || fallbackH,
+  };
+}
+
+/** Loop-based min/max (spreading huge arrays into Math.min can overflow the stack). */
+export function computeBounds(vectors: Vectors): Bounds | null {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  for (const key in vectors) {
+    const [x, y] = vectors[key];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+
+  if (minX === Infinity) return null;
+
+  return { minX, minY, spanX: maxX - minX || 1, spanY: maxY - minY || 1 };
+}
+
+export const projectX = (x: number, b: Bounds, width: number): number =>
+  PADDING + ((x - b.minX) / b.spanX) * (width - PADDING * 2);
+
+export const projectY = (y: number, b: Bounds, height: number): number =>
+  PADDING + (1 - (y - b.minY) / b.spanY) * (height - PADDING * 2);
+
+export function computeCurve(
+  xHead: number,
+  yHead: number,
+  xChild: number,
+  yChild: number,
+  curvature: number,
+): CurveGeometry {
+  const dx = xChild - xHead;
+  const dy = yChild - yHead;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
+  const px = -dy / len;
+  const py = dx / len;
+
+  const dist = Math.sqrt((xHead - xChild) ** 2 + (yHead - yChild) ** 2);
+  const bulge = (curvature * dist) / 100;
+
+  return {
+    ctrl1x: xHead + dx * 0.3 + px * bulge,
+    ctrl1y: yHead + dy * 0.3 + py * bulge,
+    ctrl2x: xHead + dx * 0.7 + px * bulge,
+    ctrl2y: yHead + dy * 0.7 + py * bulge,
+    midx: xHead + dx * 0.5 + px * bulge,
+    midy: yHead + dy * 0.5 + py * bulge,
+  };
+}
+
 export abstract class BaseDependencyRenderer {
   protected readonly svgClass: string = "dependency-svg";
   container: HTMLDivElement | null;
@@ -29,31 +146,8 @@ export abstract class BaseDependencyRenderer {
     }
   }
 
-  protected static computeCurve(
-    xHead: number,
-    yHead: number,
-    xChild: number,
-    yChild: number,
-    curvature: number,
-  ): CurveGeometry {
-    const dx = xChild - xHead;
-    const dy = yChild - yHead;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-
-    const px = -dy / len;
-    const py = dx / len;
-
-    const dist = Math.sqrt((xHead - xChild) ** 2 + (yHead - yChild) ** 2);
-    const bulge = (curvature * dist) / 100;
-
-    return {
-      ctrl1x: xHead + dx * 0.3 + px * bulge,
-      ctrl1y: yHead + dy * 0.3 + py * bulge,
-      ctrl2x: xHead + dx * 0.7 + px * bulge,
-      ctrl2y: yHead + dy * 0.7 + py * bulge,
-      midx: xHead + dx * 0.5 + px * bulge,
-      midy: yHead + dy * 0.5 + py * bulge,
-    };
+  protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {
+    return computeCurve(...args);
   }
 
   protected static posColor(posTag: string | undefined): string {

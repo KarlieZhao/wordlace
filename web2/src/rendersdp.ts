@@ -181,8 +181,8 @@ export class SdpDependencyRenderer extends BaseDependencyRenderer {
     const maxLinks = Math.max(...linkCounts, 0);
 
     const textY = this.calculateTextY(tokens, pos);
-    const rowX = (token: number) => (token * containerWidth) / tokens.length;
-    // LAYOUT_CONFIG.net.marginLeft + (token - 0.5) * ROW_HEIGHT;
+    const rowX = (token: number) => LAYOUT_CONFIG.net.marginLeft + token * ROW_HEIGHT;
+      //  (token * containerWidth) / tokens.length;
     const tokenLength = tokens.map((t) => t.length);
 
     // dimensions of the svg
