@@ -1,4 +1,4 @@
-import { forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY, type Simulation } from "d3-force";
+import { forceCollide, forceLink, forceManyBody, forceSimulation, forceX, type Simulation } from "d3-force";
 import type { ForceLink, ForceNode, Point } from "./basedependency";
 import { FORCE } from "./config";
 import type { DependencyGraph } from "./DependencyGraph";
@@ -10,6 +10,10 @@ export interface ForceOptions {
   /** Persistent positions; nodes write into these each tick. */
   points: Point[];
   onTick: (nodes: readonly ForceNode[]) => void;
+  /** Per-token target Y (e.g. score-based row). Nodes without one stay at anchorY (no drift). */
+  targetY?: (id: number) => number | undefined;
+  /** Time for the y-pull to ramp from 0 to full strength. Default 1500ms. */
+  seqYRampMs?: number;
 }
 
 /**
@@ -19,8 +23,30 @@ export interface ForceOptions {
 export class ForceLayout {
   private simulation: Simulation<ForceNode, ForceLink> | null = null;
 
+  /**
+   * Custom "y" force: pulls each node from its anchorY toward its targetY,
+   * with the pull's strength ramping smoothly from 0 to `strength` over `rampMs`.
+   * Not d3.forceY(...) because forceY's target accessor is cached once at
+   * initialize() and can't reflect a value that changes tick-to-tick.
+   */
+  private static createSeqYForce(nodes: ForceNode[], strength: number, rampMs: number) {
+    let startTime: number | null = null;
+
+    return (alpha: number) => {
+      if (startTime === null) startTime = performance.now();
+      const t = rampMs > 0 ? Math.min(1, (performance.now() - startTime) / rampMs) : 1;
+      const eased = t * t * (3 - 2 * t); // smoothstep
+
+      for (const node of nodes) {
+        const target = node.anchorY + (node.targetY - node.anchorY) * eased;
+        const y = node.y ?? node.anchorY;
+        node.vy = (node.vy ?? 0) + (target - y) * strength * alpha;
+      }
+    };
+  }
+
   /** Returns false if there was nothing to simulate. */
-  start({ graph, sentences, points, onTick }: ForceOptions): boolean {
+  start({ graph, sentences, points, onTick, targetY, seqYRampMs = 4000 }: ForceOptions): boolean {
     this.stop();
 
     const nodes: ForceNode[] = [];
@@ -40,23 +66,23 @@ export class ForceLayout {
           point,
           x: point.px,
           y: point.py,
-          // Anchor to where the word is *now*, so it never snaps back.
           anchorX: point.px,
           anchorY: point.py,
+          targetY: targetY?.(id) ?? point.py,
         });
         nodeIds.add(id);
       }
 
       for (const edge of graph.edges(sentence)) {
         const source = graph.globalIndex(sentence, edge.head);
-        const target = graph.globalIndex(sentence, edge.child);
+        const child = graph.globalIndex(sentence, edge.child);
 
         // dm / pas / psd often share a pair; one spring per pair is enough.
-        const key = source < target ? `${source}:${target}` : `${target}:${source}`;
+        const key = source < child ? `${source}:${child}` : `${child}:${source}`;
         if (linkKeys.has(key)) continue;
         linkKeys.add(key);
 
-        if (nodeIds.has(source) && nodeIds.has(target)) links.push({ source, target });
+        if (nodeIds.has(source) && nodeIds.has(child)) links.push({ source, target: child });
       }
     }
 
@@ -73,7 +99,7 @@ export class ForceLayout {
       .force("charge", forceManyBody<ForceNode>().strength(FORCE.chargeStrength).distanceMax(FORCE.chargeMaxDistance))
       .force("collide", forceCollide<ForceNode>(FORCE.collideRadius).strength(FORCE.collideStrength).iterations(2))
       .force("x", forceX<ForceNode>((n) => n.anchorX).strength(FORCE.anchorStrength))
-      .force("y", forceY<ForceNode>((n) => n.anchorY).strength(FORCE.anchorStrength))
+      .force("y", ForceLayout.createSeqYForce(nodes, FORCE.anchorStrength, seqYRampMs))
       .alpha(FORCE.alpha)
       .alphaDecay(FORCE.alphaDecay)
       .velocityDecay(FORCE.velocityDecay);

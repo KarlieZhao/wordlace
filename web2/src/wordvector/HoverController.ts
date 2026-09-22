@@ -20,7 +20,10 @@ export class HoverController {
     this.words = words;
     this.edges = edges;
 
-    words.onHover((token) => (token === null ? this.clear() : this.focusWord(token)));
+    words.onHover((token) => {
+      if (token === null) this.clear();
+      else this.focusWord(token);
+    });
   }
 
   clear(): void {

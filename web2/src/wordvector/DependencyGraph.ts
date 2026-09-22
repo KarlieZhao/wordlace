@@ -1,5 +1,5 @@
 import type { DepEdge, DepRepresentation, DepSentence, Sentences } from "./basedependency";
-import { REPRESENTATIONS } from "./config";
+import { CONNECTIVITY, REPRESENTATIONS } from "./config";
 
 export type RawDeps = Partial<Record<"sdp/dm" | "sdp/pas" | "sdp/psd", DepSentence[]>>;
 
@@ -17,6 +17,7 @@ export class DependencyGraph {
   private offsets: number[] = [];
   private deps: Record<DepRepresentation, DepSentence[]> = { dm: [], pas: [], psd: [] };
   private edgeCache = new Map<number, DepEdge[]>();
+  private scoreCache: number[] | null = null;
 
   load(sentences: Sentences, raw: RawDeps): void {
     this.sentences = sentences;
@@ -26,6 +27,7 @@ export class DependencyGraph {
       psd: raw["sdp/psd"] ?? [],
     };
     this.edgeCache.clear();
+    this.scoreCache = null;
 
     this.tokens = sentences.flat();
     this.words = this.tokens.map((t) => t.toLocaleLowerCase());
@@ -54,6 +56,35 @@ export class DependencyGraph {
   sentenceRange(sentence: number): [number, number] {
     const start = this.offsets[sentence];
     return [start, start + (this.sentences[sentence]?.length ?? 0)];
+  }
+
+  /**
+   * Per-token connectivity (global indexing): weighted sum of the number of edges
+   * touching the token and the number of distinct words it is connected to,
+   * across all representations. Computed once.
+   */
+  connectivity(): number[] {
+    if (this.scoreCache) return this.scoreCache;
+
+    const n = this.tokens.length;
+    const links = new Array<number>(n).fill(0);
+    const neighbors = Array.from({ length: n }, () => new Set<number>());
+
+    for (let s = 0; s < this.sentences.length; s++) {
+      for (const edge of this.edges(s)) {
+        const head = this.globalIndex(s, edge.head);
+        const child = this.globalIndex(s, edge.child);
+        links[head]++;
+        links[child]++;
+        neighbors[head].add(child);
+        neighbors[child].add(head);
+      }
+    }
+
+    this.scoreCache = links.map(
+      (l, i) => CONNECTIVITY.linkWeight * l + CONNECTIVITY.wordWeight * neighbors[i].size,
+    );
+    return this.scoreCache;
   }
 
   /** Edges never change for a given sentence, so they're computed once. */

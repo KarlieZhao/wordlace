@@ -28,14 +28,18 @@ export interface EdgeRef {
   head: number;
   child: number;
 }
-
-export interface ForceNode extends SimulationNodeDatum {
+export interface ForceNode {
   id: number;
-  /** Shared reference to the persistent position of this token. */
   point: Point;
+  x?: number;
+  y?: number;
+  vx?: number;
+  vy?: number;
   anchorX: number;
   anchorY: number;
+  targetY: number;
 }
+
 
 export interface ForceLink {
   source: number | ForceNode;

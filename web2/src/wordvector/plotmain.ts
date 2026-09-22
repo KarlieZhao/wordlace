@@ -15,9 +15,6 @@ function addListeners(): void {
     renderer.nextSentence();
   });
 
-  showAll.addEventListener("change", () => {
-    renderer.showAllEdges(showAll.checked);
-  });
   expandXCheckbox.addEventListener("change", () => {
     smoothScrollTo(0, MOVE_TRANSITION_MS);
     expandYCheckbox.checked = false;
@@ -55,8 +52,7 @@ const setXexpand = () => {
 async function init(): Promise<void> {
   expandXCheckbox.checked = false;
   expandYCheckbox.checked = false;
-  setYexpand();
-  showAll.checked = false;
+  setXexpand();
   addListeners();
   await renderer.init(tokenURL, vecURL);
 }

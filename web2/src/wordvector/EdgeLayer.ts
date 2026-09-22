@@ -1,6 +1,6 @@
 import { computeCurve, round1, type DepEdge, type DepRepresentation } from "./basedependency";
 import { CURVATURE, DEP_COLORS, LABEL_LINE_HEIGHT, MARKER_SIZE, REPRESENTATIONS, type PointGetter } from "./config";
-
+import { labelName } from "./labels";
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function svgEl<K extends keyof SVGElementTagNameMap>(
@@ -205,7 +205,9 @@ export class EdgeLayer {
         class: `wv-dep-label wv-label-${edge.representation}`,
         "text-anchor": "middle",
       });
-      el.textContent = `${edge.representation}: ${edge.relation}`;
+
+      el.textContent = labelName(edge.representation, edge.relation);
+      //  `${edge.representation}: ${edge.relation}`;
       this.labelLayer.appendChild(el);
 
       this.labels.push({ edge: i, el, dy: (slot - (totals.get(key)! - 1) / 2) * LABEL_LINE_HEIGHT });

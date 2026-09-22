@@ -1,6 +1,10 @@
 /** Nearest scrollable element, starting with `el` itself; null means the page scrolls. */
 export function findScrollParent(el: HTMLElement): HTMLElement | null {
-  for (let p: HTMLElement | null = el; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+  for (
+    let p: HTMLElement | null = el;
+    p && p !== document.body && p !== document.documentElement;
+    p = p.parentElement
+  ) {
     const style = getComputedStyle(p);
     const scrollsX = /(auto|scroll|overlay)/.test(style.overflowX) && p.scrollWidth > p.clientWidth;
     const scrollsY = /(auto|scroll|overlay)/.test(style.overflowY) && p.scrollHeight > p.clientHeight;
@@ -10,21 +14,21 @@ export function findScrollParent(el: HTMLElement): HTMLElement | null {
 }
 
 /**
- * Reports the mouse's clientY while the pointer is inside the visible area of
+ * Reports the mouse's clientX/clientY while the pointer is inside the visible area of
  * `anchor`'s scroll container (or the window). Throttled to one call per frame.
  * It also re-reports after scrolling, because the content under a stationary
  * mouse changes when the page moves.
  */
 export class PointerTracker {
   private readonly anchor: HTMLElement;
-  private readonly onY: (clientY: number) => void;
+  private readonly onMove: (clientX: number, clientY: number) => void;
   private lastX: number | null = null;
   private lastY: number | null = null;
   private frame: number | null = null;
 
-  constructor(anchor: HTMLElement, onY: (clientY: number) => void) {
+  constructor(anchor: HTMLElement, onMove: (clientX: number, clientY: number) => void) {
     this.anchor = anchor;
-    this.onY = onY;
+    this.onMove = onMove;
   }
 
   start(): void {
@@ -68,7 +72,7 @@ export class PointerTracker {
         this.lastY >= view.top &&
         this.lastY <= view.top + view.height;
 
-      if (inside) this.onY(this.lastY);
+      if (inside) this.onMove(this.lastX, this.lastY);
     });
   }
 }

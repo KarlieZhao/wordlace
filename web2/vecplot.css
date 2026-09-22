@@ -1,4 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap');
+
+body {
+    font-family: "Signika Negative", sans-serif;
+    font-weight: 400;
+}
 
 .vector-plot,
 .word-plot {
@@ -19,6 +25,12 @@
     z-index: 100;
 }
 
+.full-line {
+    position: absolute;
+    width: max-content;
+    top: 40%;
+    left: 50%;
+}
 .word-plot {
     position: relative;
 }
@@ -30,23 +42,24 @@
     transform: translate(-50%, -50%);
     padding: 2px 6px;
     font-size: 14px;
-    font-family: "Roboto Slab", "Helvetica Neue", Arial, sans-serif;
+    font-family: "Signika Negative", sans-serif;
     border-radius: 4px;
     white-space: nowrap;
-    transition: left .5s ease-in-out, 
-    top .5s ease-in-out,
-            opacity 0.7s ease,
-            transform 0.7s ease,
-            z-index 0.2s ease,
-            font-size 0.7s ease;
-    opacity: 0.7;
+    transition: left .5s ease-in-out,
+        top .5s ease-in-out,
+        opacity 0.7s ease,
+        transform 0.7s ease,
+        z-index 0.2s ease,
+        color .2s ease;
+    /* font-size .1s ease-in; */
     z-index: 1;
     transform: translate(-50%, -50%);
-    color: #59656e88;
+    color: #59656e;
+    opacity: 1;
 }
 
 .highlighted-word {
-    font-size: 20px;
+    font-size: 16px;
     opacity: 1;
     z-index: 2;
     transform: translate(-50%, -50%);
@@ -63,18 +76,18 @@
 
 /* ---- edges ---- */
 .wv-dep-arc {
-    opacity: 0.3;
-    stroke-width: 1;
+    opacity: .4;
+    stroke-width: 2;
     transition: opacity 0.7s, stroke-width 0.7s;
 }
 
 .wv-dep-arc.wv-hot {
-    opacity: 1;
+    opacity: .6;
     stroke-width: 2;
 }
 
 .vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
-    opacity: 0.3;
+    opacity: 0.05;
 }
 
 .wv-dep-hit {
@@ -88,7 +101,8 @@
 
 /* ---- labels ---- */
 .wv-dep-label {
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 300;
     pointer-events: none;
 }
 

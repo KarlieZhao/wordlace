@@ -11,7 +11,7 @@ import {
   type VectorPos,
   type Vectors,
 } from "./basedependency";
-import { DEFAULT_X_POS, DEFAULT_Y_POS, TOKEN_SPACING } from "./config";
+import { DEFAULT_X_POS, TOKEN_SPACING_X, TOKEN_SPACING_Y, Y_PADDING } from "./config";
 
 /**
  * Owns every position a token can have:
@@ -40,16 +40,28 @@ export class Layout {
     return this.liveList !== null;
   }
 
+  /** `scores[i]` is token i's connectivity; it decides the height in the x-axis layout. */
   build(vectors: Vectors, tokens: string[]): void {
     const bounds = computeBounds(vectors);
 
     this.cloud = bounds ? this.buildCloud(vectors, bounds) : {};
     this.seq = {
-      x: bounds ? this.buildSeq("x", vectors, bounds, tokens) : [],
-      y: bounds ? this.buildSeq("y", vectors, bounds, tokens) : [],
+      x: this.buildSeqX(tokens),
+      y: bounds ? this.buildSeqY(vectors, bounds, tokens) : [],
     };
+    this.applyExtent(tokens.length);
 
     this.resetLive(this.axis);
+  }
+
+  computeTargetY(scores: number[]): number[] {
+    let max = 0;
+    for (const v of scores) if (v > max) max = v;
+
+    return scores.map((v) => {
+      const t = max > 0 ? v / max : 0;
+      return t * TOKEN_SPACING_Y;
+    });
   }
 
   resetLive(axis: Axis): void {
@@ -76,23 +88,38 @@ export class Layout {
     return positions;
   }
 
-  private buildSeq(axis: Axis, vectors: Vectors, bounds: Bounds, tokens: string[]): Point[] {
-    const { width, height } = elementSize(this.wordContainer, 600, 600);
+  /** Along x in sentence order; y from connectivity (more connected = higher up). */
 
-    const positions = tokens.map((rawWord, i): Point => {
-      const along = i * TOKEN_SPACING;
-      const word = rawWord.toLocaleLowerCase();
-      const vec = hasOwn(vectors, word) ? vectors[word] : null;
-
-      return axis === "x"
-        ? { px: along, py: vec ? projectY(vec[1], bounds, height) : DEFAULT_Y_POS }
-        : { px: vec ? projectX(vec[0], bounds, width) : DEFAULT_X_POS, py: along };
+  // OR ypos can be:
+  // - wordvec embedding
+  // - score: connectivity
+  // - POS
+  // frequency of appearance in passage (exclude common words)
+  private buildSeqX(tokens: string[]): Point[] {
+    // let max = 0;
+    // for (const v of scores) if (v > max) max = v;
+    let xpos = 0;
+    return tokens.map((_, i): Point => {
+      const lastToken = this.wordContainer.querySelector(`[data-index="${i - 1}"]`);
+      const lastTokenWidth = lastToken ? lastToken.getBoundingClientRect().width : 0;
+      xpos += lastTokenWidth + TOKEN_SPACING_X;
+      return { px: xpos, py: Y_PADDING };
     });
+  }
 
-    const extent = `${Math.max(0, tokens.length - 1) * TOKEN_SPACING}px`;
-    if (axis === "x") this.lineContainer.style.width = extent;
-    else this.lineContainer.style.height = extent;
+  /** Along y in sentence order; x still comes from the word vectors. */
+  private buildSeqY(vectors: Vectors, bounds: Bounds, tokens: string[]): Point[] {
+    const { width } = elementSize(this.wordContainer, 600, 600);
 
-    return positions;
+    return tokens.map((rawWord, i): Point => {
+      const vec = hasOwn(vectors, rawWord.toLocaleLowerCase()) ? vectors[rawWord.toLocaleLowerCase()] : null;
+      return { px: vec ? projectX(vec[0], bounds, width) : DEFAULT_X_POS, py: i * TOKEN_SPACING_Y };
+    });
+  }
+
+  private applyExtent(count: number): void {
+    const extent = `${Math.max(0, count - 1) * TOKEN_SPACING_X}px`;
+    this.lineContainer.style.width = extent;
+    this.lineContainer.style.height = extent;
   }
 }
