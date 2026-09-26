@@ -17,7 +17,7 @@ export class WordLayer {
 
     root.addEventListener("mouseout", (e) => {
       const to = (e.relatedTarget as Element | null)?.closest?.(".vector-word");
-      if (to) return; // moving straight onto another word; its mouseover takes over
+      if (to) return;
       this.hoverCb?.(null);
     });
   }
@@ -26,7 +26,6 @@ export class WordLayer {
     this.hoverCb = cb;
   }
 
-  /** Builds the word elements once per dataset. */
   build(tokens: string[]): void {
     this.root.innerHTML = "";
     this.connected.clear();
@@ -53,24 +52,20 @@ export class WordLayer {
     style.top = `${y}px`;
   }
 
-  /** Empty string restores the stylesheet's own left/top transitions. */
   setTransitions(simulating: boolean): void {
     const value = simulating ? TRANSITION_PROPS_WHILE_SIMULATING : "";
     for (const el of this.els) el.style.transitionProperty = value;
   }
 
-  /** Words that have at least one visible edge (the old "highlighted-word"). */
   setConnected(indices: ReadonlySet<number>): void {
     this.diffClass(this.connected, indices, "highlighted-word");
   }
 
-  /** Hover focus: `null` clears it. Everything not in `indices` is pushed back via CSS. */
   setFocus(indices: ReadonlySet<number> | null): void {
     this.diffClass(this.hot, indices ?? new Set(), "wv-hot");
     this.root.classList.toggle("wv-focus", indices !== null);
   }
 
-  /** Viewport coordinates of the origin that `left`/`top` are relative to. */
   origin(index: number): { left: number; top: number } {
     const parent = (this.els[index]?.offsetParent as HTMLElement | null) ?? this.root;
     const r = parent.getBoundingClientRect();
@@ -89,5 +84,9 @@ export class WordLayer {
     }
     current.clear();
     next.forEach((i) => current.add(i));
+  }
+
+  getText(index: number): string {
+    return this.els[index]?.textContent ?? "";
   }
 }

@@ -1,15 +1,6 @@
 import type { EdgeLayer } from "./EdgeLayer";
 import type { WordLayer } from "./WordLayer";
 
-/**
- * Turns word/edge hover into a "focus set" and hands it to both layers.
- *
- *  - hover edge: that edge + its two words are hot; its label is shown.
- *  - hover word: that word + every edge touching it + every word on the other
- *                end of those edges are hot; all those labels are shown.
- *
- * Everything outside the focus set is pushed back by CSS (`.wv-focus`).
- */
 export class HoverController {
   private key: string | null = null;
 
@@ -19,11 +10,14 @@ export class HoverController {
   constructor(words: WordLayer, edges: EdgeLayer) {
     this.words = words;
     this.edges = edges;
+  }
 
-    words.onHover((token) => {
-      if (token === null) this.clear();
-      else this.focusWord(token);
-    });
+  setHoveredWord(token: number | null): void {
+    if (token === null) {
+      this.clear();
+      return;
+    }
+    this.focusWord(token);
   }
 
   clear(): void {
@@ -45,18 +39,14 @@ export class HoverController {
       wordSet.add(child);
     }
 
-    this.apply(wordSet, edgeSet);
+    this.words.setFocus(wordSet);
+    this.edges.setFocus(edgeSet);
+    this.edges.showLabels(edgeSet);
   }
-  /** False when this exact target is already focused. */
+
   private enter(key: string): boolean {
     if (this.key === key) return false;
     this.key = key;
     return true;
-  }
-
-  private apply(words: Set<number>, edges: Set<number>): void {
-    this.words.setFocus(words);
-    this.edges.setFocus(edges);
-    this.edges.showLabels(edges);
   }
 }

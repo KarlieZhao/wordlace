@@ -13,7 +13,7 @@ body {
     width: max-content;
     min-width: 100vw;
     height: max-content;
-    min-height: 95vh;
+    /* min-height: 95vh; */
 }
 
 .top-bar {
@@ -25,12 +25,6 @@ body {
     z-index: 100;
 }
 
-.full-line {
-    position: absolute;
-    width: max-content;
-    top: 40%;
-    left: 50%;
-}
 .word-plot {
     position: relative;
 }
@@ -116,4 +110,123 @@ body {
 
 .wv-label-psd {
     fill: #4a7a5f;
+}
+
+.full-line {
+    position: absolute;
+    width: max-content;
+    font-size: 16px;
+    font-weight: 500;
+    top: 42vh;
+    left: 50%;
+    color: #86929f;
+    cursor: default;
+}
+
+.dependency-subway-container {
+    position: absolute;
+    top: 45vh;
+    display: none;
+    padding-top: 8px;
+}
+
+.dependency-subway.is-visible {
+    display: block;
+}
+
+.subway-spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1.6px;
+    /* background: #c7d3da; */
+background: linear-gradient(
+    to bottom,
+    #c7d3da 0%,
+    #c7d3da 80%,
+    transparent 100%
+  );    /* transform: translateX(-5px); */
+}
+
+.subway-row {
+    position: relative;
+    width: 100%;
+}
+
+/* Horizontal-only positioning: bottom is set, top is left auto, so height
+   stays intrinsic to content while the branch bottom-aligns within its row. */
+.subway-branch {
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.subway-branch--right {
+    align-items: flex-start;
+}
+
+.subway-branch--left {
+    align-items: flex-end;
+    transform: translateX(-100%);
+}
+
+.subway-labels {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    font-weight: 300;
+    color: #4a86a0;
+    white-space: nowrap;
+    padding-bottom: 4px;
+    transform: translateY(10px);
+}
+
+.subway-branch--right .subway-labels {
+    text-align: left;
+    padding-left: 1em;
+}
+
+.subway-branch--left .subway-labels {
+    text-align: right;
+    padding-right: 1em;
+}
+
+.subway-connector {
+    display: flex;
+    align-items: center;
+}
+
+.subway-branch--left .subway-connector {
+    transform: translateX(4px);
+}
+
+.subway-branch--right .subway-connector {
+    transform: translateX(-2px);
+}
+
+.subway-line {
+    height: 1px;
+    width: 70px;
+    background: #c7d3da;
+}
+
+.subway-dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #9db2bd;
+}
+
+.subway-word {
+    font-size: 14px;
+    font-weight: 600;
+    color: #45505c;
+    white-space: nowrap;
+    margin: 0 8px;
+}
+
+.full-line .wv-hot {
+    color: #45505c;
 }

@@ -1,6 +1,7 @@
 import { computeCurve, round1, type DepEdge, type DepRepresentation } from "./basedependency";
 import { CURVATURE, DEP_COLORS, LABEL_LINE_HEIGHT, MARKER_SIZE, REPRESENTATIONS, type PointGetter } from "./config";
 import { labelName } from "./labels";
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function svgEl<K extends keyof SVGElementTagNameMap>(
@@ -162,7 +163,7 @@ export class EdgeLayer {
       item.path.setAttribute("d", geo.d);
       item.hit.setAttribute("d", geo.d);
     }
-    this.positionLabels();
+    // this.positionLabels();
   }
 
   setFocus(edges: ReadonlySet<number> | null): void {
@@ -182,43 +183,48 @@ export class EdgeLayer {
   /** Shows one label per edge, e.g. "dm: ARG1", at the edge's midpoint. */
   showLabels(edges: Iterable<number>): void {
     this.hideLabels();
-    if (!this.labelLayer) return;
+    // if (!this.labelLayer) return;
 
-    const list = [...edges].filter((i) => this.items[i]);
+    // const list = [...edges].filter((i) => this.items[i]);
 
-    // Edges between the same pair (dm/pas/psd) share a midpoint: stack their labels.
-    const pairKey = (i: number) => {
-      const { head, child } = this.items[i];
-      return head < child ? `${head}:${child}` : `${child}:${head}`;
-    };
-    const totals = new Map<string, number>();
-    for (const i of list) totals.set(pairKey(i), (totals.get(pairKey(i)) ?? 0) + 1);
+    // // Edges between the same pair (dm/pas/psd) share a midpoint: stack their labels.
+    // const pairKey = (i: number) => {
+    //   const { head, child } = this.items[i];
+    //   return head < child ? `${head}:${child}` : `${child}:${head}`;
+    // };
+    // const totals = new Map<string, number>();
+    // for (const i of list) totals.set(pairKey(i), (totals.get(pairKey(i)) ?? 0) + 1);
 
-    const seen = new Map<string, number>();
-    for (const i of list) {
-      const key = pairKey(i);
-      const slot = seen.get(key) ?? 0;
-      seen.set(key, slot + 1);
+    // const seen = new Map<string, number>();
+    // for (const i of list) {
+    //   const key = pairKey(i);
+    //   const slot = seen.get(key) ?? 0;
+    //   seen.set(key, slot + 1);
 
-      const { edge } = this.items[i];
-      const el = svgEl("text", {
-        class: `wv-dep-label wv-label-${edge.representation}`,
-        "text-anchor": "middle",
-      });
+    //   const { edge } = this.items[i];
+    //   const el = svgEl("text", {
+    //     class: `wv-dep-label wv-label-${edge.representation}`,
+    //     "text-anchor": "middle",
+    //   });
 
-      el.textContent = labelName(edge.representation, edge.relation);
-      //  `${edge.representation}: ${edge.relation}`;
-      this.labelLayer.appendChild(el);
+    //   el.textContent = labelName(edge.representation, edge.relation);
+    //   //  `${edge.representation}: ${edge.relation}`;
+    //   this.labelLayer.appendChild(el);
 
-      this.labels.push({ edge: i, el, dy: (slot - (totals.get(key)! - 1) / 2) * LABEL_LINE_HEIGHT });
-    }
+    //   this.labels.push({ edge: i, el, dy: (slot - (totals.get(key)! - 1) / 2) * LABEL_LINE_HEIGHT });
+    // }
 
-    this.positionLabels();
+    // this.positionLabels();
   }
 
   hideLabels(): void {
     this.labelLayer?.replaceChildren();
     this.labels = [];
+  }
+
+  relationLabel(edge: number): string {
+    const item = this.items[edge];
+    return item ? labelName(item.edge.representation, item.edge.relation) : "";
   }
 
   /* ------------------------------ helpers ----------------------------- */
@@ -229,15 +235,15 @@ export class EdgeLayer {
     else this.byToken.set(token, [edge]);
   }
 
-  private positionLabels(): void {
-    for (const { edge, el, dy } of this.labels) {
-      const { head, child } = this.items[edge];
-      const geo = this.geometry(head, child);
-      if (!geo) continue;
-      el.setAttribute("x", String(round1(geo.midX)));
-      el.setAttribute("y", String(round1(geo.midY + dy - 6)));
-    }
-  }
+  // private positionLabels(): void {
+  //   for (const { edge, el, dy } of this.labels) {
+  //     const { head, child } = this.items[edge];
+  //     const geo = this.geometry(head, child);
+  //     if (!geo) continue;
+  //     el.setAttribute("x", String(round1(geo.midX)));
+  //     el.setAttribute("y", String(round1(geo.midY + dy - 6)));
+  //   }
+  // }
 
   private geometry(head: number, child: number): { d: string; midX: number; midY: number } | null {
     const a = this.pointOf(head);

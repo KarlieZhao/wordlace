@@ -22,13 +22,13 @@ export const DEP_COLORS: Record<DepRepresentation, string> = {
 };
 
 export const FORCE = {
-  linkDistance: TOKEN_SPACING_X,
-  linkStrength: 0.01,
+  linkDistance: TOKEN_SPACING_X * 5,
+  linkStrength: 0.001,
   collideRadius: 24,
   collideStrength: 0.9,
   chargeStrength: -30,
   chargeMaxDistance: TOKEN_SPACING_X * 2,
-  anchorStrength: 0.01,
+  anchorStrength: 0.56,
   alpha: 0.8,
   alphaDecay: 0.01,
   velocityDecay: 0.4,
@@ -38,7 +38,8 @@ export const TRANSITION_PROPS_WHILE_SIMULATING = "opacity, transform, color";
 
 export type PointGetter = (tokenIndex: number) => { px: number; py: number } | undefined;
 
-export const Y_PADDING = 200;
+export const Y_TOP_PAD = 250;
+export const TARGET_Y_TOP_PAD = 150;
 
 /**
  * Connectivity score of a token = LINK_WEIGHT * (number of edges touching it)

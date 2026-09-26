@@ -11,7 +11,7 @@ import {
   type VectorPos,
   type Vectors,
 } from "./basedependency";
-import { DEFAULT_X_POS, TOKEN_SPACING_X, TOKEN_SPACING_Y, Y_PADDING } from "./config";
+import { DEFAULT_X_POS, TARGET_Y_TOP_PAD, TOKEN_SPACING_X, TOKEN_SPACING_Y, Y_TOP_PAD } from "./config";
 
 /**
  * Owns every position a token can have:
@@ -60,7 +60,7 @@ export class Layout {
 
     return scores.map((v) => {
       const t = max > 0 ? v / max : 0;
-      return t * TOKEN_SPACING_Y;
+      return t * TOKEN_SPACING_Y + TARGET_Y_TOP_PAD;
     });
   }
 
@@ -103,7 +103,7 @@ export class Layout {
       const lastToken = this.wordContainer.querySelector(`[data-index="${i - 1}"]`);
       const lastTokenWidth = lastToken ? lastToken.getBoundingClientRect().width : 0;
       xpos += lastTokenWidth + TOKEN_SPACING_X;
-      return { px: xpos, py: Y_PADDING };
+      return { px: xpos, py: Y_TOP_PAD };
     });
   }
 

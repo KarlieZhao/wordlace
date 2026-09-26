@@ -1,4 +1,5 @@
 import { BaseDependencyRenderer, elementSize, type Axis, type RenderMode } from "./basedependency";
+import { SubwayLayer } from "./depsubwaylayer";
 import { loadJson } from "../utils";
 import { MOVE_TRANSITION_MS } from "./config";
 import { DependencyGraph } from "./DependencyGraph";
@@ -8,6 +9,7 @@ import { HoverController } from "./HoverController";
 import { Layout } from "./Layout";
 import { PointerTracker } from "./viewport";
 import { WordLayer } from "./WordLayer";
+import { HighlightSpanKind } from "typescript";
 
 export { MOVE_TRANSITION_MS };
 
@@ -27,6 +29,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
   private readonly fullLineContainer: HTMLDivElement;
+  private fullLineHotIndex: number | null = null;
 
   private readonly graph = new DependencyGraph();
   private readonly layout: Layout;
@@ -34,6 +37,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly edges: EdgeLayer;
   private readonly force = new ForceLayout();
   private readonly hover: HoverController;
+  private readonly subway: SubwayLayer;
   private readonly tracker: PointerTracker;
 
   private mode: RenderMode = 0;
@@ -51,13 +55,36 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
     this.fullLineContainer = document.querySelector(".full-line") as HTMLDivElement;
-
+    const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
     this.layout = new Layout(this.wordContainer, this.lineContainer);
     this.words = new WordLayer(this.wordContainer);
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live?.[i]);
     this.hover = new HoverController(this.words, this.edges);
 
-    // The mouse position along the expansion axis picks the highlighted sentence.
+    const getHoveredWordX = (index: number) => {
+      const span = this.fullLineContainer.querySelector<HTMLElement>(`[data-index="${index}"]`);
+      if (!span) return 0;
+      const spanRect = span.getBoundingClientRect();
+      return spanRect.left + spanRect.width / 4;
+    };
+
+    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
+
+    this.fullLineContainer.addEventListener("mouseover", (e) => {
+      const el = (e.target as Element | null)?.closest<HTMLElement>(".full-line-word");
+      if (el) this.onHoverToken(Number(el.dataset.index));
+    });
+
+    this.fullLineContainer.addEventListener("mouseout", (e) => {
+      const to = (e.relatedTarget as Element | null)?.closest?.(".full-line-word");
+      if (to) return; 
+      this.onHoverToken(null);
+    });
+
+    this.words.onHover((token) => {
+      this.hover.setHoveredWord(token);
+      this.subway.setHoveredWord(token);
+    });
     this.tracker = new PointerTracker(this.wordContainer, (x, y) => this.onPointer(x, y));
     this.tracker.start();
   }
@@ -100,8 +127,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.mode = expanded ? 1 : 0;
     this.expandingAlong = axis;
-
-    // Only a real layout change resets words to their sequence positions.
     if (expanded && layoutChanged) this.layout.resetLive(axis);
 
     this.render(layoutChanged);
@@ -190,6 +215,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     // Re-enable left/top transitions for the (possibly animated) move.
     this.words.setTransitions(false);
     this.placeWords();
+    this.renderFullLine(this.sentenceIndex);
 
     /*
      * Cloud mode:    words sit at vector positions, no simulation.
@@ -216,9 +242,38 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     } else {
       this.buildEdges();
     }
+  }
 
-    this.fullLineContainer.textContent = this.graph.sentenceText(this.sentenceIndex);
+  private renderFullLine(sentence: number): void {
+    const [start, end] = this.graph.sentenceRange(sentence);
+    this.fullLineHotIndex = null; // rebuilding clears hot spans
+    this.fullLineContainer.innerHTML = "";
+
+    for (let i = start; i < end; i++) {
+      const span = document.createElement("span");
+      span.dataset.index = String(i);
+      span.textContent = this.graph.words[i] + " ";
+      span.classList.add("full-line-word");
+      this.fullLineContainer.appendChild(span);
+    }
+
     this.fullLineContainer.style.left = `${this.firstWordLeft(this.sentenceIndex)}px`;
+  }
+
+  private onHoverToken(token: number | null): void {
+    this.hover.setHoveredWord(token);
+    this.subway.setHoveredWord(token);
+    this.setFullLineHot(token);
+  }
+
+  private setFullLineHot(token: number | null): void {
+    if (this.fullLineHotIndex !== null) {
+      this.fullLineContainer.querySelector(`[data-index="${this.fullLineHotIndex}"]`)?.classList.remove("wv-hot");
+    }
+    this.fullLineHotIndex = token;
+    if (token !== null) {
+      this.fullLineContainer.querySelector(`[data-index="${token}"]`)?.classList.add("wv-hot");
+    }
   }
 
   private firstWordLeft(sentence: number): number {
@@ -265,6 +320,46 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.edges.build(inputs, sentences, this.sentenceIndex, elementSize(this.lineContainer, 800, 600));
     this.words.setConnected(this.edges.connectedTokens());
+    // this.updateSubway();
+
+    const [start, end] = this.graph.sentenceRange(this.sentenceIndex);
+    const indices = Array.from({ length: end - start }, (_, i) => start + i);
+    this.subway.setSentenceWords(indices);
+  }
+
+  // private updateSubway(): void {
+  //   const rootLocal = this.findSentenceRoot(this.sentenceIndex);
+  //   if (rootLocal === null) {
+  //     this.subway.hide();
+  //     return;
+  //   }
+
+  //   const rootGlobal = this.graph.globalIndex(this.sentenceIndex, rootLocal);
+  //   this.subway.show(SubwayLayer.buildOutgoingLinks(rootGlobal, this.words, this.edges));
+  // }
+
+  private findSentenceRoot(sentence: number): number | null {
+    const edges = this.graph.edges(sentence);
+    if (!edges.length) return null;
+
+    const children = new Set<number>();
+    const outDegree = new Map<number, number>();
+    for (const e of edges) {
+      children.add(e.child);
+      outDegree.set(e.head, (outDegree.get(e.head) ?? 0) + 1);
+    }
+
+    let best: number | null = null;
+    let bestDegree = -1;
+    for (const [head, degree] of outDegree) {
+      if (children.has(head)) continue;
+      if (degree > bestDegree) {
+        best = head;
+        bestDegree = degree;
+      }
+    }
+
+    return best;
   }
 
   private startSimulation(): void {
