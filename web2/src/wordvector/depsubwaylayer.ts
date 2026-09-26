@@ -115,8 +115,7 @@ export class SubwayLayer {
     for (const e of this.edges.incident(focus)) {
       const [head, child] = this.edges.endpoints(e);
       const other = head === focus ? child : head;
-      // focus -> other (focus is head) => left; other -> focus (focus is child) => right
-      const side: "left" | "right" = head === focus ? "left" : "right";
+      const side: "left" | "right" = other < focus ? "left" : "right";
 
       const group = byOther.get(other) ?? { other, labels: [], side };
       group.labels.push(this.edges.relationLabel(e));

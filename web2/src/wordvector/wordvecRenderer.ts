@@ -6,10 +6,9 @@ import { DependencyGraph } from "./DependencyGraph";
 import { EdgeLayer, type EdgeInput } from "./EdgeLayer";
 import { ForceLayout } from "./ForceLayout";
 import { HoverController } from "./HoverController";
-import { Layout } from "./Layout";
+import { Layout, originX } from "./Layout";
 import { PointerTracker } from "./viewport";
 import { WordLayer } from "./WordLayer";
-import { HighlightSpanKind } from "typescript";
 
 export { MOVE_TRANSITION_MS };
 
@@ -61,11 +60,12 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live?.[i]);
     this.hover = new HoverController(this.words, this.edges);
 
-    const getHoveredWordX = (index: number) => {
+    const getHoveredWordX = (index: number): number => {
       const span = this.fullLineContainer.querySelector<HTMLElement>(`[data-index="${index}"]`);
       if (!span) return 0;
       const spanRect = span.getBoundingClientRect();
-      return spanRect.left + spanRect.width / 4;
+      const { left } = originX(this.wordContainer);
+      return left + spanRect.left;
     };
 
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
@@ -77,7 +77,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.fullLineContainer.addEventListener("mouseout", (e) => {
       const to = (e.relatedTarget as Element | null)?.closest?.(".full-line-word");
-      if (to) return; 
+      if (to) return;
       this.onHoverToken(null);
     });
 
@@ -162,8 +162,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     if (!this.loaded || this.mode !== 1 || !this.graph.sentenceCount) return;
 
     const axis = this.expandingAlong;
-    const origin = this.words.origin(0);
-    const pos = axis === "x" ? clientX - origin.left : clientY - origin.top;
+    const origin = originX(document.querySelector(".word-plot"));
+    const pos = axis === "x" ? clientX + origin.left : clientY - origin.top;
 
     let best = -1;
     let bestGap = Infinity;
@@ -250,7 +250,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.fullLineContainer.innerHTML = "";
 
     for (let i = start; i < end; i++) {
-      const span = document.createElement("span");
+      const span = document.createElement("div");
       span.dataset.index = String(i);
       span.textContent = this.graph.words[i] + " ";
       span.classList.add("full-line-word");

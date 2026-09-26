@@ -1,3 +1,4 @@
+import { originX } from "./Layout";
 import { TRANSITION_PROPS_WHILE_SIMULATING } from "./config";
 export class WordLayer {
   private els: HTMLElement[] = [];
@@ -64,15 +65,6 @@ export class WordLayer {
   setFocus(indices: ReadonlySet<number> | null): void {
     this.diffClass(this.hot, indices ?? new Set(), "wv-hot");
     this.root.classList.toggle("wv-focus", indices !== null);
-  }
-
-  origin(index: number): { left: number; top: number } {
-    const parent = (this.els[index]?.offsetParent as HTMLElement | null) ?? this.root;
-    const r = parent.getBoundingClientRect();
-    return {
-      left: r.left + parent.clientLeft - parent.scrollLeft,
-      top: r.top + parent.clientTop - parent.scrollTop,
-    };
   }
 
   private diffClass(current: Set<number>, next: ReadonlySet<number>, cls: string): void {

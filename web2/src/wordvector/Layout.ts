@@ -123,3 +123,9 @@ export class Layout {
     this.lineContainer.style.height = extent;
   }
 }
+
+export function originX(parent: HTMLElement | null): { left: number; top: number } {
+  if (!parent) return { left: 0, top: 0 };
+  const r = parent.getBoundingClientRect();
+  return { left: parent.scrollLeft - r.left - parent.clientLeft, top: r.top + parent.clientTop - parent.scrollTop };
+}

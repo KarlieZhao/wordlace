@@ -121,13 +121,25 @@ body {
     left: 50%;
     color: #86929f;
     cursor: default;
+    display: flex;
+    width: max-content;
+
+    div {
+        padding: .5em;
+    }
+
+    .wv-hot {
+        color: #323b44;
+    }
 }
+
 
 .dependency-subway-container {
     position: absolute;
     top: 45vh;
     display: none;
     padding-top: 8px;
+    transform: translateX(15px);
 }
 
 .dependency-subway.is-visible {
@@ -140,12 +152,11 @@ body {
     bottom: 0;
     width: 1.6px;
     /* background: #c7d3da; */
-background: linear-gradient(
-    to bottom,
-    #c7d3da 0%,
-    #c7d3da 80%,
-    transparent 100%
-  );    /* transform: translateX(-5px); */
+    background: linear-gradient(to bottom,
+            #c7d3da 0%,
+            #c7d3da 80%,
+            transparent 100%);
+    /* transform: translateX(-5px); */
 }
 
 .subway-row {
@@ -220,13 +231,9 @@ background: linear-gradient(
 }
 
 .subway-word {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
-    color: #45505c;
+    color: #323b44;
     white-space: nowrap;
     margin: 0 8px;
-}
-
-.full-line .wv-hot {
-    color: #45505c;
 }
