@@ -58,17 +58,13 @@ export class DependencyGraph {
     return [start, start + (this.sentences[sentence]?.length ?? 0)];
   }
 
-  /**
-   * Per-token connectivity (global indexing): weighted sum of the number of edges
-   * touching the token and the number of distinct words it is connected to,
-   * across all representations. Computed once.
-   */
   connectivity(): number[] {
     if (this.scoreCache) return this.scoreCache;
 
     const n = this.tokens.length;
-    const links = new Array<number>(n).fill(0);
-    const neighbors = Array.from({ length: n }, () => new Set<number>());
+    const links = new Float64Array(n);
+    const neighborCount = new Float64Array(n);
+    const seenEdges = new Set<number>();
 
     for (let s = 0; s < this.sentences.length; s++) {
       for (const edge of this.edges(s)) {
@@ -76,14 +72,36 @@ export class DependencyGraph {
         const child = this.globalIndex(s, edge.child);
         links[head]++;
         links[child]++;
-        neighbors[head].add(child);
-        neighbors[child].add(head);
+
+        // dedupe undirected pair with one shared Set instead of n per-node Sets
+        const key = head < child ? head * n + child : child * n + head;
+        if (!seenEdges.has(key)) {
+          seenEdges.add(key);
+          neighborCount[head]++;
+          neighborCount[child]++;
+        }
       }
     }
 
-    this.scoreCache = links.map(
-      (l, i) => CONNECTIVITY.linkWeight * l + CONNECTIVITY.wordWeight * neighbors[i].size,
-    );
+    const raw = (i: number) => CONNECTIVITY.linkWeight * links[i] + CONNECTIVITY.wordWeight * neighborCount[i];
+
+    const scores = new Array<number>(n);
+    for (let s = 0; s < this.sentences.length; s++) {
+      const start = this.globalIndex(s, 0);
+      const len = this.sentences[s].length;
+      const end = start + len;
+
+      let max = -Infinity;
+      for (let i = start; i < end; i++) {
+        const v = raw(i);
+        if (v > max) max = v;
+      }
+      for (let i = start; i < end; i++) {
+        scores[i] = max - raw(i);
+      }
+    }
+
+    this.scoreCache = scores;
     return this.scoreCache;
   }
 

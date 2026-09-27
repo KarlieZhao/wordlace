@@ -1,4 +1,4 @@
-import { smoothScrollTo } from "../utils";
+// import { smoothScrollTo } from "../utils";
 import { WordVecRenderer, MOVE_TRANSITION_MS } from "./wordvecRenderer";
 
 const expandXCheckbox = document.querySelector("#collapse-expand-x") as HTMLInputElement;
@@ -16,13 +16,13 @@ function addListeners(): void {
   });
 
   expandXCheckbox.addEventListener("change", () => {
-    smoothScrollTo(0, MOVE_TRANSITION_MS);
+    // smoothScrollTo(0, MOVE_TRANSITION_MS);
     expandYCheckbox.checked = false;
     renderer.setExpandMode(expandXCheckbox.checked, "x");
   });
 
   expandYCheckbox.addEventListener("change", () => {
-    smoothScrollTo(0, MOVE_TRANSITION_MS);
+    // smoothScrollTo(0, MOVE_TRANSITION_MS);
     expandXCheckbox.checked = false;
     renderer.setExpandMode(expandYCheckbox.checked, "y");
   });
@@ -49,6 +49,7 @@ const setXexpand = () => {
   expandXCheckbox.checked = true;
   renderer.setExpandMode(expandXCheckbox.checked, "x");
 };
+
 async function init(): Promise<void> {
   expandXCheckbox.checked = false;
   expandYCheckbox.checked = false;

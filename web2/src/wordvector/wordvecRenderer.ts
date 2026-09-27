@@ -23,8 +23,6 @@ export { MOVE_TRANSITION_MS };
  *   HoverController  word/edge hover -> focus sets
  */
 export class WordVecRenderer extends BaseDependencyRenderer {
-  protected readonly svgClass = "vector-edges";
-
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
   private readonly fullLineContainer: HTMLDivElement;

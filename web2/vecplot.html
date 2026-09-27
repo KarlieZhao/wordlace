@@ -30,12 +30,18 @@
 
     <button id="next-sentence">></button>
   </div>
-  <div class="vector-plot"></div>
-  <div class="word-plot"></div>
-  <div class="full-line"></div>
-  
-  <div class="dependency-subway-container">
-  </div>
+  <section class="top-half">
+    <div class="dep-container-flexbox">
+      <div class="dependency-subway-container"></div>
+      <div class="full-line"></div>
+    </div>
+  </section>
+
+  <section class="bottom">
+    <div class="vector-plot"></div>
+    <div class="word-plot"></div>
+  </section>
+
 
   <script type="module" src="/src/wordvector/plotmain.ts"></script>
 </body>

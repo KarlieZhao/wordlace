@@ -80,9 +80,8 @@ export class EdgeLayer {
       class: "vector-edges",
       "data-sentence": currentSentence,
       width: size.width,
-      height: size.height,
+      height: 400//size.height, <= TODO: change here
     });
-    svg.style.cssText = "position:absolute;left:0;top:0;pointer-events:none;z-index:0";
 
     const defs = svgEl("defs");
     for (const s of sentences) {

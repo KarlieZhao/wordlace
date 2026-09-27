@@ -1,4 +1,3 @@
-import { originX } from "./Layout";
 import { TRANSITION_PROPS_WHILE_SIMULATING } from "./config";
 export class WordLayer {
   private els: HTMLElement[] = [];

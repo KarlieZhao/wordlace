@@ -140,7 +140,6 @@ export function computeCurve(
 }
 
 export abstract class BaseDependencyRenderer {
-  protected readonly svgClass: string = "dependency-svg";
   container: HTMLDivElement | null;
 
   constructor(containerSelector: string = "#en-visualizer") {
@@ -160,73 +159,5 @@ export abstract class BaseDependencyRenderer {
 
   protected static escape(value: string): string {
     return escapeXml(value);
-  }
-
-  protected wrapSvg(params: {
-    width: number;
-    height: number;
-    sentenceIndex: number;
-    defs: string;
-    body: string;
-    extraAttrs?: string;
-  }): string {
-    const { width, height, sentenceIndex, defs, body, extraAttrs = "" } = params;
-    return `
-      <svg
-        class="${this.svgClass}"
-        data-sentence="${sentenceIndex}"
-        xmlns="http://www.w3.org/2000/svg"
-        width="${width}"
-        height="${height}"
-        ${extraAttrs}
-      >
-        <defs>${defs}</defs>
-        ${body}
-      </svg>
-    `;
-  }
-
-  protected attachHover(root: HTMLElement, binding: HoverBinding): void {
-    const svgs = root.querySelectorAll<SVGSVGElement>(`.${this.svgClass}`);
-    const leaveEvent = binding.leaveEvent ?? "mouseout";
-
-    svgs.forEach((svg) => {
-      svg.addEventListener("mouseover", (event) => {
-        const target = event.target as Element | null;
-        if (!target) return;
-
-        const word = target.closest<SVGTextElement>(binding.wordSelector);
-        if (word) {
-          binding.onWordHover(svg, Number(word.dataset.sentence), Number(word.dataset.word));
-          return;
-        }
-
-        const arc = target.closest<SVGPathElement>(binding.arcSelector);
-        if (arc) {
-          binding.onArcHover(
-            svg,
-            Number(arc.dataset.sentence),
-            Number(arc.dataset.head),
-            Number(arc.dataset.child),
-            arc.dataset.edge,
-          );
-        }
-      });
-
-      svg.addEventListener(leaveEvent, (event) => {
-        if (leaveEvent === "mouseout") {
-          const related = (event as MouseEvent).relatedTarget as Node | null;
-          if (related && svg.contains(related)) return;
-        }
-        binding.onClear(svg);
-      });
-    });
-  }
-
-  protected clearHighlightClasses(svg: SVGSVGElement, hoverClass: string, ...classes: string[]): void {
-    svg.classList.remove(hoverClass);
-    svg.querySelectorAll(classes.map((c) => `.${c}`).join(", ")).forEach((el) => {
-      el.classList.remove(...classes);
-    });
   }
 }
