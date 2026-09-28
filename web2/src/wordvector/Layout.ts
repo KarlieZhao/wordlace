@@ -11,7 +11,7 @@ import {
   type VectorPos,
   type Vectors,
 } from "./basedependency";
-import { DEFAULT_X_POS, TOKEN_SPACING_X, TOKEN_SPACING_Y } from "./config";
+import { DEFAULT_X_POS, TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y } from "./config";
 
 /**
  * Owns every position a token can have:
@@ -56,7 +56,7 @@ export class Layout {
 
   computeTargetY(scores: number[]): number[] {
     return scores.map((v) => {
-      return v * TOKEN_SPACING_Y;
+      return v * TOKEN_SPACING_Y + TOKEN_TOP_PAD;
     });
   }
 

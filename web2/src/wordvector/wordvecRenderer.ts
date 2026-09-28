@@ -9,6 +9,7 @@ import { HoverController } from "./HoverController";
 import { Layout, originX } from "./Layout";
 import { PointerTracker } from "./viewport";
 import { WordLayer } from "./WordLayer";
+import { FullLine } from "./fullline";
 
 export { MOVE_TRANSITION_MS };
 
@@ -25,8 +26,7 @@ export { MOVE_TRANSITION_MS };
 export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
-  private readonly fullLineContainer: HTMLDivElement;
-  private fullLineHotIndex: number | null = null;
+  private readonly fullLine: FullLine;
 
   private readonly graph = new DependencyGraph();
   private readonly layout: Layout;
@@ -42,8 +42,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private sentenceIndex = 0;
   private loaded = false;
   private edgeRedrawTimeout: ReturnType<typeof setTimeout> | null = null;
+  private lockedToken: number | null = null;
 
-  /** Per-token target row Y, computed once the graph/scores are loaded. */
   private targetYById: number[] = [];
 
   constructor() {
@@ -51,35 +51,29 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
-    this.fullLineContainer = document.querySelector(".full-line") as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
     this.layout = new Layout(this.wordContainer, this.lineContainer);
     this.words = new WordLayer(this.wordContainer);
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live?.[i]);
     this.hover = new HoverController(this.words, this.edges);
 
+    this.fullLine = new FullLine(
+      document.querySelector(".full-line") as HTMLDivElement,
+      (token) => this.onHoverToken(token),
+      (token) => this.onClickToken(token),
+    );
+
     const getHoveredWordX = (index: number): number => {
-      const span = this.fullLineContainer.querySelector<HTMLElement>(`[data-index="${index}"]`);
-      if (!span) return 0;
-      const spanRect = span.getBoundingClientRect();
+      const spanLeft = this.fullLine.spanLeft(index);
+      if (spanLeft === null) return 0;
       const { left } = originX(this.wordContainer);
-      return left + spanRect.left;
+      return left + spanLeft;
     };
 
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
 
-    this.fullLineContainer.addEventListener("mouseover", (e) => {
-      const el = (e.target as Element | null)?.closest<HTMLElement>(".full-line-word");
-      if (el) this.onHoverToken(Number(el.dataset.index));
-    });
-
-    this.fullLineContainer.addEventListener("mouseout", (e) => {
-      const to = (e.relatedTarget as Element | null)?.closest?.(".full-line-word");
-      if (to) return;
-      this.onHoverToken(null);
-    });
-
     this.words.onHover((token) => {
+      if (this.lockedToken !== null) return;
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
     });
@@ -184,6 +178,25 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     if (best >= 0) this.setSentence(best);
   }
 
+  private onHoverToken(token: number | null): void {
+    if (this.lockedToken !== null) return;
+    this.hover.setHoveredWord(token);
+    this.subway.setHoveredWord(token);
+    this.fullLine.setHot(token);
+  }
+
+  private onClickToken(token: number): void {
+    const unlocking = this.lockedToken === token;
+    this.lockedToken = unlocking ? null : token;
+    this.fullLine.setLocked(this.lockedToken);
+
+    // Apply the clicked word directly. The pointer is still over it, so on
+    // unlock it stays hovered until the mouse leaves.
+    this.hover.setHoveredWord(token);
+    this.subway.setHoveredWord(token);
+    this.fullLine.setHot(token);
+  }
+
   /** Extent of a sentence along one axis, in the words' own coordinate space. */
   private sentenceExtent(sentence: number, axis: Axis): { min: number; max: number } | null {
     const [start, end] = this.graph.sentenceRange(sentence);
@@ -203,11 +216,16 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   /* ---------------------------- rendering --------------------------- */
 
+  private renderFullLine(sentence: number): void {
+    const [start, end] = this.graph.sentenceRange(sentence);
+    this.fullLine.render(this.graph.words, start, end, this.firstWordLeft(this.sentenceIndex));
+  }
+
   private render(animateMove: boolean): void {
     if (!this.loaded || !this.layout.ready) return;
-
     this.force.stop();
     this.cancelEdgeRedraw();
+    this.lockedToken = null;
     this.hover.clear();
 
     // Re-enable left/top transitions for the (possibly animated) move.
@@ -239,38 +257,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       }
     } else {
       this.buildEdges();
-    }
-  }
-
-  private renderFullLine(sentence: number): void {
-    const [start, end] = this.graph.sentenceRange(sentence);
-    this.fullLineHotIndex = null; // rebuilding clears hot spans
-    this.fullLineContainer.innerHTML = "";
-
-    for (let i = start; i < end; i++) {
-      const span = document.createElement("div");
-      span.dataset.index = String(i);
-      span.textContent = this.graph.words[i] + " ";
-      span.classList.add("full-line-word");
-      this.fullLineContainer.appendChild(span);
-    }
-
-    this.fullLineContainer.style.left = `${this.firstWordLeft(this.sentenceIndex)}px`;
-  }
-
-  private onHoverToken(token: number | null): void {
-    this.hover.setHoveredWord(token);
-    this.subway.setHoveredWord(token);
-    this.setFullLineHot(token);
-  }
-
-  private setFullLineHot(token: number | null): void {
-    if (this.fullLineHotIndex !== null) {
-      this.fullLineContainer.querySelector(`[data-index="${this.fullLineHotIndex}"]`)?.classList.remove("wv-hot");
-    }
-    this.fullLineHotIndex = token;
-    if (token !== null) {
-      this.fullLineContainer.querySelector(`[data-index="${token}"]`)?.classList.add("wv-hot");
     }
   }
 
@@ -335,30 +321,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   //   const rootGlobal = this.graph.globalIndex(this.sentenceIndex, rootLocal);
   //   this.subway.show(SubwayLayer.buildOutgoingLinks(rootGlobal, this.words, this.edges));
   // }
-
-  private findSentenceRoot(sentence: number): number | null {
-    const edges = this.graph.edges(sentence);
-    if (!edges.length) return null;
-
-    const children = new Set<number>();
-    const outDegree = new Map<number, number>();
-    for (const e of edges) {
-      children.add(e.child);
-      outDegree.set(e.head, (outDegree.get(e.head) ?? 0) + 1);
-    }
-
-    let best: number | null = null;
-    let bestDegree = -1;
-    for (const [head, degree] of outDegree) {
-      if (children.has(head)) continue;
-      if (degree > bestDegree) {
-        best = head;
-        bestDegree = degree;
-      }
-    }
-
-    return best;
-  }
 
   private startSimulation(): void {
     const points = this.layout.live;

@@ -138,7 +138,7 @@ body {
     width: max-content;
     font-size: 16px;
     font-weight: 500;
-    top: 45vh;
+    top: 41vh;
     left: 50%;
     color: #86929f;
     cursor: default;
@@ -147,17 +147,24 @@ body {
 
     div {
         padding: .2em;
+        transition: color 0.2s ease
     }
 
     .wv-hot {
         color: #323b44;
     }
 }
+
+.full-line-word.wv-locked {
+    background-color: rgb(233, 190, 190);
+}
+
 .dependency-subway-container {
     display: none;
     padding-top: 8px;
     transform: translateX(15px);
 }
+
 .dependency-subway.is-visible {
     display: block;
 }

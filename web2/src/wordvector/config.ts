@@ -2,6 +2,8 @@ import type { DepRepresentation } from "./basedependency";
 
 export const TOKEN_SPACING_X = 10;
 export const TOKEN_SPACING_Y = 15;
+
+export const TOKEN_TOP_PAD = 20;
 export const MARKER_SIZE = 4;
 export const CURVATURE = 10;
 

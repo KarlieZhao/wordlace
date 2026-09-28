@@ -8,8 +8,7 @@ interface SubwayRow {
   side: "left" | "right";
 }
 
-const ROW_GAP = 14;
-const LABEL_LINE_HEIGHT = 24;
+const LABEL_LINE_HEIGHT = 20;
 const ROW_MIN_HEIGHT = 40;
 
 /**
@@ -101,14 +100,13 @@ export class SubwayLayer {
 
     const rows = this.buildRows(focus);
     for (const row of rows) {
-      const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 12);
+      const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
       this.root.appendChild(this.buildRow(row, x, height));
     }
 
     this.root.classList.add("is-visible");
   }
 
-  /** One row per word linked to `focus`, sorted by that word's sentence position. */
   private buildRows(focus: number): SubwayRow[] {
     const byOther = new Map<number, { other: number; labels: string[]; side: "left" | "right" }>();
 
@@ -123,7 +121,7 @@ export class SubwayLayer {
     }
 
     return [...byOther.values()]
-      .sort((a, b) => a.other - b.other)
+      .sort((a, b) => b.other - a.other)
       .map((g) => ({ other: g.other, word: this.words.getText(g.other), labels: g.labels, side: g.side }));
   }
 
@@ -131,7 +129,6 @@ export class SubwayLayer {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
     wrap.style.height = `${height}px`;
-    wrap.style.marginBottom = `${ROW_GAP}px`;
 
     const branch = document.createElement("div");
     branch.className = `subway-branch subway-branch--${row.side}`;

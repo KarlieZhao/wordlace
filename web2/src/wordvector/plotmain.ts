@@ -7,8 +7,8 @@ const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
 const showAll = document.querySelector("#show-all") as HTMLInputElement;
 const renderer = new WordVecRenderer();
 
-const tokenURL = "/emily_dickinson_vecs.json";
-const vecURL = "/emily_dickinson_tokens.json";
+const tokenURL = "/Not_Even_This_tokens_vecs_axes.json";
+const vecURL = "/Not_Even_This_tokens.json";
 
 function addListeners(): void {
   nextBtn.addEventListener("click", () => {
