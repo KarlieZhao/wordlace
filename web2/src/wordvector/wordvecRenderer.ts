@@ -1,50 +1,39 @@
-import { BaseDependencyRenderer, elementSize, type Axis, type RenderMode } from "./basedependency";
+import { BaseDependencyRenderer, elementSize } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
-import { loadJson } from "../utils";
-import { MOVE_TRANSITION_MS } from "./config";
 import { DependencyGraph } from "./DependencyGraph";
 import { EdgeLayer, type EdgeInput } from "./EdgeLayer";
-import { ForceLayout } from "./ForceLayout";
 import { HoverController } from "./HoverController";
 import { Layout, originX } from "./Layout";
-import { PointerTracker } from "./viewport";
 import { WordLayer } from "./WordLayer";
-import { FullLine } from "./fullline";
-
-export { MOVE_TRANSITION_MS };
+// import { FullLine } from "./fullline";
 
 /**
- * Holds view state (mode, axis, current sentence) and wires the parts:
+ * Shows one sentence at a time: render(index).
  *
  *   DependencyGraph  data (tokens, edges)          – no DOM
- *   Layout           cloud / sequence / live pos   – no rendering
+ *   Layout           live positions + sentence targets
  *   WordLayer        word <div>s
- *   EdgeLayer        dependency SVG + labels
- *   ForceLayout      d3 simulation
+ *   EdgeLayer        dependency SVG
  *   HoverController  word/edge hover -> focus sets
  */
 export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
-  private readonly fullLine: FullLine;
+  // private readonly fullLine: FullLine;
 
   private readonly graph = new DependencyGraph();
   private readonly layout: Layout;
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly force = new ForceLayout();
   private readonly hover: HoverController;
   private readonly subway: SubwayLayer;
-  private readonly tracker: PointerTracker;
 
-  private mode: RenderMode = 0;
-  private expandingAlong: Axis = "x";
   private sentenceIndex = 0;
   private loaded = false;
-  private edgeRedrawTimeout: ReturnType<typeof setTimeout> | null = null;
   private lockedToken: number | null = null;
 
   private targetYById: number[] = [];
+  private wordEls: HTMLElement[] = [];
 
   constructor() {
     super(".vector-plot");
@@ -52,22 +41,23 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
-    this.layout = new Layout(this.wordContainer, this.lineContainer);
+
+    this.layout = new Layout(this.wordContainer);
     this.words = new WordLayer(this.wordContainer);
-    this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live?.[i]);
+    this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
     this.hover = new HoverController(this.words, this.edges);
 
-    this.fullLine = new FullLine(
-      document.querySelector(".full-line") as HTMLDivElement,
-      (token) => this.onHoverToken(token),
-      (token) => this.onClickToken(token),
-    );
+    // this.fullLine = new FullLine(
+    //   document.querySelector(".full-line") as HTMLDivElement,
+    //   (token) => this.onHoverToken(token),
+    //   (token) => this.onClickToken(token),
+    // );
 
     const getHoveredWordX = (index: number): number => {
-      const spanLeft = this.fullLine.spanLeft(index);
-      if (spanLeft === null) return 0;
-      const { left } = originX(this.wordContainer);
-      return left + spanLeft;
+      //   const spanLeft = this.fullLine.spanLeft(index);
+      //   if (spanLeft === null) return 0;
+      //   const { left } = originX(this.wordContainer);
+      return 400; //left + spanLeft;
     };
 
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
@@ -77,267 +67,118 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
     });
-    this.tracker = new PointerTracker(this.wordContainer, (x, y) => this.onPointer(x, y));
-    this.tracker.start();
-  }
-
-  dispose(): void {
-    this.tracker.stop();
-    this.force.stop();
-    this.cancelEdgeRedraw();
   }
 
   /* -------------------------- public API -------------------------- */
 
-  async init(tokenURL: string, vecURL: string): Promise<void> {
-    const [vectors, raw] = await Promise.all([loadJson(tokenURL), loadJson(vecURL)]);
-
+  /** Loads data only. Call render(index) afterwards to show a sentence. */
+  async init(raw: any): Promise<void> {
     this.graph.load(raw.tok, raw);
     this.words.build(this.graph.tokens);
-    this.layout.build(vectors, this.graph.tokens);
-    const scores = this.graph.connectivity();
-    this.targetYById = this.layout.computeTargetY(scores);
+    this.cacheWordEls();
+    this.layout.build(this.graph.tokens.length);
+    this.targetYById = this.layout.computeTargetY(this.graph.connectivity());
     this.loaded = true;
-    this.render(false);
   }
 
   get sentenceCount(): number {
     return this.graph.sentenceCount;
   }
 
+  /**
+   * Shows sentence `index` only, with every word placed directly at its final
+   * position: x flows from LEFT_PADDING, y comes from dependency connectivity.
+   */
+  render(index: number): void {
+    if (!this.loaded || index < 0 || index >= this.graph.sentenceCount) return;
+
+    this.sentenceIndex = index;
+    this.lockedToken = null;
+    // this.fullLine.setLocked(null);
+    this.hover.clear();
+
+    const [start, end] = this.graph.sentenceRange(index);
+    this.showOnly(start, end); // must happen before measuring widths
+
+    const { points } = this.layout.sentenceTargets(start, end, (id) => this.targetYById[id]);
+    this.layout.setLive(start, points);
+
+    this.placeSentence(start, end);
+    // this.fullLine.render(this.graph.words, start, end, points[0] ? points[0].px + 15 : 100);
+    this.buildEdges(start, end); // draws the edges from the live positions
+  }
+
   nextSentence(): void {
-    this.stepSentence(1);
+    this.step(1);
   }
 
   prevSentence(): void {
-    this.stepSentence(-1);
+    this.step(-1);
   }
 
-  setExpandMode(expanded: boolean, axis: Axis): void {
-    const wasExpanded = this.mode === 1;
-    const layoutChanged = wasExpanded !== expanded || axis !== this.expandingAlong;
+  /* --------------------------- internals --------------------------- */
 
-    this.mode = expanded ? 1 : 0;
-    this.expandingAlong = axis;
-    if (expanded && layoutChanged) this.layout.resetLive(axis);
-
-    this.render(layoutChanged);
-  }
-
-  /* --------------------------- navigation --------------------------- */
-
-  private stepSentence(delta: number): void {
+  private step(delta: number): void {
     const n = this.sentenceCount;
     if (!n) return;
-    this.setSentence((((this.sentenceIndex + delta) % n) + n) % n);
-  }
-
-  private setSentence(index: number): void {
-    if (index === this.sentenceIndex) return;
-    this.sentenceIndex = index;
-
-    // if (this.showAllSentences) {
-    // Every sentence is already drawn; only the caption depends on the current one.
-    // this.fullLineContainer.textContent = this.graph.sentenceText(index);
-    // } else {
-    this.render(false);
-    // }
-  }
-
-  /**
-   * Picks the sentence whose extent along the expansion axis contains the pointer:
-   * mouse X when expanding along x, mouse Y when expanding along y. Sentences are laid
-   * out in order along that axis, so normally exactly one matches. If several do (or
-   * none), the one whose center is closest (or that is nearest) wins.
-   */
-  private onPointer(clientX: number, clientY: number): void {
-    if (!this.loaded || this.mode !== 1 || !this.graph.sentenceCount) return;
-
-    const axis = this.expandingAlong;
-    const origin = originX(document.querySelector(".word-plot"));
-    const pos = axis === "x" ? clientX + origin.left : clientY - origin.top;
-
-    let best = -1;
-    let bestGap = Infinity;
-    let bestCenter = Infinity;
-
-    for (let s = 0; s < this.graph.sentenceCount; s++) {
-      const range = this.sentenceExtent(s, axis);
-      if (!range) continue;
-
-      const gap = pos < range.min ? range.min - pos : pos > range.max ? pos - range.max : 0;
-      const center = Math.abs(pos - (range.min + range.max) / 2);
-
-      if (gap < bestGap || (gap === bestGap && center < bestCenter)) {
-        best = s;
-        bestGap = gap;
-        bestCenter = center;
-      }
-    }
-
-    if (best >= 0) this.setSentence(best);
+    this.render((((this.sentenceIndex + delta) % n) + n) % n);
   }
 
   private onHoverToken(token: number | null): void {
     if (this.lockedToken !== null) return;
     this.hover.setHoveredWord(token);
     this.subway.setHoveredWord(token);
-    this.fullLine.setHot(token);
+    // this.fullLine.setHot(token);
   }
 
   private onClickToken(token: number): void {
     const unlocking = this.lockedToken === token;
     this.lockedToken = unlocking ? null : token;
-    this.fullLine.setLocked(this.lockedToken);
+    // this.fullLine.setLocked(this.lockedToken);
 
     // Apply the clicked word directly. The pointer is still over it, so on
     // unlock it stays hovered until the mouse leaves.
     this.hover.setHoveredWord(token);
     this.subway.setHoveredWord(token);
-    this.fullLine.setHot(token);
+    // this.fullLine.setHot(token);
   }
 
-  /** Extent of a sentence along one axis, in the words' own coordinate space. */
-  private sentenceExtent(sentence: number, axis: Axis): { min: number; max: number } | null {
-    const [start, end] = this.graph.sentenceRange(sentence);
-    let min = Infinity;
-    let max = -Infinity;
-
-    for (let i = start; i < end; i++) {
-      const p = this.layout.point(this.mode, i, this.graph.words[i]);
-      if (!p) continue;
-      const v = axis === "x" ? p.px : p.py;
-      if (v < min) min = v;
-      if (v > max) max = v;
-    }
-
-    return min === Infinity ? null : { min, max };
-  }
-
-  /* ---------------------------- rendering --------------------------- */
-
-  private renderFullLine(sentence: number): void {
-    const [start, end] = this.graph.sentenceRange(sentence);
-    this.fullLine.render(this.graph.words, start, end, this.firstWordLeft(this.sentenceIndex));
-  }
-
-  private render(animateMove: boolean): void {
-    if (!this.loaded || !this.layout.ready) return;
-    this.force.stop();
-    this.cancelEdgeRedraw();
-    this.lockedToken = null;
-    this.hover.clear();
-
-    // Re-enable left/top transitions for the (possibly animated) move.
-    this.words.setTransitions(false);
-    this.placeWords();
-    this.renderFullLine(this.sentenceIndex);
-
-    /*
-     * Cloud mode:    words sit at vector positions, no simulation.
-     * Expanded mode: words sit at their persistent live positions; dependency links
-     *                pull connected words together, collision prevents overlap,
-     *                weak anchors keep everything local, and a ramped y-pull slowly
-     *                eases words toward their score-based row.
-     */
-    if (this.mode === 1) {
-      const start = () => {
-        this.buildEdges();
-        this.startSimulation();
-      };
-
-      if (animateMove) {
-        this.edges.clear();
-        this.edgeRedrawTimeout = setTimeout(() => {
-          this.edgeRedrawTimeout = null;
-          start();
-        }, MOVE_TRANSITION_MS);
-      } else {
-        start();
-      }
-    } else {
-      this.buildEdges();
-    }
-  }
-
-  private firstWordLeft(sentence: number): number {
-    const [start] = this.graph.sentenceRange(sentence);
-    const el = this.wordContainer.querySelector(`[data-index="${start}"]`);
-    if (!el) return 100;
-    const computedLeft = parseFloat(window.getComputedStyle(el).left.replace("px", ""));
-    return computedLeft + 15;
-  }
-
-  private cancelEdgeRedraw(): void {
-    if (this.edgeRedrawTimeout === null) return;
-    clearTimeout(this.edgeRedrawTimeout);
-    this.edgeRedrawTimeout = null;
-  }
-
-  private placeWords(): void {
-    const { graph, layout, mode } = this;
-    for (let i = 0; i < graph.tokens.length; i++) {
-      const p = layout.point(mode, i, graph.words[i]);
-      if (p) this.words.place(i, p.px, p.py);
-    }
-  }
-
-  private activeSentences(): number[] {
-    return [this.sentenceIndex];
-  }
-
-  private buildEdges(): void {
+  private buildEdges(start: number, end: number): void {
     const live = this.layout.live;
-    if (!live) return;
-
-    const sentences = this.activeSentences();
+    const sentence = this.sentenceIndex;
     const inputs: EdgeInput[] = [];
 
-    for (const sentence of sentences) {
-      for (const edge of this.graph.edges(sentence)) {
-        const head = this.graph.globalIndex(sentence, edge.head);
-        const child = this.graph.globalIndex(sentence, edge.child);
-        if (!live[head] || !live[child]) continue;
-        inputs.push({ edge, sentence, head, child });
-      }
+    for (const edge of this.graph.edges(sentence)) {
+      const head = this.graph.globalIndex(sentence, edge.head);
+      const child = this.graph.globalIndex(sentence, edge.child);
+      if (!live[head] || !live[child]) continue;
+      inputs.push({ edge, sentence, head, child });
     }
-
-    this.edges.build(inputs, sentences, this.sentenceIndex, elementSize(this.lineContainer, 800, 600));
+    this.edges.build(inputs, [sentence], sentence, elementSize(this.lineContainer, 600, 600));
     this.words.setConnected(this.edges.connectedTokens());
-    // this.updateSubway();
 
-    const [start, end] = this.graph.sentenceRange(this.sentenceIndex);
     const indices = Array.from({ length: end - start }, (_, i) => start + i);
     this.subway.setSentenceWords(indices);
   }
 
-  // private updateSubway(): void {
-  //   const rootLocal = this.findSentenceRoot(this.sentenceIndex);
-  //   if (rootLocal === null) {
-  //     this.subway.hide();
-  //     return;
-  //   }
+  private placeSentence(start: number, end: number): void {
+    const live = this.layout.live;
+    for (let i = start; i < end; i++) this.words.place(i, live[i].px, live[i].py);
+  }
 
-  //   const rootGlobal = this.graph.globalIndex(this.sentenceIndex, rootLocal);
-  //   this.subway.show(SubwayLayer.buildOutgoingLinks(rootGlobal, this.words, this.edges));
-  // }
-
-  private startSimulation(): void {
-    const points = this.layout.live;
-    if (!points) return;
-
-    const started = this.force.start({
-      graph: this.graph,
-      sentences: this.activeSentences(),
-      points,
-      targetY: (id) => this.targetYById[id],
-      seqYRampMs: 1500,
-      onTick: (nodes) => {
-        for (const n of nodes) this.words.place(n.id, n.point.px, n.point.py);
-        this.edges.redraw();
-      },
+  private cacheWordEls(): void {
+    this.wordEls = [];
+    this.wordContainer.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {
+      // Words are placed instantly; a CSS transition would make them trail the edges.
+      el.style.transition = "none";
+      this.wordEls[Number(el.dataset.index)] = el;
     });
+  }
 
-    if (started) this.words.setTransitions(true);
+  /** Only tokens [start, end) are visible. */
+  private showOnly(start: number, end: number): void {
+    this.wordEls.forEach((el, i) => {
+      el.style.display = i >= start && i < end ? "" : "none";
+    });
   }
 }

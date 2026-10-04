@@ -1,31 +1,12 @@
-// import { smoothScrollTo } from "../utils";
-import { WordVecRenderer, MOVE_TRANSITION_MS } from "./wordvecRenderer";
-
-const expandXCheckbox = document.querySelector("#collapse-expand-x") as HTMLInputElement;
-const expandYCheckbox = document.querySelector("#collapse-expand-y") as HTMLInputElement;
+import { loadJson } from "../utils";
+import { WordVecRenderer } from "./wordvecRenderer";
 const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
-const showAll = document.querySelector("#show-all") as HTMLInputElement;
 const renderer = new WordVecRenderer();
 
-const tokenURL = "/Not_Even_This_tokens_vecs_axes.json";
-const vecURL = "/Not_Even_This_tokens.json";
+const dataURL = "/Not_Even_This_tokens.json";
 
 function addListeners(): void {
-  nextBtn.addEventListener("click", () => {
-    renderer.nextSentence();
-  });
-
-  expandXCheckbox.addEventListener("change", () => {
-    // smoothScrollTo(0, MOVE_TRANSITION_MS);
-    expandYCheckbox.checked = false;
-    renderer.setExpandMode(expandXCheckbox.checked, "x");
-  });
-
-  expandYCheckbox.addEventListener("change", () => {
-    // smoothScrollTo(0, MOVE_TRANSITION_MS);
-    expandXCheckbox.checked = false;
-    renderer.setExpandMode(expandYCheckbox.checked, "y");
-  });
+  nextBtn.addEventListener("click", () => renderer.nextSentence());
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "ArrowRight") {
@@ -38,24 +19,37 @@ function addListeners(): void {
   });
 }
 
-const setYexpand = () => {
-  expandXCheckbox.checked = false;
-  expandYCheckbox.checked = true;
-  renderer.setExpandMode(expandYCheckbox.checked, "y");
-};
+function populateLeftContainer(data: any) {
+  const leftContainer = document.querySelector("#full-text");
+  if (!leftContainer) return;
 
-const setXexpand = () => {
-  expandYCheckbox.checked = false;
-  expandXCheckbox.checked = true;
-  renderer.setExpandMode(expandXCheckbox.checked, "x");
-};
+  leftContainer.innerHTML = "";
+
+  data.tok.forEach((sentenceArr: string[]) => {
+    leftContainer.innerHTML += "<div><span>" + sentenceArr.join("</span> <span>") + "</span></div>";
+  });
+
+  leftContainer.addEventListener("pointerover", (event) => {
+    const target = event.target as HTMLElement;
+
+    const wordSpan = target.closest("span");
+
+    if (!wordSpan || !leftContainer.contains(wordSpan)) return;
+    leftContainer.querySelectorAll("span.highlight").forEach((span) => span.classList.remove("highlight"));
+    wordSpan.classList.add("highlight");
+  });
+
+  leftContainer.addEventListener("pointerout", () => {
+    leftContainer.querySelectorAll("span.highlight").forEach((span) => span.classList.remove("highlight"));
+  });
+}
 
 async function init(): Promise<void> {
-  expandXCheckbox.checked = false;
-  expandYCheckbox.checked = false;
-  setXexpand();
   addListeners();
-  await renderer.init(tokenURL, vecURL);
+  const raw = await loadJson(dataURL);
+  populateLeftContainer(raw);
+  await renderer.init(raw);
+  renderer.render(2);
 }
 
 init();

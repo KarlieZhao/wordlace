@@ -1,122 +1,55 @@
-import {
-  computeBounds,
-  elementSize,
-  hasOwn,
-  projectX,
-  projectY,
-  type Axis,
-  type Bounds,
-  type Point,
-  type RenderMode,
-  type VectorPos,
-  type Vectors,
-} from "./basedependency";
-import { DEFAULT_X_POS, TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y } from "./config";
+import type { Point } from "./basedependency";
+import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y } from "./config";
+
+export const LEFT_PADDING = 40;
 
 /**
- * Owns every position a token can have:
- *  - cloud: fixed by the word vector (per unique word)
- *  - seq:   the sentence-order line along x or y (per token)
- *  - live:  persistent, mutable positions (per token) that the force simulation writes into
+ * Owns token positions:
+ *  - live:    where each token is currently drawn (per token).
+ *  - targets: where a sentence's tokens should end up. Computed on the fly, never stored.
  */
 export class Layout {
-  private cloud: VectorPos = {};
-  private seq: Record<Axis, Point[]> = { x: [], y: [] };
-  private liveList: Point[] | null = null;
-  private axis: Axis = "x";
+  private liveList: Point[] = [];
   private readonly wordContainer: HTMLElement;
-  private readonly lineContainer: HTMLElement;
 
-  constructor(wordContainer: HTMLElement, lineContainer: HTMLElement) {
+  constructor(wordContainer: HTMLElement) {
     this.wordContainer = wordContainer;
-    this.lineContainer = lineContainer;
   }
 
-  get live(): Point[] | null {
+  get live(): Point[] {
     return this.liveList;
   }
 
-  get ready(): boolean {
-    return this.liveList !== null;
+  build(tokenCount: number): void {
+    this.liveList = Array.from({ length: tokenCount }, () => ({ px: LEFT_PADDING, py: 0 }));
   }
 
-  /** `scores[i]` is token i's connectivity; it decides the height in the x-axis layout. */
-  build(vectors: Vectors, tokens: string[]): void {
-    const bounds = computeBounds(vectors);
-
-    this.cloud = bounds ? this.buildCloud(vectors, bounds) : {};
-    this.seq = {
-      x: this.buildSeqX(tokens),
-      y: bounds ? this.buildSeqY(vectors, bounds, tokens) : [],
-    };
-    this.applyExtent(tokens.length);
-
-    this.resetLive(this.axis);
-  }
-
+  /** `scores[i]` is token i's dependency connectivity; it decides the row. */
   computeTargetY(scores: number[]): number[] {
-    return scores.map((v) => {
-      return v * TOKEN_SPACING_Y + TOKEN_TOP_PAD;
-    });
+    return scores.map((v) => v * TOKEN_SPACING_Y + TOKEN_TOP_PAD);
   }
 
-  resetLive(axis: Axis): void {
-    this.axis = axis;
-    this.liveList = this.seq[axis].map((p) => ({ px: p.px, py: p.py }));
-  }
+  sentenceTargets(start: number, end: number, targetY: (token: number) => number): { points: Point[]; width: number } {
+    const points: Point[] = [];
+    let x = LEFT_PADDING;
 
-  /** Where a token is drawn in the given mode. */
-  point(mode: RenderMode, index: number, word: string): Point | undefined {
-    return mode === 0 ? this.cloud[word] : this.liveList?.[index];
-  }
-
-  private buildCloud(vectors: Vectors, bounds: Bounds): VectorPos {
-    const { width, height } = elementSize(this.wordContainer, 800, 600);
-    const positions: VectorPos = {};
-
-    for (const word in vectors) {
-      const [x, y] = vectors[word];
-      positions[word] = {
-        px: projectX(x, bounds, width),
-        py: projectY(y, bounds, height),
-      };
+    for (let i = start; i < end; i++) {
+      points.push({ px: x, py: targetY(i) });
+      x += this.widthOf(i) + TOKEN_SPACING_X;
     }
-    return positions;
+
+    return { points, width: x - TOKEN_SPACING_X + LEFT_PADDING };
   }
 
-  /** Along x in sentence order; y from connectivity (more connected = higher up). */
-
-  // OR ypos can be:
-  // - wordvec embedding
-  // - score: connectivity
-  // - POS
-  // frequency of appearance in passage (exclude common words)
-  private buildSeqX(tokens: string[]): Point[] {
-    // let max = 0;
-    // for (const v of scores) if (v > max) max = v;
-    let xpos = 0;
-    return tokens.map((_, i): Point => {
-      const lastToken = this.wordContainer.querySelector(`[data-index="${i - 1}"]`);
-      const lastTokenWidth = lastToken ? lastToken.getBoundingClientRect().width : 0;
-      xpos += lastTokenWidth + TOKEN_SPACING_X;
-      return { px: xpos, py: 0 };
+  setLive(start: number, targets: Point[]): void {
+    targets.forEach((t, k) => {
+      this.liveList[start + k] = t;
     });
   }
 
-  /** Along y in sentence order; x still comes from the word vectors. */
-  private buildSeqY(vectors: Vectors, bounds: Bounds, tokens: string[]): Point[] {
-    const { width } = elementSize(this.wordContainer, 600, 600);
-
-    return tokens.map((rawWord, i): Point => {
-      const vec = hasOwn(vectors, rawWord.toLocaleLowerCase()) ? vectors[rawWord.toLocaleLowerCase()] : null;
-      return { px: vec ? projectX(vec[0], bounds, width) : DEFAULT_X_POS, py: i * TOKEN_SPACING_Y };
-    });
-  }
-
-  private applyExtent(count: number): void {
-    const extent = `${Math.max(0, count - 1) * TOKEN_SPACING_X}px`;
-    this.lineContainer.style.width = extent;
-    // this.lineContainer.style.height = extent;
+  private widthOf(index: number): number {
+    const el = this.wordContainer.querySelector(`[data-index="${index}"]`);
+    return el ? el.getBoundingClientRect().width : 0;
   }
 }
 

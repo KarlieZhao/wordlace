@@ -30,18 +30,27 @@
 
     <button id="next-sentence">></button>
   </div>
-  <section class="top-half">
-    <div class="dep-container-flexbox">
-      <div class="dependency-subway-container"></div>
-      <div class="full-line"></div>
+  <div class="main-container">
+    <div class="left-section">
+      <h1>Not Even This</h1>
+      <div id="full-text"></div>
     </div>
-  </section>
 
-  <section class="bottom">
-    <div class="vector-plot"></div>
-    <div class="word-plot"></div>
-  </section>
+    <div class="right-section">
+      <section class="top-half">
+        <div class="dep-container-flexbox">
+          <div class="dependency-subway-container"></div>
+          <div class="full-line"></div>
+        </div>
+      </section>
 
+      <section class="bottom">
+        <div class="vector-plot"></div>
+        <div class="word-plot"></div>
+      </section>
+    </div>
+
+  </div>
 
   <script type="module" src="/src/wordvector/plotmain.ts"></script>
 </body>
