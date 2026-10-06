@@ -1,7 +1,5 @@
 import type { Point } from "./basedependency";
-import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y } from "./config";
-
-export const LEFT_PADDING = 40;
+import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y, LEFT_PADDING } from "./config";
 
 /**
  * Owns token positions:

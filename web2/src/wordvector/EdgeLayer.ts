@@ -1,5 +1,5 @@
 import { computeCurve, round1, type DepEdge, type DepRepresentation } from "./basedependency";
-import { CURVATURE, DEP_COLORS, LABEL_LINE_HEIGHT, MARKER_SIZE, REPRESENTATIONS, type PointGetter } from "./config";
+import { CURVATURE, CURVE_STEP, DEP_COLORS, MARKER_SIZE, REPRESENTATIONS, type PointGetter } from "./config";
 import { labelName } from "./labels";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -16,35 +16,21 @@ function svgEl<K extends keyof SVGElementTagNameMap>(
 export interface EdgeInput {
   edge: DepEdge;
   sentence: number;
-  /** Global token indices. */
   head: number;
   child: number;
 }
 
 interface EdgeItem extends EdgeInput {
   path: SVGPathElement;
-  hit: SVGPathElement;
+  // hit: SVGPathElement;
+  curveBias: number;
 }
 
-interface LabelItem {
-  edge: number;
-  el: SVGTextElement;
-  /** Vertical offset so labels sharing a midpoint don't overlap. */
-  dy: number;
-}
-
-/**
- * Owns the dependency SVG. Edges are addressed by their index in the list passed
- * to build(). During simulation only `redraw()` runs: it updates `d` on cached
- * elements and repositions any visible labels, with no DOM queries.
- */
 export class EdgeLayer {
   private items: EdgeItem[] = [];
   private byToken = new Map<number, number[]>();
-  private labelLayer: SVGGElement | null = null;
-  private labels: LabelItem[] = [];
   private hot = new Set<number>();
-  private hoverCb: ((edge: number | null) => void) | null = null;
+  // private hoverCb: ((edge: number | null) => void) | null = null;
 
   private readonly root: HTMLElement;
   private readonly pointOf: PointGetter;
@@ -54,17 +40,15 @@ export class EdgeLayer {
     this.pointOf = pointOf;
   }
 
-  onHover(cb: (edge: number | null) => void): void {
-    this.hoverCb = cb;
-  }
+  // onHover(cb: (edge: number | null) => void): void {
+  //   this.hoverCb = cb;
+  // }
 
   clear(): void {
     this.root.innerHTML = "";
     this.root.classList.remove("wv-focus");
     this.items = [];
     this.byToken.clear();
-    this.labels = [];
-    this.labelLayer = null;
     this.hot.clear();
   }
 
@@ -80,20 +64,41 @@ export class EdgeLayer {
       class: "vector-edges",
       "data-sentence": currentSentence,
       width: size.width,
-      height: 400//size.height, <= TODO: change here
+      height: size.height,
     });
 
     const defs = svgEl("defs");
     for (const s of sentences) {
-      for (const rep of REPRESENTATIONS) defs.appendChild(this.marker(s, rep));
+      for (const rep of REPRESENTATIONS) {
+        defs.appendChild(this.marker(s, rep, "from"));
+        defs.appendChild(this.marker(s, rep, "to"));
+      }
     }
 
     const arcs = svgEl("g");
-    const hits = svgEl("g");
-    const labelLayer = svgEl("g", { class: "wv-labels" });
+    // const hits = svgEl("g");
+
+    const groups = new Map<string, number[]>();
+
+    inputs.forEach((input, index) => {
+      const { head, child } = input.edge;
+      const key = `${input.sentence}:${Math.min(head, child)}-${Math.max(head, child)}`;
+      const list = groups.get(key);
+      if (list) list.push(index);
+      else groups.set(key, [index]);
+    });
+
+    const curveBias = new Map<number, number>();
+    for (const indices of groups.values()) {
+      const n = indices.length;
+      indices.forEach((idx, rank) => {
+        curveBias.set(idx, (rank - (n - 1) / 2) * CURVE_STEP);
+      });
+    }
 
     inputs.forEach((input, index) => {
       const { edge, sentence } = input;
+      const direction = edge.head - edge.child < 0 ? "from" : "to";
 
       const path = svgEl("path", {
         class: `wv-dep-arc wv-dep-${edge.representation}`,
@@ -102,35 +107,21 @@ export class EdgeLayer {
         "data-head": edge.head,
         "data-child": edge.child,
         "data-relation": edge.relation,
-        stroke: DEP_COLORS[edge.representation],
-        "stroke-width": 2.5,
-        fill: "none",
-        "marker-end": `url(#wv-arrow-${sentence}-${edge.representation})`,
+        stroke: DEP_COLORS[`${edge.representation}-${direction}`],
+        "marker-end": `url(#wv-arrow-${sentence}-${direction})`,
       });
 
-      // Wide invisible twin so thin arcs are easy to hover.
-      const hit = svgEl("path", { class: "wv-dep-hit", "data-index": index, fill: "none" });
+      // const hit = svgEl("path", { class: "wv-dep-hit", "data-index": index, fill: "none" });
 
       arcs.appendChild(path);
-      hits.appendChild(hit);
-      this.items.push({ ...input, path, hit });
+      // hits.appendChild(hit);
+      this.items.push({ ...input, path, curveBias: curveBias.get(index) ?? 0 });
 
       this.link(input.head, index);
       this.link(input.child, index);
     });
 
-    svg.append(defs, arcs, hits, labelLayer);
-    this.labelLayer = labelLayer;
-
-    svg.addEventListener("mouseover", (e) => {
-      const hit = (e.target as Element | null)?.closest<SVGElement>(".wv-dep-hit");
-      if (hit) this.hoverCb?.(Number(hit.dataset.index));
-    });
-    svg.addEventListener("mouseout", (e) => {
-      const to = (e.relatedTarget as Element | null)?.closest?.(".wv-dep-hit");
-      if (to) return;
-      this.hoverCb?.(null);
-    });
+    svg.append(defs, arcs);
 
     this.root.appendChild(svg);
     this.redraw();
@@ -138,7 +129,6 @@ export class EdgeLayer {
 
   /* ------------------------------ queries ----------------------------- */
 
-  /** Tokens touched by at least one visible edge. */
   connectedTokens(): Set<number> {
     return new Set(this.byToken.keys());
   }
@@ -154,15 +144,13 @@ export class EdgeLayer {
 
   /* ----------------------------- rendering ---------------------------- */
 
-  /** Called on every force tick. */
   redraw(): void {
     for (const item of this.items) {
-      const geo = this.geometry(item.head, item.child);
+      const geo = this.geometry(item.head, item.child, item.curveBias);
       if (!geo) continue;
       item.path.setAttribute("d", geo.d);
-      item.hit.setAttribute("d", geo.d);
+      // item.hit.setAttribute("d", geo.d);
     }
-    // this.positionLabels();
   }
 
   setFocus(edges: ReadonlySet<number> | null): void {
@@ -179,48 +167,6 @@ export class EdgeLayer {
     this.root.classList.toggle("wv-focus", edges !== null);
   }
 
-  /** Shows one label per edge, e.g. "dm: ARG1", at the edge's midpoint. */
-  showLabels(edges: Iterable<number>): void {
-    this.hideLabels();
-    // if (!this.labelLayer) return;
-
-    // const list = [...edges].filter((i) => this.items[i]);
-
-    // // Edges between the same pair (dm/pas/psd) share a midpoint: stack their labels.
-    // const pairKey = (i: number) => {
-    //   const { head, child } = this.items[i];
-    //   return head < child ? `${head}:${child}` : `${child}:${head}`;
-    // };
-    // const totals = new Map<string, number>();
-    // for (const i of list) totals.set(pairKey(i), (totals.get(pairKey(i)) ?? 0) + 1);
-
-    // const seen = new Map<string, number>();
-    // for (const i of list) {
-    //   const key = pairKey(i);
-    //   const slot = seen.get(key) ?? 0;
-    //   seen.set(key, slot + 1);
-
-    //   const { edge } = this.items[i];
-    //   const el = svgEl("text", {
-    //     class: `wv-dep-label wv-label-${edge.representation}`,
-    //     "text-anchor": "middle",
-    //   });
-
-    //   el.textContent = labelName(edge.representation, edge.relation);
-    //   //  `${edge.representation}: ${edge.relation}`;
-    //   this.labelLayer.appendChild(el);
-
-    //   this.labels.push({ edge: i, el, dy: (slot - (totals.get(key)! - 1) / 2) * LABEL_LINE_HEIGHT });
-    // }
-
-    // this.positionLabels();
-  }
-
-  hideLabels(): void {
-    this.labelLayer?.replaceChildren();
-    this.labels = [];
-  }
-
   relationLabel(edge: number): string {
     const item = this.items[edge];
     return item ? labelName(item.edge.representation, item.edge.relation) : "";
@@ -234,36 +180,42 @@ export class EdgeLayer {
     else this.byToken.set(token, [edge]);
   }
 
-  // private positionLabels(): void {
-  //   for (const { edge, el, dy } of this.labels) {
-  //     const { head, child } = this.items[edge];
-  //     const geo = this.geometry(head, child);
-  //     if (!geo) continue;
-  //     el.setAttribute("x", String(round1(geo.midX)));
-  //     el.setAttribute("y", String(round1(geo.midY + dy - 6)));
-  //   }
-  // }
-
-  private geometry(head: number, child: number): { d: string; midX: number; midY: number } | null {
+  private geometry(head: number, child: number, curveBias = 0): { d: string; midX: number; midY: number } | null {
     const a = this.pointOf(head);
     const b = this.pointOf(child);
     if (!a || !b) return null;
 
-    const c = computeCurve(a.px, a.py, b.px, b.py, CURVATURE);
+    let ax, bx, ay, by;
+    const pad = 6;
+    if (a.px > b.px) {
+      ax = a.px - pad;
+      bx = b.px + pad;
+    } else {
+      ax = a.px + pad;
+      bx = b.px - pad;
+    }
 
+    if (a.py > b.py) {
+      ay = a.py - pad;
+      by = b.py + pad;
+    } else {
+      ay = a.py + pad;
+      by = b.py - pad;
+    }
+    const c = computeCurve(ax, ay, bx, by, CURVATURE * (1 + curveBias));
     return {
       d:
-        `M ${round1(a.px)} ${round1(a.py)} ` +
-        `C ${round1(c.ctrl1x)} ${round1(c.ctrl1y)}, ${round1(c.ctrl2x)} ${round1(c.ctrl2y)}, ${round1(b.px)} ${round1(b.py)}`,
+        `M ${round1(ax)} ${round1(ay)} ` +
+        `C ${round1(c.ctrl1x)} ${round1(c.ctrl1y)}, ${round1(c.ctrl2x)} ${round1(c.ctrl2y)}, ${round1(bx)} ${round1(by)}`,
       // Cubic Bézier at t = 0.5
       midX: (a.px + 3 * c.ctrl1x + 3 * c.ctrl2x + b.px) / 8,
       midY: (a.py + 3 * c.ctrl1y + 3 * c.ctrl2y + b.py) / 8,
     };
   }
 
-  private marker(sentence: number, rep: DepRepresentation): SVGMarkerElement {
+  private marker(sentence: number, rep: DepRepresentation, direction: "from" | "to"): SVGMarkerElement {
     const marker = svgEl("marker", {
-      id: `wv-arrow-${sentence}-${rep}`,
+      id: `wv-arrow-${sentence}-${direction}`,
       viewBox: "0 0 10 10",
       refX: 8,
       refY: 5,
@@ -271,7 +223,7 @@ export class EdgeLayer {
       markerHeight: MARKER_SIZE,
       orient: "auto",
     });
-    marker.appendChild(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: DEP_COLORS[rep] }));
+    marker.appendChild(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: DEP_COLORS[`${rep}-${direction}`] }));
     return marker;
   }
 }

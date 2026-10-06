@@ -40,6 +40,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
+    console.log(this.lineContainer)
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
 
     this.layout = new Layout(this.wordContainer);

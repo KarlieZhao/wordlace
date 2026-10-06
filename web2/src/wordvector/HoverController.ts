@@ -25,7 +25,7 @@ export class HoverController {
     this.key = null;
     this.words.setFocus(null);
     this.edges.setFocus(null);
-    this.edges.hideLabels();
+    // this.edges.hideLabels();
   }
 
   private focusWord(token: number): void {
@@ -41,7 +41,7 @@ export class HoverController {
 
     this.words.setFocus(wordSet);
     this.edges.setFocus(edgeSet);
-    this.edges.showLabels(edgeSet);
+    // this.edges.showLabels(edgeSet);
   }
 
   private enter(key: string): boolean {

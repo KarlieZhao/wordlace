@@ -12,15 +12,29 @@ export const DEFAULT_Y_POS = 500;
 
 export const MOVE_TRANSITION_MS = 10 * 60 * 5.5;
 
-/** Vertical gap between stacked labels that sit on the same edge midpoint. */
 export const LABEL_LINE_HEIGHT = 13;
 
 export const REPRESENTATIONS: readonly DepRepresentation[] = ["dm", "pas", "psd"];
 
-export const DEP_COLORS: Record<DepRepresentation, string> = {
-  dm: "#AC8C72",
-  pas: "#70A6CD",
-  psd: "#73C9B9",
+export const LEFT_PADDING = 40;
+
+// dependency edges
+export const CURVE_STEP = 0.35;
+export const DEP_COLORS = {
+
+  "dm-from": "#6899b8",
+  "dm-to": "#c46580",
+  "pas-from": "#457c9f",
+  "pas-to": "#a12d4e",
+  "psd-from": "#1C4E6E",
+  "psd-to": "#7B0828",
+
+  // "dm-from": "#b0c580",
+  // "dm-to": "#f6c696",
+  // "pas-from": "#8da061",
+  // "pas-to": "#ffa954",
+  // "psd-from": "#6b8138",
+  // "psd-to": "#d17c26",
 };
 
 export const FORCE = {
@@ -39,7 +53,6 @@ export const FORCE = {
 export const TRANSITION_PROPS_WHILE_SIMULATING = "opacity, transform, color";
 
 export type PointGetter = (tokenIndex: number) => { px: number; py: number } | undefined;
-
 
 /**
  * Connectivity score of a token = LINK_WEIGHT * (number of edges touching it)

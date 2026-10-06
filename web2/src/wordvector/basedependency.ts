@@ -12,7 +12,7 @@ export type RenderMode = 0 | 1;
 export type Axis = "x" | "y";
 type DepRelation = [number, string];
 export type DepSentence = DepRelation[][];
-export type DepRepresentation = "dm" | "pas" | "psd";
+export type DepRepresentation = "dm" | "pas" | "psd" ;
 
 export interface DepEdge {
   id: string;
