@@ -1,10 +1,10 @@
 import { BaseDependencyRenderer, elementSize } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
-import { DependencyGraph } from "./DependencyGraph";
-import { EdgeLayer, type EdgeInput } from "./EdgeLayer";
-import { HoverController } from "./HoverController";
-import { Layout, originX } from "./Layout";
-import { WordLayer } from "./WordLayer";
+import { DependencyGraph } from "./depgraph";
+import { EdgeLayer, type EdgeInput } from "./edgelayer";
+import { HoverController } from "./hovercontroller";
+import { Layout } from "./layout";
+import { WordLayer } from "./wordlayer";
 // import { FullLine } from "./fullline";
 
 /**

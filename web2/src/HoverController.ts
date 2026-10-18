@@ -1,5 +1,5 @@
-import type { EdgeLayer } from "./EdgeLayer";
-import type { WordLayer } from "./WordLayer";
+import type { EdgeLayer } from "./edgelayer";
+import type { WordLayer } from "./wordlayer";
 
 export class HoverController {
   private key: string | null = null;
