@@ -27,12 +27,11 @@ body {
 
 @media (prefers-color-scheme: dark) {
     :root {
-
         --text-main: #e8e8e8;
         --text-dim: #999;
         --highlight: #C7D4DF;
-        --background: rgb(194, 223, 240);
-        --label-text: #1C4E6E;
+        --background: rgb(31, 36, 38);
+        --label-text: #92ccef;
 
         --subway-line: #4a86a0;
         --highlight-background: #601414;
