@@ -86,6 +86,16 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     return this.graph.sentenceCount;
   }
 
+  get currentSentence(): number {
+    return this.sentenceIndex;
+  }
+
+  hoverToken(token: number | null): void {
+    if (!this.loaded || this.lockedToken !== null) return;
+    this.hover.setHoveredWord(token);
+    this.subway.setHoveredWord(token);
+  }
+
   /**
    * Shows sentence `index` only, with every word placed directly at its final
    * position: x flows from LEFT_PADDING, y comes from dependency connectivity.
@@ -155,18 +165,43 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       if (!live[head] || !live[child]) continue;
       inputs.push({ edge, sentence, head, child });
     }
-    this.edges.build(inputs, [sentence], sentence, elementSize(this.lineContainer, 600, 600));
+
+    const { width, height } = this.measureExtent(start, end);
+    this.edges.build(inputs, [sentence], sentence, { width, height });
     this.words.setConnected(this.edges.connectedTokens());
 
     const indices = Array.from({ length: end - start }, (_, i) => start + i);
     this.subway.setSentenceWords(indices);
   }
 
+
   private placeSentence(start: number, end: number): void {
     const live = this.layout.live;
     for (let i = start; i < end; i++) this.words.place(i, live[i].px, live[i].py);
   }
 
+  private measureExtent(start: number, end: number): { width: number; height: number } {
+    const live = this.layout.live;
+    let maxX = 0;
+    let maxY = 0;
+
+    for (let i = start; i < end; i++) {
+      const p = live[i];
+      const el = this.wordEls[i];
+      if (!p || !el) continue;
+      maxX = Math.max(maxX, p.px + el.offsetWidth);
+      maxY = Math.max(maxY, p.py + el.offsetHeight);
+    }
+
+    const PAD = 60; // room for edge curves, arrowheads, labels
+    const viewport = this.lineContainer.parentElement as HTMLElement; // .bottom (the scroller)
+
+    return {
+      // never smaller than the visible area, so the SVG still fills the pane
+      width: Math.max(maxX + PAD, viewport.clientWidth),
+      height: Math.max(maxY + PAD, viewport.clientHeight),
+    };
+  }
   private cacheWordEls(): void {
     this.wordEls = [];
     this.wordContainer.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {

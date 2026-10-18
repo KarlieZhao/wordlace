@@ -97,16 +97,30 @@ span.highlight {
     font-family: "Inika", serif;
 } */
 
+.bottom {
+  overflow: auto;
+  position: relative;
+  min-height: 0;
+}
+
+.vector-plot {
+  position: relative;
+  width: max-content;
+  min-width: 100%;
+}
+
+.word-plot {
+  position: absolute;
+  inset: 0;
+}
+
 .vector-plot,
 .word-plot {
-    position: absolute;
-    /* display: flex; */
     width: 100%;
     height: 100%;
 }
 
 .vector-edges {
-    position: absolute;
     left: 0;
     top: 0;
     pointer-events: none;
@@ -115,7 +129,6 @@ span.highlight {
 
 .top-bar {
     display: none;
-    /* display: flex; */
     flex-direction: row;
     gap: 10px;
     width: max-content;
@@ -137,10 +150,10 @@ span.highlight {
     font-family: "Inika", serif;
     border-radius: 4px;
     white-space: nowrap;
-    transition: opacity 0.7s ease,
-        transform 0.7s ease,
+    transition: opacity 1s ease,
+        transform 1s ease,
         z-index 0.2s ease,
-        color .2s ease;
+        color 1s ease;
     z-index: 1;
     transform: translate(-50%, -50%);
     opacity: 1;
@@ -166,8 +179,8 @@ span.highlight {
 /* ---- edges ---- */
 .wv-dep-arc {
     opacity: .4;
-    stroke-width: 2.3;
-    transition: opacity 0.7s;
+    stroke-width: 2.5;
+    transition: opacity 1s;
     fill: none;
 }
 
@@ -348,11 +361,11 @@ span.highlight {
 /* ---- edges ---- */
 .wv-dep-arc {
   opacity: 0.3;
-  transition: opacity 120ms, stroke-width 120ms;
+  transition: opacity .7s, stroke-width .7s;
 }
 .wv-dep-arc.wv-hot {
   opacity: 1;
-  stroke-width: 3.5;
+  stroke-width: 2.7;
 }
 .vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
   opacity: 0.05;
