@@ -9,70 +9,50 @@
   <link
     href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&display=swap"
     rel="stylesheet" />
-  <title>wordlace</title>
+
+  <link href="./styles.css" rel="stylesheet" />
+  <title>vector plot</title>
+
 </head>
 
 <body>
-  <div id="app">
+  <div class="top-bar">
 
-    <main>
+    <label class="collapse-expand-view">
+      <input type="checkbox" id="collapse-expand-x">
+      <span>expand-x</span>
+    </label>
 
-      <div class="top-section">
-        
-        <div class="quilt-wrapper">
-          <div id="quilt">
-          </div>
-        </div>
-      
-        <div class="center">
-          <!-- <div class="blur-overlay"></div> -->
-          <div id="en-visualizer"></div>
-          
-         <div class="nav-bar">
-          <div style="display: flex;flex-direction: row;">
-          <button id="syntactic-btn" class="btn">Syntactic Tree</button>
-          <button id="semantic-relationship-btn" class="btn active">Semantic relationship</button>
-          <button id="predicate-btn" class="btn">Predicate</button>
-          <button id="semantic-functions-btn" class="btn">Semantic functions</button>
-        </div>
+    <label class="collapse-expand-view">
+      <input type="checkbox" id="collapse-expand-y">
+      <span>expand-y</span>
+    </label>
 
-        <div style="display: flex;flex-direction: row;">
-            <div class="slider">
-            <input id="gap-size-slider" type="range" min="20" max="120" value="120" />
-          </div>
-          <div class="checkboxes">
-           <input type="checkbox" id="show-all-hidden" name="show">
-           <label for="show">Show all dependency curves</label>
-          </div>
-       </div> </div>
-
-    
-          <!-- TODO: show normalized words construction;
-             highlight the word thats being hovered  -->
-        </div>
-        <!-- <div class="right">
-          <div class="bookmark">
-            
-            <div class="reconstruct-wrapper">
-              <h3>Line</h3>
-               <div id="original--line"></div>
-              <h3>Reconstruction</h3>
-               <div id="reconstruction"></div>
-               <h3></h3>
-               <div id="similar-words"></div>
-            </div>
-          </div> -->
-        </div>
-        </div>
-        
-        <!-- <div class="bottom-section">
-
-    </div> -->
-
-       
-    </main>
+    <button id="next-sentence">></button>
   </div>
-  <script type="module" src="/src/main.ts"></script>
+  <div class="main-container">
+    <div class="left-section">
+      <h1>Not Even This</h1>
+      <div id="full-text"></div>
+    </div>
+
+    <div class="right-section">
+      <section class="top-half">
+        <div class="dep-container-flexbox">
+          <div class="dependency-subway-container"></div>
+          <div class="full-line"></div>
+        </div>
+      </section>
+
+      <section class="bottom">
+        <div class="vector-plot"></div>
+        <div class="word-plot"></div>
+      </section>
+    </div>
+
+  </div>
+
+  <script type="module" src="./src/plotmain.ts"></script>
 </body>
 
 </html>

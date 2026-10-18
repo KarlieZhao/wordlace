@@ -1,4 +1,4 @@
-import { loadJson } from "../utils";
+import { loadJson } from "./utils";
 import { WordVecRenderer } from "./wordvecRenderer";
 const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
 const renderer = new WordVecRenderer();

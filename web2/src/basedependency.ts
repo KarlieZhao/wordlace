@@ -1,5 +1,4 @@
-import { type SimulationNodeDatum } from "d3-force";
-import { escapeXml, POS_COLOR_MAP } from "../utils";
+import { escapeXml, POS_COLOR_MAP } from "./utils";
 
 export type Vectors = Record<string, [number, number]>;
 export type Point = { px: number; py: number };
