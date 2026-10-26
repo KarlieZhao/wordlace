@@ -107,8 +107,8 @@ export class EdgeLayer {
         "data-head": edge.head,
         "data-child": edge.child,
         "data-relation": edge.relation,
-        stroke: DEP_COLORS[`${edge.representation}-${direction}`],
-        "marker-end": `url(#wv-arrow-${sentence}-${direction})`,
+        stroke: DEP_COLORS[`${edge.representation}-from`],
+        "marker-end": `url(#wv-arrow-${sentence}-from)`,
       });
 
       // const hit = svgEl("path", { class: "wv-dep-hit", "data-index": index, fill: "none" });
@@ -142,6 +142,7 @@ export class EdgeLayer {
     return [item.head, item.child];
   }
 
+
   /* ----------------------------- rendering ---------------------------- */
 
   redraw(): void {
@@ -164,12 +165,31 @@ export class EdgeLayer {
     }
 
     this.hot = new Set(next);
+
     this.root.classList.toggle("wv-focus", edges !== null);
   }
 
   relationLabel(edge: number): string {
     const item = this.items[edge];
     return item ? labelName(item.edge.representation, item.edge.relation) : "";
+  }
+
+  setColors(focusedWordIndex: number | null) {
+    if (focusedWordIndex === null) {
+      // set all edges to default color
+      this.items.forEach(item => {
+        item.path.setAttribute("stroke", DEP_COLORS[`${item.edge.representation}-from`])
+        item.path.setAttribute("marker-end", `url(#wv-arrow-${item.sentence}-from)`)
+      });
+      return;
+    }
+    this.hot.forEach(edgeIndex => {
+      const { head, edge, path, sentence } = this.items[edgeIndex];
+      const to_or_from = head === focusedWordIndex ? "to" : "from";
+      path.setAttribute("stroke", DEP_COLORS[`${edge.representation}-${to_or_from}`]);
+      path.setAttribute("marker-end", `url(#wv-arrow-${sentence}-${to_or_from})`)
+
+    })
   }
 
   /* ------------------------------ helpers ----------------------------- */

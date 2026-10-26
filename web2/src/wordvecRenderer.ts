@@ -40,7 +40,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
-    console.log(this.lineContainer)
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
 
     this.layout = new Layout(this.wordContainer);
@@ -54,11 +53,10 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     //   (token) => this.onClickToken(token),
     // );
 
-    const getHoveredWordX = (index: number): number => {
-      //   const spanLeft = this.fullLine.spanLeft(index);
-      //   if (spanLeft === null) return 0;
-      //   const { left } = originX(this.wordContainer);
-      return 400; //left + spanLeft;
+    const getHoveredWordX = (index: number): { left: number, top: number } => {
+      const wordElLeft = parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
+      const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
+      return { left: wordElLeft, top: wordElTop + 120 };
     };
 
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
@@ -193,13 +191,15 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       maxY = Math.max(maxY, p.py + el.offsetHeight);
     }
 
-    const PAD = 60; // room for edge curves, arrowheads, labels
-    const viewport = this.lineContainer.parentElement as HTMLElement; // .bottom (the scroller)
+    const PAD = 60;
+    // const viewport = this.lineContainer.parentElement as HTMLElement;
 
     return {
       // never smaller than the visible area, so the SVG still fills the pane
-      width: Math.max(maxX + PAD, viewport.clientWidth),
-      height: Math.max(maxY + PAD, viewport.clientHeight),
+      width: maxX + PAD,
+      // Math.max(maxX + PAD, viewport.clientWidth),
+      height: maxY + PAD
+      // Math.max(maxY + PAD, viewport.clientHeight),
     };
   }
   private cacheWordEls(): void {

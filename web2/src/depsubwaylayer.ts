@@ -6,41 +6,21 @@ interface SubwayRow {
   word: string;
   labels: string[];
   side: "left" | "right";
+  direction: "from" | "to"
 }
 
 const LABEL_LINE_HEIGHT = 20;
 const ROW_MIN_HEIGHT = 40;
 
-/**
- * "Subway map" view of one word's direct dependency links.
- *
- * Focus word resolution (no external caller decides this):
- *  - If a word is currently hovered, show that word.
- *  - Otherwise, show the "default" word: whichever word in the current
- *    sentence has the most incident edges, ties broken by earliest
- *    position in the sentence.
- *
- * Diagram, once a focus word is resolved:
- *  - A vertical spine positioned at the focus word's x in the full-line
- *    sentence render (via `getWordX`).
- *  - One row per word linked to the focus word (as head or child),
- *    top-to-bottom in sentence order.
- *  - A row sits LEFT of the spine when the focus word is the head of that
- *    relation (focus -> linked word), RIGHT when the focus word is the
- *    child (linked word -> focus).
- *  - Relation label(s) render above each row's connector line.
- */
 export class SubwayLayer {
   readonly root: HTMLElement;
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly getWordX: (index: number) => number;
-
-  /** Current sentence's tokens, in sentence order. Drives the default word + row order. */
+  private readonly getWordX: (index: number) => { left: number, top: number };
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
 
-  constructor(container: HTMLElement, words: WordLayer, edges: EdgeLayer, getWordX: (index: number) => number) {
+  constructor(container: HTMLElement, words: WordLayer, edges: EdgeLayer, getWordX: (index: number) => { left: number, top: number }) {
     this.root = container;
     this.root.classList.add("dependency-subway");
     this.words = words;
@@ -48,20 +28,16 @@ export class SubwayLayer {
     this.getWordX = getWordX;
   }
 
-  /**
-   * Call whenever the active sentence's edges are (re)built. `indices` must
-   * be the sentence's token indices in sentence order.
-   */
   setSentenceWords(indices: number[]): void {
     this.sentenceWords = indices;
     this.render();
   }
 
-  /** Forward from word hover. `null` reverts to the default focus word. */
   setHoveredWord(token: number | null): void {
     if (this.hoveredWord === token) return;
     this.hoveredWord = token;
     this.render();
+    this.edges.setColors(this.hoveredWord);
   }
 
   private render(): void {
@@ -76,7 +52,7 @@ export class SubwayLayer {
     this.draw(focus);
   }
 
-  /** Word with the most incident edges; ties go to the earliest in sentence order. */
+  /** Word with the most incident edges */
   private defaultWord(): number | null {
     let best: number | null = null;
     let bestCount = -1;
@@ -92,37 +68,51 @@ export class SubwayLayer {
   }
 
   private draw(focus: number): void {
-    const x = this.getWordX(focus);
+    const { left, top } = this.getWordX(focus);
+    const vectorSVG = document.querySelector(".vector-edges")
     const spine = document.createElement("div");
     spine.className = "subway-spine";
-    spine.style.left = `${x}px`;
+    spine.style.left = `${left}px`;
     this.root.appendChild(spine);
 
     const rows = this.buildRows(focus);
+    let totalHeight = 0;
     for (const row of rows) {
       const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
-      this.root.appendChild(this.buildRow(row, x, height));
+      totalHeight += height;
+      this.root.appendChild(this.buildRow(row, left, height));
     }
 
+    this.root.style.marginTop = `${vectorSVG?.clientHeight}px`;
     this.root.classList.add("is-visible");
   }
 
   private buildRows(focus: number): SubwayRow[] {
-    const byOther = new Map<number, { other: number; labels: string[]; side: "left" | "right" }>();
-
+    const byOther = [];
     for (const e of this.edges.incident(focus)) {
       const [head, child] = this.edges.endpoints(e);
       const other = head === focus ? child : head;
-      const side: "left" | "right" = other < focus ? "left" : "right";
-
-      const group = byOther.get(other) ?? { other, labels: [], side };
-      group.labels.push(this.edges.relationLabel(e));
-      byOther.set(other, group);
+      const side: "left" | "right" = focus - other > 0 ? "left" : "right";
+      const fromOrTo: "from" | "to" = focus === child ? "from" : "to";
+      const group = { wordIndex: other, label: this.edges.relationLabel(e), side, direction: fromOrTo };
+      byOther.push(group);
     }
 
-    return [...byOther.values()]
-      .sort((a, b) => b.other - a.other)
-      .map((g) => ({ other: g.other, word: this.words.getText(g.other), labels: g.labels, side: g.side }));
+    // group them so that items with same wordindex + side are combined
+    const groupedRows = new Map<string, { wordIndex: number; labels: string[]; side: "left" | "right", direction: "from" | "to" }>();
+    byOther.forEach(row => {
+      const group = groupedRows.get(`${row.wordIndex}-${row.direction}`);
+      if (group) {
+        group.labels.push(row.label)
+      } else {
+        groupedRows.set(`${row.wordIndex}-${row.direction}`, { wordIndex: row.wordIndex, labels: [row.label], side: row.side, direction: row.direction });
+      }
+    })
+
+    const rows = [...groupedRows.values()]
+      .sort((a, b) => a.wordIndex - b.wordIndex)
+      .map((g) => ({ other: g.wordIndex, word: this.words.getText(g.wordIndex), labels: g.labels, side: g.side, direction: g.direction }));
+    return rows;
   }
 
   private buildRow(row: SubwayRow, spineX: number, height: number): HTMLElement {
@@ -131,7 +121,7 @@ export class SubwayLayer {
     wrap.style.height = `${height}px`;
 
     const branch = document.createElement("div");
-    branch.className = `subway-branch subway-branch--${row.side}`;
+    branch.className = `subway-branch subway-branch--${row.side} subway-branch--${row.direction}`;
     branch.style.left = `${spineX}px`;
 
     const labels = document.createElement("div");

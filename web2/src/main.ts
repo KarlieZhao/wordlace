@@ -23,7 +23,7 @@ const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function populateLeftContainer(data: any) {
-  const leftContainer = document.querySelector("#full-text");
+  const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
   if (!leftContainer) return;
 
   let offset = 0;
@@ -41,9 +41,10 @@ function populateLeftContainer(data: any) {
     const wordSpan = (event.target as HTMLElement).closest("span");
     if (!wordSpan || !leftContainer.contains(wordSpan)) return;
 
-    leftContainer
-      .querySelectorAll("span.highlight")
-      .forEach((s) => s.classList.remove("highlight"));
+    leftContainer.querySelectorAll("span.highlight").forEach((s) => {
+      s.classList.remove("highlight");
+    });
+    leftContainer.querySelectorAll("span").forEach(s => s.style.opacity = "0.5")
     wordSpan.classList.add("highlight");
 
     const sentenceDiv = wordSpan.closest("div[data-sentence]") as HTMLElement | null;
@@ -63,7 +64,10 @@ function populateLeftContainer(data: any) {
       .querySelectorAll("span.highlight")
       .forEach((s) => s.classList.remove("highlight"));
     renderer.hoverToken(null);
+    leftContainer.querySelectorAll("span").forEach(s => s.style.opacity = "1.0");
+
   });
+  
 }
 
 async function init(): Promise<void> {
