@@ -8,8 +8,8 @@ interface SubwayRow {
   word: string;
   labels: string[];
   side: "left" | "right";
-  direction: "from" | "to",
-  metadata: WordMetadata
+  direction: "from" | "to";
+  metadata: WordMetadata;
 }
 
 const LABEL_LINE_HEIGHT = 20;
@@ -157,7 +157,7 @@ export class SubwayLayer {
   private buildRow(row: SubwayRow, spineX: number, height: number): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
-    wrap.style.height = `${height}px`;
+    wrap.style.height = `${height + 15}px`;
 
     const branch = document.createElement("div");
     branch.className = `subway-branch subway-branch--${row.side} subway-branch--${row.direction}`;
@@ -165,12 +165,11 @@ export class SubwayLayer {
 
     const labels = document.createElement("div");
     labels.className = "subway-labels";
-    let longestLabelLen = 0;
+
     for (const text of row.labels) {
       const s = document.createElement("span");
       s.textContent = text;
       labels.appendChild(s);
-      if (text.length > longestLabelLen) longestLabelLen = text.length;
     }
 
     const connector = document.createElement("div");
@@ -179,10 +178,8 @@ export class SubwayLayer {
     const dot = document.createElement("span");
     dot.className = "subway-dot";
     const line = document.createElement("div");
-    line.className = "subway-line";
-    line.style.width = `${longestLabelLen * 7}px`;
     const wordWrapper = document.createElement("div");
-    wordWrapper.classList.add("subway-word-wrapper");
+    wordWrapper.className = "subway-word-wrapper";
 
     const word = document.createElement("span");
     word.className = "subway-word";
@@ -193,14 +190,48 @@ export class SubwayLayer {
     metadata.textContent = `${row.metadata.lemma}, ${POS_LABELS[row.metadata.pos]}`;
 
     wordWrapper.append(word, metadata);
-    if (row.side === "right") {
-      connector.append(dot, line, wordWrapper);
-    } else {
-      connector.append(wordWrapper,  line, dot);
-    }
 
     branch.append(labels, connector);
     wrap.appendChild(branch);
+
+    const longestLabelWidth = getLongestLabelWidth(row.labels) + 30;
+    line.style.width = `${longestLabelWidth}px`;
+    line.className = "subway-line";
+    line.style.width = `${longestLabelWidth}px`;
+
+    if (row.side === "right") {
+      connector.append(dot, line, wordWrapper);
+    } else {
+      connector.append(wordWrapper, line, dot);
+    }
+
     return wrap;
   }
+}
+
+
+function getLongestLabelWidth(texts: string[]): number {
+  const measureContainer = document.createElement("div");
+  measureContainer.className = "subway-labels";
+
+  Object.assign(measureContainer.style, {
+    position: "absolute",
+    visibility: "hidden",
+    width: "max-content",
+    height: "auto",
+    pointerEvents: "none",
+    top: "0",
+    left: "0",
+  });
+
+  for (const text of texts) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    measureContainer.appendChild(span);
+  }
+
+  document.body.appendChild(measureContainer);
+  const width = Math.max(0, ...Array.from(measureContainer.children, (el) => el.getBoundingClientRect().width));
+  measureContainer.remove();
+  return width;
 }
