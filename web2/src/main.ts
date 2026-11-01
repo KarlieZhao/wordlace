@@ -3,6 +3,47 @@ import { WordVecRenderer } from "./wordvecrenderer";
 const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
 
 const dataURL = "/Not_Even_This_tokens.json";
+const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
+
+// ================  HELPERS  ====================
+
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const highlightWordAndSentenceFromIndex = (sentence: number, token: number) => {
+  const allSentences = leftContainer.querySelectorAll("div");
+  const sentenceDiv = [...allSentences].find((div) => Number(div.dataset.sentence) === sentence);
+  if (!sentenceDiv) return;
+  const allSpans = sentenceDiv.querySelectorAll("span");
+  const tokenSpan = [...allSpans].find((span) => Number(span.dataset.token) === token);
+  if (!tokenSpan) return;
+
+  lockHighlightWord(tokenSpan, sentenceDiv);
+};
+
+const highlightWordAndSentence = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): void => {
+    leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
+      span.classList.remove("highlight");
+      span.classList.remove("highlighted-sentence");
+    });
+
+  wordSpan.classList.add("highlight");
+  sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
+};
+
+const lockHighlightWord = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): void => {
+  leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
+    span.classList.remove("highlight-locked");
+    span.classList.remove("highlight");
+    span.classList.remove("highlighted-sentence");
+    span.style.opacity = "0.5";
+  });
+
+  wordSpan.classList.add("highlight-locked");
+  sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
+};
+
+// ====================================
+const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex);
 
 function addListeners(): void {
   nextBtn.addEventListener("click", () => renderer.nextSentence());
