@@ -5,6 +5,7 @@ import { EdgeLayer, type EdgeInput } from "./edgelayer";
 import { HoverController } from "./hovercontroller";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
+import { type WordMetadata } from "./basedependency";
 // import { FullLine } from "./fullline";
 
 export class WordVecRenderer extends BaseDependencyRenderer {
@@ -19,6 +20,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly hover: HoverController;
   private readonly subway: SubwayLayer;
 
+  private wordMetadata: WordMetadata[] = [];
   private sentenceIndex = 0;
   private loaded = false;
   private lockedToken: number | null = null;
@@ -27,8 +29,10 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private wordEls: HTMLElement[] = [];
   private wordClickCallback;
 
-  constructor(wordClickCallback: (sentence: number, token: number) => void, 
-  focusCallback: (indices: ReadonlySet<number> | null) => void) {
+  constructor(
+    wordClickCallback: (sentence: number, token: number) => void,
+    focusCallback: (indices: ReadonlySet<number> | null) => void,
+  ) {
     super(".vector-plot");
     this.wordClickCallback = wordClickCallback;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
@@ -39,7 +43,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.words = new WordLayer(this.wordContainer);
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
     this.hover = new HoverController(this.words, this.edges);
-  this.words.onFocusChange(focusCallback);
+    this.words.onFocusChange(focusCallback);
     // this.fullLine = new FullLine(
     //   document.querySelector(".full-line") as HTMLDivElement,
     //   (token) => this.onHoverToken(token),
@@ -63,7 +67,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.words.onClick((token) => {
       if (this.lockedToken === null || token === null) return;
-      
+
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
       //update the sentence on the left
@@ -76,6 +80,14 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   /** loads data only. Call render(index) to show a sentence */
   async init(raw: any): Promise<void> {
     this.graph.load(raw.tok, raw);
+    const tokens = raw.tok.flat();
+    const lemmas = raw.lem.flat();
+    const posTags = raw.pos.flat();
+    this.wordMetadata = tokens.map((word: string, index: number) => ({
+      lemma: lemmas[index] ?? word,
+      pos: posTags[index] ?? "",
+    }));
+    this.subway.loadMetadata(this.wordMetadata);
     this.words.build(this.graph.tokens);
     this.cacheWordEls();
     this.layout.build(this.graph.tokens.length);

@@ -61,6 +61,10 @@ export interface CurveGeometry {
   midy: number;
 }
 
+export interface WordMetadata {
+  lemma: string;
+  pos: string;
+}
 export interface HoverBinding {
   wordSelector: string;
   arcSelector: string;

@@ -22,15 +22,35 @@ export const REPRESENTATION_NAMES: Record<DepRepresentation, string> = {
 };
 
 /* ------------------------------------------------------------------ */
+/* POS                                                                */
+/* ------------------------------------------------------------------ */
+
+export const POS_LABELS: Record<string, string> = {
+  ADJ: "adjective",
+  ADP: "preposition",
+  ADV: "adverb",
+  AUX: "auxiliary verb",
+  CCONJ: "coordinating conjunction",
+  DET: "determiner",
+  INTJ: "interjection",
+  NOUN: "noun",
+  NUM: "number",
+  PART: "particle",
+  PRON: "pronoun",
+  PROPN: "proper noun",
+  PUNCT: "punctuation",
+  SCONJ: "subordinating conjunction",
+  SYM: "symbol",
+  VERB: "verb",
+  X: "other",
+};
+
+/* ------------------------------------------------------------------ */
 /* DM                                                                  */
 /* ------------------------------------------------------------------ */
 
+
 export const DM_LABELS: Record<string, string> = {
-  ARG1: "argument 1",
-  ARG2: "argument 2",
-  ARG3: "argument 3",
-  ARG4: "argument 4",
-  BV: "bound variable (noun of a determiner)",
   compound: "compound",
   compound_name: "name compound",
   poss: "possessor",
@@ -43,11 +63,25 @@ export const DM_LABELS: Record<string, string> = {
   comp_so: "complementizer (so)",
   neg: "negation",
   appos: "apposition",
+
+  ARG1: "participant",
+  ARG2: "secondary participant",
+  ARG3: "recipient / destination",
+  ARG4: "source",
+  ARG5: "additional participant",
+
+  BV: "determiner",
+
+  manner: "manner",
+  time: "time",
+  quantity: "quantity",
+  direction: "direction",
 };
 
 /* ------------------------------------------------------------------ */
 /* PAS  (labels look like "verb_ARG1", "prep_MOD", ...)                */
 /* ------------------------------------------------------------------ */
+
 
 const PAS_PREDICATES: Record<string, string> = {
   adj: "adjective",
@@ -68,11 +102,24 @@ const PAS_PREDICATES: Record<string, string> = {
 };
 
 const PAS_ROLES: Record<string, string> = {
-  ARG1: "argument 1",
-  ARG2: "argument 2",
-  ARG3: "argument 3",
-  ARG4: "argument 4",
+  ARG1: "primary participant",
+  ARG2: "secondary participant",
+  ARG3: "recipient / destination",
+  ARG4: "source / origin",
+
   MOD: "modifier",
+  det_ARG1: "determiner",
+  det_ARG2: "determiner",
+  verb_ARG1: "verb participant",
+  verb_ARG2: "verb secondary participant",
+  noun_ARG1: "noun participant",
+  noun_ARG2: "noun secondary participant",
+  adj_ARG1: "adjective participant",
+  adj_ARG2: "adjective secondary participant",
+  prep_ARG1: "preposition object",
+  prep_ARG2: "preposition complement",
+  conj_ARG1: "conjunction participant",
+  conj_ARG2: "conjunction secondary participant",
 };
 
 /** Every predicate x role combination, e.g. "verb_ARG1" -> "verb argument 1". */

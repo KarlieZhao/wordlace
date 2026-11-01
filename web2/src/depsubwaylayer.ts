@@ -1,4 +1,6 @@
+import type { WordMetadata } from "./basedependency";
 import type { EdgeLayer } from "./edgelayer";
+import { POS_LABELS } from "./labels";
 import type { WordLayer } from "./wordlayer";
 
 interface SubwayRow {
@@ -6,7 +8,8 @@ interface SubwayRow {
   word: string;
   labels: string[];
   side: "left" | "right";
-  direction: "from" | "to"
+  direction: "from" | "to",
+  metadata: WordMetadata
 }
 
 const LABEL_LINE_HEIGHT = 20;
@@ -16,16 +19,25 @@ export class SubwayLayer {
   readonly root: HTMLElement;
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly getWordX: (index: number) => { left: number, top: number };
+  private readonly getWordX: (index: number) => { left: number; top: number };
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
+  private metadata: WordMetadata[] | null = null;
 
-  constructor(container: HTMLElement, words: WordLayer, edges: EdgeLayer, getWordX: (index: number) => { left: number, top: number }) {
+  constructor(
+    container: HTMLElement,
+    words: WordLayer,
+    edges: EdgeLayer,
+    getWordX: (index: number) => { left: number; top: number },
+  ) {
     this.root = container;
     this.root.classList.add("dependency-subway");
     this.words = words;
     this.edges = edges;
     this.getWordX = getWordX;
+  }
+  loadMetadata(metadata: WordMetadata[]): void {
+    this.metadata = metadata;
   }
 
   setSentenceWords(indices: number[]): void {
@@ -41,7 +53,7 @@ export class SubwayLayer {
   }
 
   private render(): void {
-    const focus = this.hoveredWord //?? this.defaultWord();
+    const focus = this.hoveredWord; //?? this.defaultWord();
 
     this.root.innerHTML = "";
     if (focus === null) {
@@ -85,7 +97,7 @@ export class SubwayLayer {
     }
     const GAP = 55;
 
-    this.root.style.marginTop = `${- GAP}px`;
+    this.root.style.marginTop = `${-GAP}px`;
     this.root.classList.add("is-visible");
     spine.style.height = `${GAP + this.root.clientHeight + vectorSVG.clientHeight - top}px`;
     spine.style.top = `${-vectorSVG.clientHeight + top - GAP}px`;
@@ -96,26 +108,49 @@ export class SubwayLayer {
     for (const e of this.edges.incident(focus)) {
       const [head, child] = this.edges.endpoints(e);
       const other = head === focus ? child : head;
-      const side: "left" | "right" = focus - other > 0 ? "left" : "right";
+      // const side: "left" | "right" = focus - other > 0 ? "left" : "right";
       const fromOrTo: "from" | "to" = focus === child ? "from" : "to";
-      const group = { wordIndex: other, label: this.edges.relationLabel(e), side, direction: fromOrTo };
+      const side: "left" | "right" = fromOrTo === "from" ? "right" : "left";
+      const group = {
+        wordIndex: other,
+        label: this.edges.relationLabel(e),
+        side,
+        direction: fromOrTo,
+        metadata: this.metadata ? this.metadata[other] : { lemma: "", pos: "" },
+      };
       byOther.push(group);
     }
 
     // group them so that items with same wordindex + side are combined
-    const groupedRows = new Map<string, { wordIndex: number; labels: string[]; side: "left" | "right", direction: "from" | "to" }>();
-    byOther.forEach(row => {
+    const groupedRows = new Map<
+      string,
+      { wordIndex: number; labels: string[]; side: "left" | "right"; direction: "from" | "to"; metadata: WordMetadata }
+    >();
+    byOther.forEach((row) => {
       const group = groupedRows.get(`${row.wordIndex}-${row.direction}`);
       if (group) {
-        group.labels.push(row.label)
+        group.labels.push(row.label);
       } else {
-        groupedRows.set(`${row.wordIndex}-${row.direction}`, { wordIndex: row.wordIndex, labels: [row.label], side: row.side, direction: row.direction });
+        groupedRows.set(`${row.wordIndex}-${row.direction}`, {
+          wordIndex: row.wordIndex,
+          labels: [row.label],
+          side: row.side,
+          direction: row.direction,
+          metadata: row.metadata,
+        });
       }
-    })
+    });
 
     const rows = [...groupedRows.values()]
       .sort((a, b) => a.wordIndex - b.wordIndex)
-      .map((g) => ({ other: g.wordIndex, word: this.words.getText(g.wordIndex), labels: g.labels, side: g.side, direction: g.direction }));
+      .map((g) => ({
+        other: g.wordIndex,
+        word: this.words.getText(g.wordIndex),
+        labels: g.labels,
+        side: g.side,
+        direction: g.direction,
+        metadata: g.metadata,
+      }));
     return rows;
   }
 
@@ -146,14 +181,22 @@ export class SubwayLayer {
     const line = document.createElement("div");
     line.className = "subway-line";
     line.style.width = `${longestLabelLen * 7}px`;
+    const wordWrapper = document.createElement("div");
+    wordWrapper.classList.add("subway-word-wrapper");
+
     const word = document.createElement("span");
     word.className = "subway-word";
     word.textContent = row.word;
 
+    const metadata = document.createElement("span");
+    metadata.className = "subway-metadata";
+    metadata.textContent = `${row.metadata.lemma}, ${POS_LABELS[row.metadata.pos]}`;
+
+    wordWrapper.append(word, metadata);
     if (row.side === "right") {
-      connector.append(dot, line, word);
+      connector.append(dot, line, wordWrapper);
     } else {
-      connector.append(word, line, dot);
+      connector.append(wordWrapper,  line, dot);
     }
 
     branch.append(labels, connector);
