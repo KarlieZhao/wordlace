@@ -6,12 +6,10 @@ import { HoverController } from "./hovercontroller";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
 import { type WordMetadata } from "./basedependency";
-// import { FullLine } from "./fullline";
 
 export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
-  // private readonly fullLine: FullLine;
 
   private readonly graph = new DependencyGraph();
   private readonly layout: Layout;
@@ -44,11 +42,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
     this.hover = new HoverController(this.words, this.edges);
     this.words.onFocusChange(focusCallback);
-    // this.fullLine = new FullLine(
-    //   document.querySelector(".full-line") as HTMLDivElement,
-    //   (token) => this.onHoverToken(token),
-    //   (token) => this.onClickToken(token),
-    // );
 
     const getHoveredWordX = (index: number): { left: number; top: number } => {
       const wordElLeft =
@@ -133,6 +126,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.placeSentence(start, end);
     this.buildEdges(start, end); // draws the edges from the live positions
+
+    // this.centerGraph(start, end);
   }
 
   nextSentence(): void {
@@ -145,6 +140,59 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   /* --------------------------- internals --------------------------- */
 
+  private centerGraph(start: number, end: number): void {
+    if (!this.container) return;
+    const viewport = document.querySelector(".main-container") as HTMLElement;
+    const bounds = this.measureBounds(start, end);
+
+    const subway = this.subway.root;
+    const subwayWidth = subway.offsetWidth;
+    const gap = 40;
+
+    const totalWidth = bounds.width + gap + subwayWidth;
+    const totalHeight = bounds.height;
+
+    const offsetX = (viewport.clientWidth - totalWidth) / 2 - bounds.minX;
+    const offsetY = (viewport.clientHeight - totalHeight) / 2 - bounds.minY;
+
+    const rightSec = document.querySelector(".right-section") as HTMLDivElement;
+    rightSec.style.paddingLeft = `${offsetX / 1.5}px`;
+    rightSec.style.paddingTop = `${offsetY / 2}px`;
+    //  console.log(rightSec);
+  }
+
+  private measureBounds(start: number, end: number) {
+    const live = this.layout.live;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (let i = start; i < end; i++) {
+      const p = live[i];
+      const el = this.wordEls[i];
+
+      if (!p || !el) continue;
+
+      const width = el.offsetWidth;
+      const height = el.offsetHeight;
+
+      minX = Math.min(minX, p.px - width / 2);
+      minY = Math.min(minY, p.py);
+
+      maxX = Math.max(maxX, p.px + width / 2);
+      maxY = Math.max(maxY, p.py + height);
+    }
+    return {
+      minX,
+      minY,
+      maxX,
+      maxY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }
   private step(delta: number): void {
     const n = this.sentenceCount;
     if (!n) return;

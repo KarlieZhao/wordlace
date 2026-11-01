@@ -9,10 +9,11 @@
   --text-dim: #777777;
   --highlight: #30506a;
   --background: #EEF0F2;
+  --background-left:#d8dee4;
 
   --highlight-background: #ffca98;
   --highlight-background-alpha: #de7008;
-  --connected-background: #cddfe7;
+  --connected-background: #b6d8e2;
 
   --label-text: #1C4E6E;
   --label-text-2: #601414;
@@ -107,8 +108,11 @@ h1 {
       min-width: 200px;
     height: 100%;
     overflow: auto;
-    flex: 1;
-    background-color: var(--background);
+    /* border-right: 2px solid var(--subway-line); */
+    /* flex: 1; */
+    width: 20vw;
+    background: linear-gradient(90deg, var(--background-left) 0%, var(--background) 100%);
+/* TODO: add opacity */
     color: var(--text-dim);
     padding: 3rem;
     font-family: "Inika", serif;
@@ -122,12 +126,20 @@ h1 {
     }
 }
 
+.right-section-container {
+  flex: 3;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: linear-gradient(90deg, var(--background) 0%, var(--background) 100%);
+  /* border: 2px solid var(--subway-line); */
+}
+
 .right-section {
-    /* background-color: #142B39; */
-    background: linear-gradient(90deg, var(--background) 0%, var(--background) 100%);
-    flex: 3;
-    height: 100%;
-    overflow-x: auto;
+  /* background-color: #142B39; */
+  height: max-content;
+  padding-bottom: 10rem;
+
 }
 
 /* #full-text {
