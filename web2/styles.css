@@ -4,12 +4,15 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap');
 
 :root {
-    --text-main: #383838;
+  --text-darker: #1b1b1b;  
+  --text-main: #383838;
     --text-dim: #777777;
     --highlight: #30506a;
     --background: #EEF0F2;
 
-    --highlight-background: #c5d5e7;
+    --highlight-background: #ffca98;
+    --highlight-background-alpha: #ffca98;
+     /* #c5d5e7; */
     --label-text: #1C4E6E;
     --label-text-2: #601414;
 
@@ -58,17 +61,22 @@ h1 {
     font-size: 3.2rem;
 }
 
-#full-text span {
-  transition: opacity 0.25s ease;
+#full-text {
+  span {
+    transition: opacity 0.25s ease;
+  }
+
+  span.highlight {
+    /* opacity: 1.0 !important; */
+    /* color: var(--highlight); */
+    background-color: var(--highlight-background);
+  }
+  span.highlight-locked{
+        background-color: var(--highlight-background);
+
+    /* background-color: var(--highlight-locked-background) !important; */
+  }
 }
-
-#full-text span.highlight {
-  opacity: 1.0 !important;
-  color: var(--highlight);
-  background-color: var(--highlight-background);
-}
-
-
 .main-container {
     display: flex;
     flex-direction: row;
@@ -78,15 +86,23 @@ h1 {
 }
 
 .left-section {
-    cursor: pointer;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* Internet Explorer/Edge */
+    user-select: none;  
+      min-width: 200px;
     height: 100%;
     overflow: auto;
     flex: 1;
     background-color: var(--background);
     color: var(--text-dim);
-    padding: 4rem;
+    padding: 3rem;
     font-family: "Inika", serif;
+    font-weight: 500;
 
+    div{
+          cursor: pointer;
+    }
     span {
         transition: background-color 0.23s ease;
     }
@@ -96,7 +112,6 @@ h1 {
     /* background-color: #142B39; */
     background: linear-gradient(90deg, var(--background) 0%, var(--background) 100%);
     flex: 3;
-    max-width: 60vw;
     height: 100%;
     overflow-x: auto;
 }
@@ -152,33 +167,26 @@ h1 {
 }
 
 .vector-word {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    transform: translate(-50%, -50%);
-    padding: 2px 6px;
-    font-size: 14px;
-    font-family: "Inika", serif;
-    border-radius: 4px;
-    white-space: nowrap;
-    transition: opacity 1s ease,
-        transform 1s ease,
-        z-index 0.2s ease,
-        color 1s ease;
-    z-index: 1;
-    transform: translate(-50%, -50%);
-    opacity: 1;
-    cursor: pointer;
-}
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translate(-50%, -50%);
+  padding: 2px;
+  font-family: "Inika", serif;
+  /* border-radius: 4px; */
+  white-space: nowrap;
+  transition: opacity 1s ease,
+    transform 1s ease,
+    z-index 0.2s ease,
+    color 1s ease;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
 
-.highlighted-word {
-    font-size: 16px;
-    opacity: 1;
-    z-index: 2;
-    transform: translate(-50%, -50%);
-    color: var(--highlight);
+  font-size: 16px;
+  opacity: 1;
+  z-index: 2;
+  color: var(--highlight);
 }
-
 .word-plot {
     pointer-events: none;
 }
@@ -209,7 +217,7 @@ h1 {
 }
 
 .word-plot.wv-focus .vector-word:not(.wv-hot) {
-    opacity: 0.15;
+    opacity: 0.2;
 }
 
 /* ---- labels ---- */
@@ -408,6 +416,9 @@ h1 {
 .vector-word.wv-hot {
   font-weight: 600;
 }
+.vector-word.wv-selected{
+  background-color: var(--highlight-background-alpha);
+}
 .word-plot.wv-focus .vector-word:not(.wv-hot) {
   opacity: 0.15;
 }
@@ -426,3 +437,13 @@ h1 {
 .wv-label-dm  { fill: #4d5a63; }
 .wv-label-pas { fill: #5b6f70; }
 .wv-label-psd { fill: #4a7a5f; }
+
+
+.full-sentence{
+  padding:.5rem
+}
+
+.highlighted-sentence{
+  opacity: 1.0 !important;
+  color: var(--text-darker);
+}

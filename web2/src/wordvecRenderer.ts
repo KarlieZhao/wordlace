@@ -34,10 +34,11 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   private targetYById: number[] = [];
   private wordEls: HTMLElement[] = [];
+  private wordClickCallback;
 
-  constructor() {
+  constructor(wordClickCallback: (sentence: number, token: number) => void) {
     super(".vector-plot");
-
+    this.wordClickCallback = wordClickCallback;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
@@ -53,8 +54,9 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     //   (token) => this.onClickToken(token),
     // );
 
-    const getHoveredWordX = (index: number): { left: number, top: number } => {
-      const wordElLeft = parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
+    const getHoveredWordX = (index: number): { left: number; top: number } => {
+      const wordElLeft =
+        parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
       const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
       return { left: wordElLeft, top: wordElTop + 120 };
     };
@@ -65,6 +67,15 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       if (this.lockedToken !== null) return;
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
+    });
+
+    this.words.onClick((token) => {
+      if (this.lockedToken === null || token === null) return;
+      
+      this.hover.setHoveredWord(token);
+      this.subway.setHoveredWord(token);
+      //update the sentence on the left
+      this.wordClickCallback(this.sentenceIndex, token);
     });
   }
 
@@ -88,22 +99,26 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     return this.sentenceIndex;
   }
 
+  get lockedTokenIndex(): number | null {
+    return this.lockedToken;
+  }
+
   hoverToken(token: number | null): void {
     if (!this.loaded || this.lockedToken !== null) return;
     this.hover.setHoveredWord(token);
     this.subway.setHoveredWord(token);
   }
 
-  /**
-   * Shows sentence `index` only, with every word placed directly at its final
-   * position: x flows from LEFT_PADDING, y comes from dependency connectivity.
-   */
+  onClickToken(token: number): void {
+    this.lockedToken = this.lockedToken === token ? null : token;
+    this.hover.setHoveredWord(token);
+    this.subway.setHoveredWord(token);
+  }
+
   render(index: number): void {
     if (!this.loaded || index < 0 || index >= this.graph.sentenceCount) return;
-
     this.sentenceIndex = index;
-    this.lockedToken = null;
-    // this.fullLine.setLocked(null);
+    // this.lockedToken = null;
     this.hover.clear();
 
     const [start, end] = this.graph.sentenceRange(index);
@@ -113,7 +128,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.layout.setLive(start, points);
 
     this.placeSentence(start, end);
-    // this.fullLine.render(this.graph.words, start, end, points[0] ? points[0].px + 15 : 100);
     this.buildEdges(start, end); // draws the edges from the live positions
   }
 
@@ -133,25 +147,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.render((((this.sentenceIndex + delta) % n) + n) % n);
   }
 
-  private onHoverToken(token: number | null): void {
-    if (this.lockedToken !== null) return;
-    this.hover.setHoveredWord(token);
-    this.subway.setHoveredWord(token);
-    // this.fullLine.setHot(token);
-  }
-
-  private onClickToken(token: number): void {
-    const unlocking = this.lockedToken === token;
-    this.lockedToken = unlocking ? null : token;
-    // this.fullLine.setLocked(this.lockedToken);
-
-    // Apply the clicked word directly. The pointer is still over it, so on
-    // unlock it stays hovered until the mouse leaves.
-    this.hover.setHoveredWord(token);
-    this.subway.setHoveredWord(token);
-    // this.fullLine.setHot(token);
-  }
-
   private buildEdges(start: number, end: number): void {
     const live = this.layout.live;
     const sentence = this.sentenceIndex;
@@ -166,12 +161,10 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     const { width, height } = this.measureExtent(start, end);
     this.edges.build(inputs, [sentence], sentence, { width, height });
-    this.words.setConnected(this.edges.connectedTokens());
 
     const indices = Array.from({ length: end - start }, (_, i) => start + i);
     this.subway.setSentenceWords(indices);
   }
-
 
   private placeSentence(start: number, end: number): void {
     const live = this.layout.live;
@@ -198,7 +191,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       // never smaller than the visible area, so the SVG still fills the pane
       width: maxX + PAD,
       // Math.max(maxX + PAD, viewport.clientWidth),
-      height: maxY + PAD
+      height: maxY + PAD,
       // Math.max(maxY + PAD, viewport.clientHeight),
     };
   }

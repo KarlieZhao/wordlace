@@ -1,7 +1,6 @@
 import { loadJson } from "./utils";
 import { WordVecRenderer } from "./wordvecrenderer";
 const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
-const renderer = new WordVecRenderer();
 
 const dataURL = "/Not_Even_This_tokens.json";
 
@@ -18,56 +17,77 @@ function addListeners(): void {
     }
   });
 }
-
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
 function populateLeftContainer(data: any) {
-  const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
   if (!leftContainer) return;
 
   let offset = 0;
   leftContainer.innerHTML = data.tok
     .map((sentenceArr: string[], i: number) => {
-      const spans = sentenceArr
-        .map((w, j) => `<span data-token="${offset + j}">${escapeHtml(w)}</span>`)
-        .join(" ");
+      const spans = sentenceArr.map((w, j) => `<span data-token="${offset + j}">${escapeHtml(w)}</span>`).join(" ");
       offset += sentenceArr.length;
-      return `<div data-sentence="${i}">${spans}</div>`;
+      return `<div class="full-sentence" data-sentence="${i}">${spans}</div>`;
     })
     .join("");
 
-  leftContainer.addEventListener("pointerover", (event) => {
+  const findClosestSentenceAndToken = (
+    event: PointerEvent | MouseEvent,
+  ): { sentence: number; token: number; wordSpan: HTMLSpanElement | null; sentenceDiv: HTMLDivElement | null } => {
     const wordSpan = (event.target as HTMLElement).closest("span");
-    if (!wordSpan || !leftContainer.contains(wordSpan)) return;
+    if (!wordSpan || !leftContainer.contains(wordSpan))
+      return { sentence: -1, token: -1, wordSpan: null, sentenceDiv: null };
 
-    leftContainer.querySelectorAll("span.highlight").forEach((s) => {
-      s.classList.remove("highlight");
-    });
-    leftContainer.querySelectorAll("span").forEach(s => s.style.opacity = "0.5")
-    wordSpan.classList.add("highlight");
-
-    const sentenceDiv = wordSpan.closest("div[data-sentence]") as HTMLElement | null;
-    if (!sentenceDiv) return;
+    const sentenceDiv = wordSpan.closest("div[data-sentence]") as HTMLDivElement | null;
+    if (!sentenceDiv) return { sentence: -1, token: -1, wordSpan: null, sentenceDiv: null };
 
     const sentence = Number(sentenceDiv.dataset.sentence);
     const token = Number(wordSpan.dataset.token);
+    return { sentence, token, wordSpan, sentenceDiv };
+  };
 
-    // Switch sentence first so the edges exist before we focus the word.
+  const showToken = (
+    sentence: number,
+    token: number,
+    wordSpan: HTMLElement,
+    sentenceDiv: HTMLElement,
+    lock: boolean = false,
+  ): void => {
     if (sentence !== renderer.currentSentence) renderer.render(sentence);
     renderer.hoverToken(token);
+    highlightWordAndSentence(wordSpan, sentenceDiv);
+    if (lock) lockHighlightWord(wordSpan, sentenceDiv);
+  };
+
+  leftContainer.addEventListener("pointerover", (event) => {
+    if (renderer.lockedTokenIndex !== null) return; // hover is ignored while locked
+    const { sentence, token, wordSpan, sentenceDiv } = findClosestSentenceAndToken(event);
+    if (sentence < 0 || token < 0 || !wordSpan || !sentenceDiv) return;
+    showToken(sentence, token, wordSpan, sentenceDiv);
   });
 
-  // pointerleave (not pointerout) so moving between spans doesn't clear and re-focus.
+  leftContainer.addEventListener("click", (event) => {
+    const { sentence, token, wordSpan, sentenceDiv } = findClosestSentenceAndToken(event);
+    if (sentence < 0 || token < 0 || !wordSpan || !sentenceDiv) return;
+
+    const isLocked = renderer.lockedTokenIndex !== null;
+    const clickedOnLockedToken = sentence === renderer.currentSentence && token === renderer.lockedTokenIndex;
+
+    // clicking a different word while locked moves the focus there before re-locking.
+    if (isLocked && !clickedOnLockedToken) showToken(sentence, token, wordSpan, sentenceDiv, true);
+    else if (clickedOnLockedToken) {
+      leftContainer.querySelectorAll("span").forEach((s) => {
+        s.classList.remove("highlight-locked");
+        s.style.opacity = "1.0";
+      });
+    } else lockHighlightWord(wordSpan, sentenceDiv);
+
+    renderer.onClickToken(token);
+  });
+
   leftContainer.addEventListener("pointerleave", () => {
-    leftContainer
-      .querySelectorAll("span.highlight")
-      .forEach((s) => s.classList.remove("highlight"));
+    if (renderer.lockedTokenIndex !== null) return;
+    leftContainer.querySelectorAll("span.highlight").forEach((s) => s.classList.remove("highlight"));
     renderer.hoverToken(null);
-    leftContainer.querySelectorAll("span").forEach(s => s.style.opacity = "1.0");
-
   });
-  
 }
 
 async function init(): Promise<void> {
@@ -76,7 +96,6 @@ async function init(): Promise<void> {
   populateLeftContainer(raw);
   await renderer.init(raw);
   renderer.render(0);
-
 }
 
 init();

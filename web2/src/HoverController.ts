@@ -39,6 +39,7 @@ export class HoverController {
       wordSet.add(child);
     }
 
+    this.words.setSelected(token);
     this.words.setFocus(wordSet);
     this.edges.setFocus(edgeSet);
     // this.edges.showLabels(edgeSet);

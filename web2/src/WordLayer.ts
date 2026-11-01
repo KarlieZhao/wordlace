@@ -1,9 +1,10 @@
 import { TRANSITION_PROPS_WHILE_SIMULATING } from "./config";
 export class WordLayer {
-  private els: HTMLElement[] = [];
+  private wordEls: HTMLElement[] = [];
   private connected = new Set<number>();
   private hot = new Set<number>();
   private hoverCb: ((token: number | null) => void) | null = null;
+  private clickCb: ((token: number | null) => void) | null = null;
 
   private readonly root: HTMLElement;
 
@@ -20,10 +21,21 @@ export class WordLayer {
       if (to) return;
       this.hoverCb?.(null);
     });
+
+    root.addEventListener("click", (e) => {
+      const el = (e.target as Element | null)?.closest<HTMLElement>(".vector-word");
+      if (el && this.root.contains(el)) {
+        this.clickCb?.(Number(el.dataset.index));
+      }
+    });
   }
 
   onHover(cb: (token: number | null) => void): void {
     this.hoverCb = cb;
+  }
+
+  onClick(cb: (token: number | null) => void): void {
+    this.clickCb = cb;
   }
 
   build(tokens: string[]): void {
@@ -33,7 +45,7 @@ export class WordLayer {
     this.root.classList.remove("wv-focus");
 
     const fragment = document.createDocumentFragment();
-    this.els = tokens.map((token, i) => {
+    this.wordEls = tokens.map((token, i) => {
       const el = document.createElement("div");
       el.textContent = token;
       el.dataset.word = token.toLocaleLowerCase();
@@ -46,7 +58,7 @@ export class WordLayer {
   }
 
   place(index: number, x: number, y: number): void {
-    const style = this.els[index]?.style;
+    const style = this.wordEls[index]?.style;
     if (!style) return;
     style.left = `${x}px`;
     style.top = `${y}px`;
@@ -54,11 +66,11 @@ export class WordLayer {
 
   setTransitions(simulating: boolean): void {
     const value = simulating ? TRANSITION_PROPS_WHILE_SIMULATING : "";
-    for (const el of this.els) el.style.transitionProperty = value;
+    for (const el of this.wordEls) el.style.transitionProperty = value;
   }
 
-  setConnected(indices: ReadonlySet<number>): void {
-    this.diffClass(this.connected, indices, "highlighted-word");
+  setSelected(indice: number): void {
+    this.wordEls.forEach((el, i) => el.classList.toggle("wv-selected", indice === i));
   }
 
   setFocus(indices: ReadonlySet<number> | null): void {
@@ -68,16 +80,16 @@ export class WordLayer {
 
   private diffClass(current: Set<number>, next: ReadonlySet<number>, cls: string): void {
     for (const i of current) {
-      if (!next.has(i)) this.els[i]?.classList.remove(cls);
+      if (!next.has(i)) this.wordEls[i]?.classList.remove(cls);
     }
     for (const i of next) {
-      if (!current.has(i)) this.els[i]?.classList.add(cls);
+      if (!current.has(i)) this.wordEls[i]?.classList.add(cls);
     }
     current.clear();
     next.forEach((i) => current.add(i));
   }
 
   getText(index: number): string {
-    return this.els[index]?.textContent ?? "";
+    return this.wordEls[index]?.textContent ?? "";
   }
 }
