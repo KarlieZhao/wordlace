@@ -69,15 +69,11 @@ export class EdgeLayer {
 
     const defs = svgEl("defs");
     for (const s of sentences) {
-      for (const rep of REPRESENTATIONS) {
-        defs.appendChild(this.marker(s, rep, "from"));
-        defs.appendChild(this.marker(s, rep, "to"));
-      }
+        defs.appendChild(this.marker(s, "from"));
+        defs.appendChild(this.marker(s, "to"));
     }
 
     const arcs = svgEl("g");
-    // const hits = svgEl("g");
-
     const groups = new Map<string, number[]>();
 
     inputs.forEach((input, index) => {
@@ -98,7 +94,7 @@ export class EdgeLayer {
 
     inputs.forEach((input, index) => {
       const { edge, sentence } = input;
-      const direction = edge.head - edge.child < 0 ? "from" : "to";
+      // const direction = edge.head - edge.child < 0 ? "from" : "to";
 
       const path = svgEl("path", {
         class: `wv-dep-arc wv-dep-${edge.representation}`,
@@ -206,22 +202,24 @@ export class EdgeLayer {
     if (!a || !b) return null;
 
     let ax, bx, ay, by;
-    const pad = 6;
-    if (a.px > b.px) {
-      ax = a.px - pad;
-      bx = b.px + pad;
-    } else {
-      ax = a.px + pad;
-      bx = b.px - pad;
-    }
+   const padStart = 10;
+   const padEnd = 10; 
 
-    if (a.py > b.py) {
-      ay = a.py - pad;
-      by = b.py + pad;
-    } else {
-      ay = a.py + pad;
-      by = b.py - pad;
-    }
+   if (a.px > b.px) {
+     ax = a.px - padStart;
+     bx = b.px + padEnd;
+   } else {
+     ax = a.px + padStart;
+     bx = b.px - padEnd;
+   }
+
+   if (a.py > b.py) {
+     ay = a.py - padStart;
+     by = b.py + padEnd;
+   } else {
+     ay = a.py + padStart;
+     by = b.py - padEnd;
+   }
     const c = computeCurve(ax, ay, bx, by, CURVATURE * (1 + curveBias));
     return {
       d:
@@ -233,17 +231,17 @@ export class EdgeLayer {
     };
   }
 
-  private marker(sentence: number, rep: DepRepresentation, direction: "from" | "to"): SVGMarkerElement {
+  private marker(sentence: number, direction: "from" | "to"): SVGMarkerElement {
     const marker = svgEl("marker", {
       id: `wv-arrow-${sentence}-${direction}`,
       viewBox: "0 0 10 10",
-      refX: 8,
+      refX: 10,
       refY: 5,
       markerWidth: MARKER_SIZE,
       markerHeight: MARKER_SIZE,
       orient: "auto",
     });
-    marker.appendChild(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: DEP_COLORS[`${rep}-${direction}`] }));
+    marker.appendChild(svgEl("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: DEP_COLORS[`dm-${direction}`] }));
     return marker;
   }
 }

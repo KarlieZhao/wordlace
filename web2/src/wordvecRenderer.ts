@@ -7,15 +7,6 @@ import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
 // import { FullLine } from "./fullline";
 
-/**
- * Shows one sentence at a time: render(index).
- *
- *   DependencyGraph  data (tokens, edges)          – no DOM
- *   Layout           live positions + sentence targets
- *   WordLayer        word <div>s
- *   EdgeLayer        dependency SVG
- *   HoverController  word/edge hover -> focus sets
- */
 export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
@@ -36,7 +27,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private wordEls: HTMLElement[] = [];
   private wordClickCallback;
 
-  constructor(wordClickCallback: (sentence: number, token: number) => void) {
+  constructor(wordClickCallback: (sentence: number, token: number) => void, 
+  focusCallback: (indices: ReadonlySet<number> | null) => void) {
     super(".vector-plot");
     this.wordClickCallback = wordClickCallback;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
@@ -47,7 +39,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.words = new WordLayer(this.wordContainer);
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
     this.hover = new HoverController(this.words, this.edges);
-
+  this.words.onFocusChange(focusCallback);
     // this.fullLine = new FullLine(
     //   document.querySelector(".full-line") as HTMLDivElement,
     //   (token) => this.onHoverToken(token),
@@ -81,7 +73,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   /* -------------------------- public API -------------------------- */
 
-  /** Loads data only. Call render(index) afterwards to show a sentence. */
+  /** loads data only. Call render(index) to show a sentence */
   async init(raw: any): Promise<void> {
     this.graph.load(raw.tok, raw);
     this.words.build(this.graph.tokens);
@@ -188,23 +180,18 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     // const viewport = this.lineContainer.parentElement as HTMLElement;
 
     return {
-      // never smaller than the visible area, so the SVG still fills the pane
       width: maxX + PAD,
-      // Math.max(maxX + PAD, viewport.clientWidth),
       height: maxY + PAD,
-      // Math.max(maxY + PAD, viewport.clientHeight),
     };
   }
   private cacheWordEls(): void {
     this.wordEls = [];
     this.wordContainer.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {
-      // Words are placed instantly; a CSS transition would make them trail the edges.
       el.style.transition = "none";
       this.wordEls[Number(el.dataset.index)] = el;
     });
   }
 
-  /** Only tokens [start, end) are visible. */
   private showOnly(start: number, end: number): void {
     this.wordEls.forEach((el, i) => {
       el.style.display = i >= start && i < end ? "" : "none";

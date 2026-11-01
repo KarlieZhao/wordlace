@@ -11,8 +11,10 @@
     --background: #EEF0F2;
 
     --highlight-background: #ffca98;
-    --highlight-background-alpha: #ffca98;
-     /* #c5d5e7; */
+    --highlight-background-alpha: #de7008;
+
+    --connected-background: #cddfe7;
+    /* #c5d5e7; */
     --label-text: #1C4E6E;
     --label-text-2: #601414;
 
@@ -182,7 +184,7 @@ h1 {
   transform: translate(-50%, -50%);
   cursor: pointer;
 
-  font-size: 16px;
+  font-size: 18px;
   opacity: 1;
   z-index: 2;
   color: var(--highlight);
@@ -193,31 +195,6 @@ h1 {
 
 .vector-word {
     pointer-events: auto;
-}
-
-/* ---- edges ---- */
-.wv-dep-arc {
-    opacity: .4;
-    stroke-width: 2.5;
-    transition: opacity 1s;
-    fill: none;
-}
-
-.wv-dep-arc.wv-hot {
-    opacity: .6;
-}
-
-.vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
-    opacity: 0.05;
-}
-
-.wv-dep-hit {
-    stroke: transparent;
-    pointer-events: stroke;
-}
-
-.word-plot.wv-focus .vector-word:not(.wv-hot) {
-    opacity: 0.2;
 }
 
 /* ---- labels ---- */
@@ -383,9 +360,6 @@ h1 {
     margin: 0 8px;
 }
 
-
-/* Words sit above the edge layer; only the words themselves catch the mouse,
-   so the (transparent) hit paths under the container stay hoverable. */
 .word-plot {
   pointer-events: none;
 }
@@ -394,13 +368,19 @@ h1 {
 }
 
 /* ---- edges ---- */
+.word-plot.wv-focus .vector-word:not(.wv-hot) {
+  opacity: 0.2;
+}
 .wv-dep-arc {
   opacity: 0.3;
+  stroke-width: 2.5;
   transition: opacity .7s, stroke-width .7s;
+  fill: none;
 }
+
 .wv-dep-arc.wv-hot {
-  opacity: 1;
-  stroke-width: 2.7;
+  opacity: .6;
+  stroke-width: 2.5;
 }
 .vector-plot.wv-focus .wv-dep-arc:not(.wv-hot) {
   opacity: 0.05;
@@ -414,10 +394,12 @@ h1 {
 
 /* ---- words ---- */
 .vector-word.wv-hot {
-  font-weight: 600;
+  font-weight: 500;
 }
 .vector-word.wv-selected{
-  background-color: var(--highlight-background-alpha);
+  color: var(--highlight-background-alpha);
+    font-weight: 700;
+
 }
 .word-plot.wv-focus .vector-word:not(.wv-hot) {
   opacity: 0.15;
@@ -446,4 +428,9 @@ h1 {
 .highlighted-sentence{
   opacity: 1.0 !important;
   color: var(--text-darker);
+}
+
+.connected-spans {
+  opacity: 1 !important;
+  background-color: var(--connected-background)
 }

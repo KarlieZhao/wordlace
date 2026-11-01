@@ -21,10 +21,10 @@ const highlightWordAndSentenceFromIndex = (sentence: number, token: number) => {
 };
 
 const highlightWordAndSentence = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): void => {
-    leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
-      span.classList.remove("highlight");
-      span.classList.remove("highlighted-sentence");
-    });
+  leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
+    span.classList.remove("highlight");
+    span.classList.remove("highlighted-sentence");
+  });
 
   wordSpan.classList.add("highlight");
   sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
@@ -42,8 +42,31 @@ const lockHighlightWord = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): voi
   sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
 };
 
+// ================  CONNECTED SPANS  ====================
+let tokenSpans: HTMLElement[] = [];
+let connectedSpans: HTMLElement[] = [];
+
+const cacheTokenSpans = () => {
+  tokenSpans = [];
+  leftContainer.querySelectorAll<HTMLElement>("span[data-token]").forEach((s) => {
+    tokenSpans[Number(s.dataset.token)] = s;
+  });
+};
+
+const highlightConnectedSpans = (indices: ReadonlySet<number> | null) => {
+  connectedSpans.forEach((s) => s.classList.remove("connected-spans"));
+  connectedSpans = [];
+  if (!indices) return;
+  for (const i of indices) {
+    const span = tokenSpans[i];
+    if (!span) continue;
+    span.classList.add("connected-spans");
+    connectedSpans.push(span);
+  }
+};
+
 // ====================================
-const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex);
+const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
 
 function addListeners(): void {
   nextBtn.addEventListener("click", () => renderer.nextSentence());
@@ -69,6 +92,8 @@ function populateLeftContainer(data: any) {
       return `<div class="full-sentence" data-sentence="${i}">${spans}</div>`;
     })
     .join("");
+
+  cacheTokenSpans();
 
   const findClosestSentenceAndToken = (
     event: PointerEvent | MouseEvent,

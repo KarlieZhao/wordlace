@@ -5,6 +5,7 @@ export class WordLayer {
   private hot = new Set<number>();
   private hoverCb: ((token: number | null) => void) | null = null;
   private clickCb: ((token: number | null) => void) | null = null;
+  private focusCb: ((indices: ReadonlySet<number> | null) => void) | null = null;
 
   private readonly root: HTMLElement;
 
@@ -73,11 +74,15 @@ export class WordLayer {
     this.wordEls.forEach((el, i) => el.classList.toggle("wv-selected", indice === i));
   }
 
+  onFocusChange(cb: (indices: ReadonlySet<number> | null) => void): void {
+    this.focusCb = cb;
+  }
+
   setFocus(indices: ReadonlySet<number> | null): void {
     this.diffClass(this.hot, indices ?? new Set(), "wv-hot");
     this.root.classList.toggle("wv-focus", indices !== null);
+    this.focusCb?.(indices);
   }
-
   private diffClass(current: Set<number>, next: ReadonlySet<number>, cls: string): void {
     for (const i of current) {
       if (!next.has(i)) this.wordEls[i]?.classList.remove(cls);
