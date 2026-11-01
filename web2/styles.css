@@ -36,7 +36,7 @@
     --label-text: #92ccef;
     --label-text-2: #ed9393;
 
-    --subway-line: #4a86a0;
+    --subway-line: #ddd2bd;
     --subway-line-2: #904d4d;
 
   }
@@ -137,21 +137,19 @@ h1 {
 } */
 
 .dep-graph-container {
-  overflow: auto;
-  position: absolute;
+  overflow: hidden;
+  /* position: absolute; */
   min-height: 0;
   margin-top: 100px;
+  width: max-content;
 }
 
 .vector-plot {
   position: relative;
   width: max-content;
   min-width: 100%;
-}
-
-.word-plot {
-  position: absolute;
-  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .vector-plot,
@@ -176,10 +174,6 @@ h1 {
     z-index: 100;
 }
 
-.word-plot {
-    position: relative;
-}
-
 .vector-word {
   position: absolute;
   left: 0px;
@@ -201,8 +195,10 @@ h1 {
   z-index: 2;
   color: var(--highlight);
 }
+
 .word-plot {
-    pointer-events: none;
+  position: relative;
+  pointer-events: none;
 }
 
 .vector-word {
@@ -265,9 +261,9 @@ h1 {
     top: 0;
     bottom: 0;
     width: 1.6px;
+    z-index: 1000;
     background: linear-gradient(to bottom,
-            transparent 0%,
-            var(--subway-line) 15%,
+            var(--subway-line) 0%,
             var(--subway-line) 85%,
             transparent 100%);
     /* transform: translateX(-5px); */
@@ -370,13 +366,6 @@ h1 {
     color: var(--text-main);
     white-space: nowrap;
     margin: 0 8px;
-}
-
-.word-plot {
-  pointer-events: none;
-}
-.vector-word {
-  pointer-events: auto;
 }
 
 /* ---- edges ---- */

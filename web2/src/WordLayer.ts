@@ -1,4 +1,6 @@
 import { TRANSITION_PROPS_WHILE_SIMULATING } from "./config";
+import { distToRect } from "./utils";
+
 export class WordLayer {
   private wordEls: HTMLElement[] = [];
   private connected = new Set<number>();
@@ -12,15 +14,53 @@ export class WordLayer {
   constructor(root: HTMLElement) {
     this.root = root;
 
-    root.addEventListener("mouseover", (e) => {
-      const el = (e.target as Element | null)?.closest<HTMLElement>(".vector-word");
-      if (el && this.root.contains(el)) this.hoverCb?.(Number(el.dataset.index));
+    const THRESHOLD = 40;
+    let lastIndex = -1;
+    let raf = 0;
+
+    root.addEventListener("mousemove", (e) => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+
+        let best: HTMLElement | null = null;
+        let bestDist = THRESHOLD;
+
+        root.querySelectorAll<HTMLElement>(".vector-word").forEach((el) => {
+          for (const r of el.getClientRects()) {
+            const d = distToRect(e.clientX, e.clientY, r);
+            if (d < bestDist) {
+              bestDist = d;
+              best = el;
+            }
+          }
+        });
+
+        if (best) {
+          const idx = Number((best as HTMLElement).dataset.index);
+          if (idx !== lastIndex) {
+            lastIndex = idx;
+            this.hoverCb?.(idx);
+          }
+        }
+      });
     });
 
-    root.addEventListener("mouseout", (e) => {
-      const to = (e.relatedTarget as Element | null)?.closest?.(".vector-word");
-      if (to) return;
-      this.hoverCb?.(null);
+    document.addEventListener("mousemove", (e) => {
+      const rootPos = root.getBoundingClientRect();
+          const vectorSVG = document.querySelector(".vector-edges");
+          if (!vectorSVG) return;
+      const inside =
+        e.clientX > rootPos.left &&
+        e.clientX < rootPos.right &&
+        e.clientY > rootPos.top &&
+        e.clientY < rootPos.top + vectorSVG.clientHeight - 80;
+
+      if (!inside && lastIndex !== -1) {
+        // console.log("out");
+        lastIndex = -1;
+        this.hoverCb?.(null);
+      }
     });
 
     root.addEventListener("click", (e) => {

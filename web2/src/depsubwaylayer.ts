@@ -41,7 +41,7 @@ export class SubwayLayer {
   }
 
   private render(): void {
-    const focus = this.hoveredWord ?? this.defaultWord();
+    const focus = this.hoveredWord //?? this.defaultWord();
 
     this.root.innerHTML = "";
     if (focus === null) {
@@ -69,7 +69,8 @@ export class SubwayLayer {
 
   private draw(focus: number): void {
     const { left, top } = this.getWordX(focus);
-    const vectorSVG = document.querySelector(".vector-edges")
+    const vectorSVG = document.querySelector(".vector-edges");
+    if (!vectorSVG) return;
     const spine = document.createElement("div");
     spine.className = "subway-spine";
     spine.style.left = `${left}px`;
@@ -82,9 +83,12 @@ export class SubwayLayer {
       totalHeight += height;
       this.root.appendChild(this.buildRow(row, left, height));
     }
+    const GAP = 55;
 
-    this.root.style.marginTop = `${vectorSVG?.clientHeight}px`;
+    this.root.style.marginTop = `${- GAP}px`;
     this.root.classList.add("is-visible");
+    spine.style.height = `${GAP + this.root.clientHeight + vectorSVG.clientHeight - top}px`;
+    spine.style.top = `${-vectorSVG.clientHeight + top - GAP}px`;
   }
 
   private buildRows(focus: number): SubwayRow[] {

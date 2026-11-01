@@ -124,3 +124,9 @@ export function smoothScrollTo(targetLeft: number, duration: number) {
 
   requestAnimationFrame(step);
 }
+
+export function distToRect(x: number, y: number, r: DOMRect) {
+  const dx = Math.max(r.left - x, 0, x - r.right);
+  const dy = Math.max(r.top - y, 0, y - r.bottom);
+  return Math.hypot(dx, dy);
+}
