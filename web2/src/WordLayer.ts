@@ -48,8 +48,8 @@ export class WordLayer {
 
     document.addEventListener("mousemove", (e) => {
       const rootPos = root.getBoundingClientRect();
-          const vectorSVG = document.querySelector(".vector-edges");
-          if (!vectorSVG) return;
+      const vectorSVG = document.querySelector(".vector-edges");
+      if (!vectorSVG) return;
       const inside =
         e.clientX > rootPos.left &&
         e.clientX < rootPos.right &&
@@ -69,6 +69,11 @@ export class WordLayer {
         this.clickCb?.(Number(el.dataset.index));
       }
     });
+  }
+
+  getLayerBbox() {
+    const bbox = this.root.getBoundingClientRect();
+    return bbox;
   }
 
   onHover(cb: (token: number | null) => void): void {

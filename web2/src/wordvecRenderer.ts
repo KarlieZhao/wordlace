@@ -51,7 +51,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
       return { left: wordElLeft, top: wordElTop + 120 };
     };
-
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordPos);
 
     this.words.onHover((token) => {

@@ -151,7 +151,7 @@ async function init(): Promise<void> {
   const raw = await loadJson(dataURL);
   populateLeftContainer(raw);
   await renderer.init(raw);
-  renderer.render(0, 200);
+  renderer.render(0, 50);
 }
 
 init();
