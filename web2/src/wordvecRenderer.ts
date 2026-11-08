@@ -8,6 +8,7 @@ import { WordLayer } from "./wordlayer";
 import { type WordMetadata } from "./basedependency";
 
 export class WordVecRenderer extends BaseDependencyRenderer {
+  private readonly parentContainer: HTMLDivElement;
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
 
@@ -32,6 +33,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     focusCallback: (indices: ReadonlySet<number> | null) => void,
   ) {
     super(".vector-plot");
+    this.parentContainer = document.querySelector(".right-section") as HTMLDivElement;
     this.wordClickCallback = wordClickCallback;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
@@ -43,26 +45,27 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.hover = new HoverController(this.words, this.edges);
     this.words.onFocusChange(focusCallback);
 
-    const getHoveredWordX = (index: number): { left: number; top: number } => {
+    const getHoveredWordPos = (index: number): { left: number; top: number } => {
       const wordElLeft =
         parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
       const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
       return { left: wordElLeft, top: wordElTop + 120 };
     };
 
-    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordX);
+    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordPos);
 
     this.words.onHover((token) => {
       if (this.lockedToken !== null) return;
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
+      this.subway.render();
     });
 
     this.words.onClick((token) => {
       if (this.lockedToken === null || token === null) return;
-
       this.hover.setHoveredWord(token);
       this.subway.setHoveredWord(token);
+      this.subway.render();
       //update the sentence on the left
       this.wordClickCallback(this.sentenceIndex, token);
     });
@@ -112,54 +115,22 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.subway.setHoveredWord(token);
   }
 
-  render(index: number): void {
+  render(index: number, ypos: number): void {
     if (!this.loaded || index < 0 || index >= this.graph.sentenceCount) return;
     this.sentenceIndex = index;
+    this.parentContainer.style.top = `${ypos}px`;
     // this.lockedToken = null;
     this.hover.clear();
 
     const [start, end] = this.graph.sentenceRange(index);
-    this.showOnly(start, end); // must happen before measuring widths
-
+    this.showOnly(start, end);
     const { points } = this.layout.sentenceTargets(start, end, (id) => this.targetYById[id]);
     this.layout.setLive(start, points);
 
     this.placeSentence(start, end);
-    this.buildEdges(start, end); // draws the edges from the live positions
-
-    // this.centerGraph(start, end);
+    this.buildEdges(start, end);
   }
-
-  nextSentence(): void {
-    this.step(1);
-  }
-
-  prevSentence(): void {
-    this.step(-1);
-  }
-
   /* --------------------------- internals --------------------------- */
-
-  private centerGraph(start: number, end: number): void {
-    if (!this.container) return;
-    const viewport = document.querySelector(".main-container") as HTMLElement;
-    const bounds = this.measureBounds(start, end);
-
-    const subway = this.subway.root;
-    const subwayWidth = subway.offsetWidth;
-    const gap = 40;
-
-    const totalWidth = bounds.width + gap + subwayWidth;
-    const totalHeight = bounds.height;
-
-    const offsetX = (viewport.clientWidth - totalWidth) / 2 - bounds.minX;
-    const offsetY = (viewport.clientHeight - totalHeight) / 2 - bounds.minY;
-
-    const rightSec = document.querySelector(".right-section") as HTMLDivElement;
-    rightSec.style.paddingLeft = `${offsetX / 1.5}px`;
-    rightSec.style.paddingTop = `${offsetY / 2}px`;
-    //  console.log(rightSec);
-  }
 
   private measureBounds(start: number, end: number) {
     const live = this.layout.live;
@@ -193,11 +164,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       height: maxY - minY,
     };
   }
-  private step(delta: number): void {
-    const n = this.sentenceCount;
-    if (!n) return;
-    this.render((((this.sentenceIndex + delta) % n) + n) % n);
-  }
 
   private buildEdges(start: number, end: number): void {
     const live = this.layout.live;
@@ -216,6 +182,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     const indices = Array.from({ length: end - start }, (_, i) => start + i);
     this.subway.setSentenceWords(indices);
+    this.subway.render();
   }
 
   private placeSentence(start: number, end: number): void {

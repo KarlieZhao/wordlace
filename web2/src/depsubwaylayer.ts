@@ -19,7 +19,7 @@ export class SubwayLayer {
   readonly root: HTMLElement;
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly getWordX: (index: number) => { left: number; top: number };
+  private readonly getWordPos: (index: number) => { left: number; top: number };
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
   private metadata: WordMetadata[] | null = null;
@@ -28,13 +28,13 @@ export class SubwayLayer {
     container: HTMLElement,
     words: WordLayer,
     edges: EdgeLayer,
-    getWordX: (index: number) => { left: number; top: number },
+    getWordPos: (index: number) => { left: number; top: number },
   ) {
     this.root = container;
     this.root.classList.add("dependency-subway");
     this.words = words;
     this.edges = edges;
-    this.getWordX = getWordX;
+    this.getWordPos = getWordPos;
   }
   loadMetadata(metadata: WordMetadata[]): void {
     this.metadata = metadata;
@@ -42,7 +42,6 @@ export class SubwayLayer {
 
   setSentenceWords(indices: number[]): void {
     this.sentenceWords = indices;
-    this.render();
   }
 
   setHoveredWord(token: number | null): void {
@@ -52,7 +51,7 @@ export class SubwayLayer {
     this.edges.setColors(this.hoveredWord);
   }
 
-  private render(): void {
+  render(): void {
     const focus = this.hoveredWord; //?? this.defaultWord();
 
     this.root.innerHTML = "";
@@ -80,7 +79,8 @@ export class SubwayLayer {
   }
 
   private draw(focus: number): void {
-    const { left, top } = this.getWordX(focus);
+    const { left, top } = this.getWordPos(focus);
+
     const vectorSVG = document.querySelector(".vector-edges");
     if (!vectorSVG) return;
     const spine = document.createElement("div");
@@ -99,8 +99,16 @@ export class SubwayLayer {
 
     this.root.style.marginTop = `${-GAP}px`;
     this.root.classList.add("is-visible");
-    spine.style.height = `${GAP + this.root.clientHeight + vectorSVG.clientHeight - top}px`;
-    spine.style.top = `${-vectorSVG.clientHeight + top - GAP}px`;
+    const spineHeight = GAP + this.root.clientHeight + vectorSVG.clientHeight - top;
+    spine.style.height = `${spineHeight}px`;
+    spine.style.top = `${top - vectorSVG.clientHeight - GAP}px`;
+    if (top > window.innerHeight / 2 - 200) {
+      this.root.style.position = "absolute";
+      this.root.style.top = `${top - vectorSVG.clientHeight + 120 + GAP}px`; // todo: figure out the math
+    } else {
+      this.root.style.position = "relative";
+      this.root.style.top = "0px";
+    }
   }
 
   private buildRows(focus: number): SubwayRow[] {
@@ -208,7 +216,6 @@ export class SubwayLayer {
     return wrap;
   }
 }
-
 
 function getLongestLabelWidth(texts: string[]): number {
   const measureContainer = document.createElement("div");

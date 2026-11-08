@@ -68,19 +68,6 @@ const highlightConnectedSpans = (indices: ReadonlySet<number> | null) => {
 // ====================================
 const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
 
-function addListeners(): void {
-  nextBtn.addEventListener("click", () => renderer.nextSentence());
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      renderer.nextSentence();
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      renderer.prevSentence();
-    }
-  });
-}
 function populateLeftContainer(data: any) {
   if (!leftContainer) return;
 
@@ -117,7 +104,11 @@ function populateLeftContainer(data: any) {
     sentenceDiv: HTMLElement,
     lock: boolean = false,
   ): void => {
-    if (sentence !== renderer.currentSentence) renderer.render(sentence);
+    const wordY = Math.max(
+      0,
+      Math.min(window.innerHeight * 0.8 - 350, wordSpan.getBoundingClientRect().top * 0.8 - 150),
+    );
+    if (sentence !== renderer.currentSentence) renderer.render(sentence, wordY);
     renderer.hoverToken(token);
     highlightWordAndSentence(wordSpan, sentenceDiv);
     if (lock) lockHighlightWord(wordSpan, sentenceDiv);
@@ -157,11 +148,10 @@ function populateLeftContainer(data: any) {
 }
 
 async function init(): Promise<void> {
-  addListeners();
   const raw = await loadJson(dataURL);
   populateLeftContainer(raw);
   await renderer.init(raw);
-  renderer.render(0);
+  renderer.render(0, 200);
 }
 
 init();

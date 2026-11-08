@@ -106,12 +106,12 @@ h1 {
     -moz-user-select: none;    /* Firefox */
     -ms-user-select: none;     /* Internet Explorer/Edge */
     user-select: none;  
-      min-width: 200px;
+    min-width: 200px;
     height: 100%;
     overflow: auto;
     /* border-right: 2px solid var(--subway-line); */
     /* flex: 1; */
-    width: 20vw;
+    width: 30vw;
     background: linear-gradient(90deg, var(--background-left) 0%, var(--background) 100%);
 /* TODO: add opacity */
     color: var(--text-dim);
@@ -140,6 +140,7 @@ h1 {
   /* background-color: #142B39; */
   height: max-content;
   padding-bottom: 10rem;
+  position: absolute;
 
 }
 
