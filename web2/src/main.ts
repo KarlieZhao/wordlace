@@ -1,8 +1,8 @@
 import { loadJson } from "./utils";
-import { WordVecRenderer } from "./wordvecrenderer";
+import { WordVecRenderer } from "./wordvecRenderer";
 const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
 
-const dataURL = "/Not_Even_This_tokens.json";
+const dataURL = "/so-to-speak-en_tokens.json";
 const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
 
 // ================  HELPERS  ====================

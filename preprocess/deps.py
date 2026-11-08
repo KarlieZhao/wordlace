@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
-import os
-import hanlp
+
 import json
-import numpy as np
-from wordvecs import run_word2vec
-import string
+import os
 import shutil
+import string
+
+import hanlp
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
 HanLP = hanlp.load(
     hanlp.pretrained.mtl.UD_ONTONOTES_TOK_POS_LEM_FEA_NER_SRL_DEP_SDP_CON_XLMR_BASE
+    # CLOSE_TOK_POS_NER_SRL_DEP_SDP_CON_ELECTRA_SMALL_ZH
+    # EN_UD_EWT_TOK_POS_LEM_FEA_NER_SRL_DEP_SDP_CONV <= english
+    # UD_ONTONOTES_TOK_POS_LEM_FEA_NER_SRL_DEP_SDP_CON_XLMR_BASE <= multilingual
 )
 
 
@@ -26,13 +29,13 @@ def clean_list(strings):
 
 
 def run():
-    filename = "example"
+    filename = "so-to-speak-en"
     with open(f"./input/{filename}.json", "r") as file:
         input = json.load(file)
         print()
         print("Processing dependency...")
         output = HanLP(input)
-        tokens = [item for sublist in output["tok"] for item in sublist]
+        # tokens = [item for sublist in output["tok"] for item in sublist]
 
         # filtered_tokens = clean_list(tokens)
 
