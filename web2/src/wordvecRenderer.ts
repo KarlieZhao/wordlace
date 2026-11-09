@@ -6,9 +6,9 @@ import { HoverController } from "./hovercontroller";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
 import { type WordMetadata } from "./basedependency";
+import { BAND_GAP } from "./config";
 
 export class WordVecRenderer extends BaseDependencyRenderer {
-  private readonly parentContainer: HTMLDivElement;
   private readonly wordContainer: HTMLDivElement;
   private readonly lineContainer: HTMLDivElement;
 
@@ -26,6 +26,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   private targetYById: number[] = [];
   private wordEls: HTMLElement[] = [];
+
   private wordClickCallback;
 
   constructor(
@@ -33,7 +34,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     focusCallback: (indices: ReadonlySet<number> | null) => void,
   ) {
     super(".vector-plot");
-    this.parentContainer = document.querySelector(".right-section") as HTMLDivElement;
     this.wordClickCallback = wordClickCallback;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     this.lineContainer = this.container as HTMLDivElement;
@@ -45,11 +45,11 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.hover = new HoverController(this.words, this.edges);
     this.words.onFocusChange(focusCallback);
 
-    const getHoveredWordPos = (index: number): { left: number; top: number } => {
+    const getHoveredWordPos = (index: number): { left: number; top: number; width: number } => {
       const wordElLeft =
         parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
       const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
-      return { left: wordElLeft, top: wordElTop + 120 };
+      return { left: wordElLeft, top: wordElTop, width: this.wordEls[index].clientWidth };
     };
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordPos);
 
@@ -114,11 +114,9 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.subway.setHoveredWord(token);
   }
 
-  render(index: number, ypos: number): void {
+  render(index: number): void {
     if (!this.loaded || index < 0 || index >= this.graph.sentenceCount) return;
     this.sentenceIndex = index;
-    this.parentContainer.style.top = `${ypos}px`;
-    // this.lockedToken = null;
     this.hover.clear();
 
     const [start, end] = this.graph.sentenceRange(index);
@@ -126,11 +124,41 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     const { points } = this.layout.sentenceTargets(start, end, (id) => this.targetYById[id]);
     this.layout.setLive(start, points);
 
+    this.wrapSentence(start, end);
     this.placeSentence(start, end);
     this.buildEdges(start, end);
   }
   /* --------------------------- internals --------------------------- */
 
+  private wrapSentence(start: number, end: number): void {
+    const live = this.layout.live;
+    const maxWidth = this.wordContainer.clientWidth;
+    if (maxWidth <= 0) return;
+    const { minY, maxY, maxX } = this.measureBounds(start, end);
+
+    if (maxX <= maxWidth) return;
+    const bandHeight = maxY - minY + BAND_GAP;
+    let band = 0;
+    let bandLeft: number | null = null;
+    for (let i = start; i < end; i++) {
+      const p = live[i];
+      const el = this.wordEls[i];
+      if (!p || !el) continue;
+
+      const w = el.offsetWidth;
+      const left = p.px - w / 2;
+
+      if (bandLeft === null) {
+        bandLeft = left;
+      } else if (left + w - bandLeft > maxWidth - 2) {
+        band++;
+        bandLeft = left;
+      }
+
+      p.px = left - bandLeft + w / 2;
+      p.py = p.py + band * bandHeight;
+    }
+  }
   private measureBounds(start: number, end: number) {
     const live = this.layout.live;
 

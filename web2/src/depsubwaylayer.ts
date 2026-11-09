@@ -19,7 +19,7 @@ export class SubwayLayer {
   readonly root: HTMLElement;
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly getWordPos: (index: number) => { left: number; top: number };
+  private readonly getWordPos: (index: number) => { left: number; top: number; width: number };
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
   private metadata: WordMetadata[] | null = null;
@@ -28,7 +28,7 @@ export class SubwayLayer {
     container: HTMLElement,
     words: WordLayer,
     edges: EdgeLayer,
-    getWordPos: (index: number) => { left: number; top: number },
+    getWordPos: (index: number) => { left: number; top: number; width: number },
   ) {
     this.root = container;
     this.root.classList.add("dependency-subway");
@@ -79,50 +79,43 @@ export class SubwayLayer {
   }
 
   private draw(focus: number): void {
-    const { left, top } = this.getWordPos(focus);
+    const { left, top, width } = this.getWordPos(focus);
     const bbox = this.words.getLayerBbox();
-    const layerCenter = bbox.top - bbox.height / 2;
+    const layerCenter = bbox.top + bbox.height / 2;
     const vectorSVG = document.querySelector(".vector-edges");
     if (!vectorSVG) return;
 
     const spine = document.createElement("div");
     spine.className = "subway-spine";
-    spine.style.left = `${left}px`;
+    const spineX = left + width / 2 - 10;
+    spine.style.left = `${spineX}px`;
     this.root.appendChild(spine);
 
     for (const row of this.buildRows(focus)) {
       const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
-      this.root.appendChild(this.buildRow(row, left, height));
+      this.root.appendChild(this.buildRow(row, spineX, height));
     }
 
-    const GAP = 50;
-    const overlay = layerCenter > window.innerHeight / 2 - 100;
-    this.root.style.position = "relative";
-    this.root.style.top = "0px";
-    this.root.style.width = "";
-    this.root.style.zIndex = "";
-    this.root.style.marginTop = `${-GAP}px`;
+    const above = (top > window.innerHeight / 2 && top < layerCenter) || top > window.innerHeight * 0.75;
     this.root.classList.add("is-visible");
-
-    const anchorY = top - vectorSVG.clientHeight - GAP;
-
-    if (!overlay) {
-      spine.style.top = `${anchorY}px`;
-      spine.style.height = `${this.root.clientHeight - anchorY}px`;
-      return;
-    }
-
     const flowWidth = this.root.offsetWidth;
 
-    this.root.style.position = "absolute";
-    this.root.style.marginTop = "0px";
     this.root.style.width = `${flowWidth}px`;
-    this.root.style.top = `${-this.root.clientHeight}px`;
     this.root.style.zIndex = "10";
+    const GAP = 80;
+    const maxGap = GAP + Math.min(80, vectorSVG.clientHeight);
 
-    spine.style.top = "0px";
-    spine.style.height = `${this.root.clientHeight + top - GAP}px`;
+    if (above) {
+      // subway diagram above vecotrs
+      this.root.style.top = `${top - maxGap - this.root.clientHeight + 40}px`;
+      spine.style.height = `${this.root.clientHeight + GAP}px`;
+    } else {
+      this.root.style.top = `${top + maxGap + 20}px`;
+      spine.style.top = `${-maxGap}px`;
+      spine.style.height = `${this.root.clientHeight + top - GAP}px`;
+    }
   }
+
   private buildRows(focus: number): SubwayRow[] {
     const byOther = [];
     for (const e of this.edges.incident(focus)) {

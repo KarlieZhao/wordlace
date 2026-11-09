@@ -111,9 +111,8 @@ h1 {
     overflow: auto;
     /* border-right: 2px solid var(--subway-line); */
     /* flex: 1; */
-    width: 30vw;
+    width: 20vw;
     background: linear-gradient(90deg, var(--background-left) 0%, var(--background) 100%);
-/* TODO: add opacity */
     color: var(--text-dim);
     padding: 3rem;
     font-family: "Inika", serif;
@@ -130,18 +129,18 @@ h1 {
 .right-section-container {
   flex: 3;
   height: 100%;
-  overflow-y: auto;
-  overflow-x: auto;
-  background: linear-gradient(90deg, var(--background) 0%, var(--background) 100%);
-  /* border: 2px solid var(--subway-line); */
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--background);
 }
 
 .right-section {
-  /* background-color: #142B39; */
+  width: max-content;
+  min-width: 100%;
   height: max-content;
-  padding-bottom: 10rem;
-  position: absolute;
-
+  padding: 0 0 10rem 5rem;
+  position: relative;
 }
 
 /* #full-text {
@@ -226,13 +225,6 @@ h1 {
     pointer-events: none;
 }
 
-.subway-container {
-    /* height: 45vh; */
-    display: flex;
-    /* align-items: end; */
-    width: 100%;
-}
-
 
 /* .full-line {
     position: absolute;
@@ -264,6 +256,10 @@ h1 {
     display: none;
     padding-top: 8px;
     transform: translateX(15px);
+}
+.dependency-subway{
+  position: absolute;
+  margin-top: 0;
 }
 
 .dependency-subway.is-visible {

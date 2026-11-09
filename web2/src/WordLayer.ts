@@ -72,7 +72,8 @@ export class WordLayer {
   }
 
   getLayerBbox() {
-    const bbox = this.root.getBoundingClientRect();
+    const parent = this.root.parentElement ?? this.root;
+    const bbox = parent.getBoundingClientRect();
     return bbox;
   }
 

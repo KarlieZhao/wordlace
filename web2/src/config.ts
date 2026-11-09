@@ -1,7 +1,8 @@
 import type { DepRepresentation } from "./basedependency";
 
 export const TOKEN_SPACING_X = 15;
-export const TOKEN_SPACING_Y = 15;
+export const TOKEN_SPACING_Y = 8;
+export const BAND_GAP = 20;
 
 export const TOKEN_TOP_PAD = 20;
 export const MARKER_SIZE = 4;
@@ -21,7 +22,6 @@ export const LEFT_PADDING = 40;
 // dependency edges
 export const CURVE_STEP = 0.35;
 export const DEP_COLORS = {
-
   "dm-from": "#6899b8",
   "dm-to": "#c46580",
   "pas-from": "#457c9f",

@@ -1,6 +1,5 @@
 import { loadJson } from "./utils";
 import { WordVecRenderer } from "./wordvecRenderer";
-const nextBtn = document.querySelector("#next-sentence") as HTMLButtonElement;
 
 const dataURL = "/so-to-speak-en_tokens.json";
 const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
@@ -104,11 +103,7 @@ function populateLeftContainer(data: any) {
     sentenceDiv: HTMLElement,
     lock: boolean = false,
   ): void => {
-    const wordY = Math.max(
-      0,
-      Math.min(window.innerHeight * 0.8 - 350, wordSpan.getBoundingClientRect().top * 0.8 - 150),
-    );
-    if (sentence !== renderer.currentSentence) renderer.render(sentence, wordY);
+    if (sentence !== renderer.currentSentence) renderer.render(sentence);
     renderer.hoverToken(token);
     highlightWordAndSentence(wordSpan, sentenceDiv);
     if (lock) lockHighlightWord(wordSpan, sentenceDiv);
@@ -151,7 +146,7 @@ async function init(): Promise<void> {
   const raw = await loadJson(dataURL);
   populateLeftContainer(raw);
   await renderer.init(raw);
-  renderer.render(0, 50);
+  renderer.render(0);
 }
 
 init();
