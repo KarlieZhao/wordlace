@@ -2,7 +2,7 @@ import { BaseDependencyRenderer, elementSize } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
 import { DependencyGraph } from "./depgraph";
 import { EdgeLayer, type EdgeInput } from "./edgelayer";
-import { HoverController } from "./hovercontroller";
+import { HoverController } from "./hovercontroll";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
 import { type WordMetadata } from "./basedependency";

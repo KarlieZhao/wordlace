@@ -1,5 +1,5 @@
 import { loadJson } from "./utils";
-import { WordVecRenderer } from "./wordvecRenderer";
+import { WordVecRenderer } from "./wordvecrenderer";
 
 const dataURL = "/so-to-speak-en_tokens.json";
 const leftContainer = document.querySelector("#full-text") as HTMLDivElement;
