@@ -1,5 +1,5 @@
 import type { Point } from "./basedependency";
-import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y, LEFT_PADDING } from "./config";
+import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y, TOP_PADDING, LEFT_PADDING } from "./config";
 
 /**
  * Owns token positions:
@@ -19,7 +19,7 @@ export class Layout {
   }
 
   build(tokenCount: number): void {
-    this.liveList = Array.from({ length: tokenCount }, () => ({ px: LEFT_PADDING, py: 0 }));
+    this.liveList = Array.from({ length: tokenCount }, () => ({ px: TOP_PADDING, py: 0 }));
   }
 
   /** `scores[i]` is token i's dependency connectivity; it decides the row. */
@@ -29,14 +29,14 @@ export class Layout {
 
   sentenceTargets(start: number, end: number, targetY: (token: number) => number): { points: Point[]; width: number } {
     const points: Point[] = [];
-    let x = LEFT_PADDING;
+    let x = TOP_PADDING;
 
     for (let i = start; i < end; i++) {
-      points.push({ px: x, py: targetY(i) });
+      points.push({ px: x, py: targetY(i) + LEFT_PADDING });
       x += this.widthOf(i) + TOKEN_SPACING_X;
     }
 
-    return { points, width: x - TOKEN_SPACING_X + LEFT_PADDING };
+    return { points, width: x - TOKEN_SPACING_X + TOP_PADDING };
   }
 
   setLive(start: number, targets: Point[]): void {

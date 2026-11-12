@@ -88,7 +88,7 @@ export class SubwayLayer {
     const spine = document.createElement("div");
     spine.className = "subway-spine";
     const spineX = left + width / 2 - 10;
-    spine.style.left = `${spineX}px`;
+    // spine.style.left = `${spineX}px`;
     this.root.appendChild(spine);
 
     for (const row of this.buildRows(focus)) {
@@ -105,15 +105,10 @@ export class SubwayLayer {
     const GAP = 80;
     const maxGap = GAP + Math.min(80, vectorSVG.clientHeight);
 
-    if (above) {
-      // subway diagram above vecotrs
-      this.root.style.top = `${top - maxGap - this.root.clientHeight + 40}px`;
-      spine.style.height = `${this.root.clientHeight + GAP}px`;
-    } else {
-      this.root.style.top = `${top + maxGap + 20}px`;
-      spine.style.top = `${-maxGap}px`;
-      spine.style.height = `${this.root.clientHeight + top - GAP}px`;
-    }
+    //   if (above) {
+    //     // subway diagram above vecotrs
+    //     this.root.style.top = `${top - maxGap - this.root.clientHeight + 40}px`;
+    spine.style.height = `${this.root.clientHeight}px`;
   }
 
   private buildRows(focus: number): SubwayRow[] {

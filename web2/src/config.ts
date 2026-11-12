@@ -1,7 +1,7 @@
 import type { DepRepresentation } from "./basedependency";
 
-export const TOKEN_SPACING_X = 15;
-export const TOKEN_SPACING_Y = 8;
+export const TOKEN_SPACING_X = 1;
+export const TOKEN_SPACING_Y = 13;
 export const BAND_GAP = 20;
 
 export const TOKEN_TOP_PAD = 20;
@@ -17,7 +17,8 @@ export const LABEL_LINE_HEIGHT = 13;
 
 export const REPRESENTATIONS: readonly DepRepresentation[] = ["dm", "pas", "psd"];
 
-export const LEFT_PADDING = 40;
+export const TOP_PADDING = 50;
+export const LEFT_PADDING = 100;
 
 // dependency edges
 export const CURVE_STEP = 0.35;

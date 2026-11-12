@@ -1,4 +1,4 @@
-import { BaseDependencyRenderer, elementSize } from "./basedependency";
+import { BaseDependencyRenderer } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
 import { DependencyGraph } from "./depgraph";
 import { EdgeLayer, type EdgeInput } from "./edgelayer";
@@ -46,10 +46,13 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.words.onFocusChange(focusCallback);
 
     const getHoveredWordPos = (index: number): { left: number; top: number; width: number } => {
-      const wordElLeft =
-        parseFloat(this.wordEls[index].style.left.split("px")[0]) - this.wordEls[index].clientWidth / 2;
-      const wordElTop = parseFloat(this.wordEls[index].style.top.split("px")[0]);
-      return { left: wordElLeft, top: wordElTop, width: this.wordEls[index].clientWidth };
+      const el = this.wordEls[index];
+
+      return {
+        left: parseFloat(el.style.left) - el.offsetWidth / 2,
+        top: parseFloat(el.style.top),
+        width: el.offsetWidth,
+      };
     };
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordPos);
 
@@ -132,64 +135,19 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   private wrapSentence(start: number, end: number): void {
     const live = this.layout.live;
-    const maxWidth = this.wordContainer.clientWidth;
-    if (maxWidth <= 0) return;
-    const { minY, maxY, maxX } = this.measureBounds(start, end);
 
-    if (maxX <= maxWidth) return;
-    const bandHeight = maxY - minY + BAND_GAP;
-    let band = 0;
-    let bandLeft: number | null = null;
     for (let i = start; i < end; i++) {
       const p = live[i];
       const el = this.wordEls[i];
       if (!p || !el) continue;
 
-      const w = el.offsetWidth;
-      const left = p.px - w / 2;
+      // Swap axes: original Y becomes X, original X becomes Y.
+      const x = p.py;
+      const y = p.px;
 
-      if (bandLeft === null) {
-        bandLeft = left;
-      } else if (left + w - bandLeft > maxWidth - 2) {
-        band++;
-        bandLeft = left;
-      }
-
-      p.px = left - bandLeft + w / 2;
-      p.py = p.py + band * bandHeight;
+      p.px = x;
+      p.py = y;
     }
-  }
-  private measureBounds(start: number, end: number) {
-    const live = this.layout.live;
-
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    for (let i = start; i < end; i++) {
-      const p = live[i];
-      const el = this.wordEls[i];
-
-      if (!p || !el) continue;
-
-      const width = el.offsetWidth;
-      const height = el.offsetHeight;
-
-      minX = Math.min(minX, p.px - width / 2);
-      minY = Math.min(minY, p.py);
-
-      maxX = Math.max(maxX, p.px + width / 2);
-      maxY = Math.max(maxY, p.py + height);
-    }
-    return {
-      minX,
-      minY,
-      maxX,
-      maxY,
-      width: maxX - minX,
-      height: maxY - minY,
-    };
   }
 
   private buildEdges(start: number, end: number): void {
@@ -214,24 +172,31 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   private placeSentence(start: number, end: number): void {
     const live = this.layout.live;
-    for (let i = start; i < end; i++) this.words.place(i, live[i].px, live[i].py);
-  }
 
+    for (let i = start; i < end; i++) {
+      const p = live[i];
+      if (!p) continue;
+
+      this.words.place(i, p.px, p.py);
+    }
+  }
   private measureExtent(start: number, end: number): { width: number; height: number } {
     const live = this.layout.live;
+
     let maxX = 0;
     let maxY = 0;
 
     for (let i = start; i < end; i++) {
       const p = live[i];
       const el = this.wordEls[i];
+
       if (!p || !el) continue;
-      maxX = Math.max(maxX, p.px + el.offsetWidth);
-      maxY = Math.max(maxY, p.py + el.offsetHeight);
+
+      maxX = Math.max(maxX, p.px + el.offsetHeight);
+      maxY = Math.max(maxY, p.py + el.offsetWidth);
     }
 
     const PAD = 60;
-    // const viewport = this.lineContainer.parentElement as HTMLElement;
 
     return {
       width: maxX + PAD,

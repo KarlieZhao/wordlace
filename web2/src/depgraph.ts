@@ -73,7 +73,6 @@ export class DependencyGraph {
         links[head]++;
         links[child]++;
 
-        // dedupe undirected pair with one shared Set instead of n per-node Sets
         const key = head < child ? head * n + child : child * n + head;
         if (!seenEdges.has(key)) {
           seenEdges.add(key);
@@ -97,7 +96,8 @@ export class DependencyGraph {
         if (v > max) max = v;
       }
       for (let i = start; i < end; i++) {
-        scores[i] = max - raw(i);
+        scores[i] = raw(i);
+        // max - raw(i);
       }
     }
 
