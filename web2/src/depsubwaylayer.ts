@@ -79,35 +79,27 @@ export class SubwayLayer {
   }
 
   private draw(focus: number): void {
-    const { left, top, width } = this.getWordPos(focus);
-    const bbox = this.words.getLayerBbox();
-    const layerCenter = bbox.top + bbox.height / 2;
     const vectorSVG = document.querySelector(".vector-edges");
     if (!vectorSVG) return;
 
+    const word= document.createElement("div");
+    word.classList.add("the-word");
+    word.innerHTML = this.words.getText(focus);
+    this.root.appendChild(word);
+    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(${-2.5}rem)`
+
     const spine = document.createElement("div");
     spine.className = "subway-spine";
-    const spineX = left + width / 2 - 10;
-    // spine.style.left = `${spineX}px`;
     this.root.appendChild(spine);
 
     for (const row of this.buildRows(focus)) {
       const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
-      this.root.appendChild(this.buildRow(row, spineX, height));
+      this.root.appendChild(this.buildRow(row, height));
     }
-
-    const above = (top > window.innerHeight / 2 && top < layerCenter) || top > window.innerHeight * 0.75;
     this.root.classList.add("is-visible");
-    const flowWidth = this.root.offsetWidth;
-
-    this.root.style.width = `${flowWidth}px`;
-    this.root.style.zIndex = "10";
-    const GAP = 80;
-    const maxGap = GAP + Math.min(80, vectorSVG.clientHeight);
-
-    //   if (above) {
-    //     // subway diagram above vecotrs
-    //     this.root.style.top = `${top - maxGap - this.root.clientHeight + 40}px`;
+   
+    spine.style.left = `${this.root.getBoundingClientRect().left}px`;
+    spine.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
     spine.style.height = `${this.root.clientHeight}px`;
   }
 
@@ -162,14 +154,14 @@ export class SubwayLayer {
     return rows;
   }
 
-  private buildRow(row: SubwayRow, spineX: number, height: number): HTMLElement {
+  private buildRow(row: SubwayRow,  height: number): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
     wrap.style.height = `${height + 15}px`;
 
     const branch = document.createElement("div");
     branch.className = `subway-branch subway-branch--${row.side} subway-branch--${row.direction}`;
-    branch.style.left = `${spineX}px`;
+    // branch.style.left = `${spineX}px`;
 
     const labels = document.createElement("div");
     labels.className = "subway-labels";

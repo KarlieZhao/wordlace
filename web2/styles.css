@@ -176,7 +176,7 @@ h1 {
 }
 
 .right-section-container {
-  flex: 3;
+  flex: 4;
   height: 100%;
   min-width: 0;
   min-height: 0;
@@ -216,6 +216,17 @@ h1 {
   height: 100%;
   background-color: var(--background-left);
   padding-top: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.the-word{
+  transform: translateY(-2.5rem);
+  width: max-content;
+  font-family: "Inika", serif;
+  font-weight: 600;
+  color: var(--highlight-background-alpha);
 }
 
 
@@ -225,6 +236,10 @@ h1 {
   height: max-content;
   /* padding: 0 0 10rem 2rem; */
   position: relative;
+
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 
@@ -334,6 +349,7 @@ h1 {
 
 .dependency-subway.is-visible {
   display: block;
+  width: 100%;
 }
 
 .subway-spine {
