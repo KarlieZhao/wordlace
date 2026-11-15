@@ -17,9 +17,11 @@ const ROW_MIN_HEIGHT = 40;
 
 export class SubwayLayer {
   readonly root: HTMLElement;
+
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
   private readonly getWordPos: (index: number) => { left: number; top: number; width: number };
+
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
   private metadata: WordMetadata[] | null = null;
@@ -32,10 +34,12 @@ export class SubwayLayer {
   ) {
     this.root = container;
     this.root.classList.add("dependency-subway");
+
     this.words = words;
     this.edges = edges;
     this.getWordPos = getWordPos;
   }
+
   loadMetadata(metadata: WordMetadata[]): void {
     this.metadata = metadata;
   }
@@ -46,15 +50,17 @@ export class SubwayLayer {
 
   setHoveredWord(token: number | null): void {
     if (this.hoveredWord === token) return;
+
     this.hoveredWord = token;
     this.render();
     this.edges.setColors(this.hoveredWord);
   }
 
   render(): void {
-    const focus = this.hoveredWord; //?? this.defaultWord();
+    const focus = this.hoveredWord;
 
     this.root.innerHTML = "";
+
     if (focus === null) {
       this.root.classList.remove("is-visible");
       return;
@@ -63,12 +69,13 @@ export class SubwayLayer {
     this.draw(focus);
   }
 
-  /** Word with the most incident edges */
   private defaultWord(): number | null {
     let best: number | null = null;
     let bestCount = -1;
+
     for (const token of this.sentenceWords) {
       const count = this.edges.incident(token).length;
+
       if (count > bestCount) {
         best = token;
         bestCount = count;
@@ -84,9 +91,11 @@ export class SubwayLayer {
 
     const word = document.createElement("div");
     word.classList.add("the-word");
-    word.innerHTML = this.words.getText(focus);
+    word.textContent = this.words.getText(focus);
+
     this.root.appendChild(word);
-    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(${-2.5}rem)`;
+
+    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(-2.5rem)`;
 
     const spine = document.createElement("div");
     spine.className = "subway-spine";
@@ -94,8 +103,10 @@ export class SubwayLayer {
 
     for (const row of this.buildRows(focus)) {
       const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
+
       this.root.appendChild(this.buildRow(row, height));
     }
+
     this.root.classList.add("is-visible");
 
     spine.style.left = `${this.root.getBoundingClientRect().left}px`;
@@ -105,33 +116,46 @@ export class SubwayLayer {
 
   private buildRows(focus: number): SubwayRow[] {
     const byOther = [];
-    for (const e of this.edges.incident(focus)) {
-      const [head, child] = this.edges.endpoints(e);
+
+    for (const edgeIndex of this.edges.incident(focus)) {
+      const [head, child] = this.edges.endpoints(edgeIndex);
       const other = head === focus ? child : head;
-      // const side: "left" | "right" = focus - other > 0 ? "left" : "right";
-      const fromOrTo: "from" | "to" = focus === child ? "from" : "to";
-      const side: "left" | "right" = fromOrTo === "from" ? "right" : "left";
-      const group = {
+
+      const direction: "from" | "to" = focus === child ? "from" : "to";
+
+      const side: "left" | "right" = direction === "from" ? "right" : "left";
+
+      byOther.push({
         wordIndex: other,
-        label: this.edges.relationLabel(e),
+        label: this.edges.relationLabel(edgeIndex),
         side,
-        direction: fromOrTo,
-        metadata: this.metadata ? this.metadata[other] : { lemma: "", pos: "" },
-      };
-      byOther.push(group);
+        direction,
+        metadata: this.metadata?.[other] ?? {
+          lemma: "",
+          pos: "",
+        },
+      });
     }
 
-    // group them so that items with same wordindex + side are combined
     const groupedRows = new Map<
       string,
-      { wordIndex: number; labels: string[]; side: "left" | "right"; direction: "from" | "to"; metadata: WordMetadata }
+      {
+        wordIndex: number;
+        labels: string[];
+        side: "left" | "right";
+        direction: "from" | "to";
+        metadata: WordMetadata;
+      }
     >();
+
     byOther.forEach((row) => {
-      const group = groupedRows.get(`${row.wordIndex}-${row.direction}`);
+      const key = `${row.wordIndex}-${row.direction}`;
+      const group = groupedRows.get(key);
+
       if (group) {
         group.labels.push(row.label);
       } else {
-        groupedRows.set(`${row.wordIndex}-${row.direction}`, {
+        groupedRows.set(key, {
           wordIndex: row.wordIndex,
           labels: [row.label],
           side: row.side,
@@ -141,17 +165,16 @@ export class SubwayLayer {
       }
     });
 
-    const rows = [...groupedRows.values()]
+    return [...groupedRows.values()]
       .sort((a, b) => a.wordIndex - b.wordIndex)
-      .map((g) => ({
-        other: g.wordIndex,
-        word: this.words.getText(g.wordIndex),
-        labels: g.labels,
-        side: g.side,
-        direction: g.direction,
-        metadata: g.metadata,
+      .map((group) => ({
+        other: group.wordIndex,
+        word: this.words.getText(group.wordIndex),
+        labels: group.labels,
+        side: group.side,
+        direction: group.direction,
+        metadata: group.metadata,
       }));
-    return rows;
   }
 
   private buildRow(row: SubwayRow, height: number): HTMLElement {
@@ -160,16 +183,15 @@ export class SubwayLayer {
     wrap.style.height = `${height + 15}px`;
 
     const branch = document.createElement("div");
-    branch.className = `subway-branch subway-branch--${row.side} subway-branch--${row.direction}`;
-    // branch.style.left = `${spineX}px`;
+    branch.className = `subway-branch subway-branch--${row.side} ` + `subway-branch--${row.direction}`;
 
     const labels = document.createElement("div");
     labels.className = "subway-labels";
 
     for (const text of row.labels) {
-      const s = document.createElement("span");
-      s.textContent = text;
-      labels.appendChild(s);
+      const span = document.createElement("span");
+      span.textContent = text;
+      labels.appendChild(span);
     }
 
     const connector = document.createElement("div");
@@ -177,7 +199,10 @@ export class SubwayLayer {
 
     const dot = document.createElement("span");
     dot.className = "subway-dot";
+
     const line = document.createElement("div");
+    line.className = "subway-line";
+
     const wordWrapper = document.createElement("div");
     wordWrapper.className = "subway-word-wrapper";
 
@@ -187,16 +212,20 @@ export class SubwayLayer {
 
     const metadata = document.createElement("span");
     metadata.className = "subway-metadata";
-    metadata.innerHTML = `<b>${row.metadata.lemma}</b><br/> ${POS_LABELS[row.metadata.pos] ?? row.metadata.pos}`;
 
+    const lemma = document.createElement("b");
+    lemma.textContent = row.metadata.lemma;
+
+    const pos = document.createElement("span");
+    pos.textContent = POS_LABELS[row.metadata.pos] ?? row.metadata.pos;
+
+    metadata.append(lemma, document.createElement("br"), pos);
     wordWrapper.append(word, metadata);
 
     branch.append(labels, connector);
     wrap.appendChild(branch);
 
     const longestLabelWidth = getLongestLabelWidth(row.labels) + 30;
-    line.style.width = `${longestLabelWidth}px`;
-    line.className = "subway-line";
     line.style.width = `${longestLabelWidth}px`;
 
     if (row.side === "right") {
@@ -230,7 +259,10 @@ function getLongestLabelWidth(texts: string[]): number {
   }
 
   document.body.appendChild(measureContainer);
+
   const width = Math.max(0, ...Array.from(measureContainer.children, (el) => el.getBoundingClientRect().width));
+
   measureContainer.remove();
+
   return width;
 }

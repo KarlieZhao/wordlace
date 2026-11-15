@@ -1,21 +1,26 @@
-import { BaseDependencyRenderer } from "./basedependency";
+import { BaseDependencyRenderer, type WordMetadata } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
 import { DependencyGraph } from "./depgraph";
 import { EdgeLayer, type EdgeInput } from "./edgelayer";
 import { HoverController } from "./hovercontroll";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
-import { type WordMetadata } from "./basedependency";
+
+interface Span {
+  start: number;
+  end: number;
+  text: string;
+  label: string;
+  source: "ner" | "srl";
+}
 
 interface ProjectedNode {
   id: number;
   start: number;
   end: number;
   text: string;
-  entityType?: string;
+  labels: string[];
 }
-
-type NerSpan = [string, string, number, number];
 
 export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly wordContainer: HTMLDivElement;
@@ -29,6 +34,12 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private readonly subway: SubwayLayer;
 
   private wordMetadata: WordMetadata[] = [];
+  private displayMetadata: WordMetadata[] = [];
+
+  private nerSpans: unknown[][] = [];
+  private srlSpans: unknown[][] = [];
+  private useSrl = false;
+
   private sentenceIndex = 0;
   private loaded = false;
   private lockedToken: number | null = null;
@@ -36,7 +47,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private targetYById: number[] = [];
   private wordEls: HTMLElement[] = [];
 
-  /** Original token ID -> projected node ID. */
+  /** Original global token ID -> projected node ID. */
   private tokenToNode: number[] = [];
 
   /** Projected nodes, grouped by sentence. */
@@ -53,16 +64,13 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.wordClickCallback = wordClickCallback;
 
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
-
     this.lineContainer = this.container as HTMLDivElement;
 
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
 
     this.layout = new Layout(this.wordContainer);
     this.words = new WordLayer(this.wordContainer);
-
     this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
-
     this.hover = new HoverController(this.words, this.edges);
 
     this.words.onFocusChange((indices) => {
@@ -71,7 +79,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
         return;
       }
 
-      // Expand projected entity nodes back to their original tokens.
       const originalIndices = new Set<number>();
 
       for (const id of indices) {
@@ -86,7 +93,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       focusCallback(originalIndices);
     });
 
-    const getHoveredWordPos = (index: number): { left: number; top: number; width: number } => {
+    const getHoveredWordPos = (index: number) => {
       const el = this.wordEls[index];
 
       if (!el) return { left: 0, top: 0, width: 0 };
@@ -125,44 +132,18 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.graph.load(raw.tok, raw);
 
     const tokens = this.graph.tokens;
-    const lemmas = raw.lem.flat();
-    const posTags = raw.pos.flat();
+    const lemmas = raw.lem?.flat?.() ?? [];
+    const posTags = raw.pos?.flat?.() ?? [];
 
     this.wordMetadata = tokens.map((word: string, index: number) => ({
       lemma: lemmas[index] ?? word,
       pos: posTags[index] ?? "",
     }));
 
-    this.buildProjection(raw.ner ?? []);
+    this.nerSpans = raw.ner ?? [];
+    this.srlSpans = raw.srl ?? [];
 
-    this.subway.loadMetadata(this.wordMetadata);
-
-    const projectedTokens = this.nodesBySentence.flat();
-
-    this.words.build(
-      projectedTokens.map((node) => node.text),
-      projectedTokens.map((node) => node.id),
-    );
-
-    this.cacheWordEls();
-
-    this.layout.build(tokens.length);
-
-    this.targetYById = this.layout.computeTargetY(this.graph.connectivity());
-
-    // Give entity nodes a vertical position based on their constituent tokens.
-    for (const node of projectedTokens) {
-      if (node.end - node.start <= 1) continue;
-
-      let total = 0;
-
-      for (let i = node.start; i < node.end; i++) {
-        total += this.targetYById[i];
-      }
-
-      this.targetYById[node.id] = total / (node.end - node.start);
-    }
-
+    this.rebuildProjection();
     this.loaded = true;
   }
 
@@ -176,6 +157,25 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   get lockedTokenIndex(): number | null {
     return this.lockedToken;
+  }
+
+  /** True if an original token belongs to the currently locked phrase. */
+  isLockedToken(token: number): boolean {
+    return this.lockedToken !== null && this.tokenToNode[token] === this.lockedToken;
+  }
+
+  /** Enable or disable SRL-based phrase collapsing. */
+  setUseSrl(enabled: boolean): void {
+    this.useSrl = enabled;
+
+    if (!this.loaded) return;
+
+    this.lockedToken = null;
+    this.hover.clear();
+    this.subway.setHoveredWord(null);
+
+    this.rebuildProjection();
+    this.render(this.sentenceIndex);
   }
 
   hoverToken(token: number | null): void {
@@ -222,75 +222,128 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   /* --------------------------- projection --------------------------- */
 
-  private buildProjection(ner: NerSpan[][]): void {
+  private rebuildProjection(): void {
+    this.buildProjection(this.nerSpans, this.srlSpans, this.useSrl);
+
+    const projectedNodes = this.nodesBySentence.flat();
+
+    this.words.build(
+      projectedNodes.map((node) => node.text),
+      projectedNodes.map((node) => node.id),
+    );
+
+    this.cacheWordEls();
+
+    this.layout.build(this.graph.tokens.length);
+
+    this.targetYById = this.layout.computeTargetY(this.graph.connectivity());
+
+    // Place collapsed phrases at the average vertical position
+    // of their original constituent tokens.
+    for (const node of projectedNodes) {
+      if (node.end - node.start <= 1) continue;
+
+      let total = 0;
+
+      for (let i = node.start; i < node.end; i++) {
+        total += this.targetYById[i];
+      }
+
+      this.targetYById[node.id] = total / (node.end - node.start);
+    }
+
+    // Keep original metadata untouched. Phrase metadata is only
+    // used by the subway visualization.
+    this.displayMetadata = this.wordMetadata.map((item) => ({ ...item }));
+
+    for (const node of projectedNodes) {
+      if (node.end - node.start <= 1) continue;
+
+      this.displayMetadata[node.id] = {
+        lemma: node.text,
+        pos: node.labels.join(" / "),
+      };
+    }
+
+    this.subway.loadMetadata(this.displayMetadata);
+  }
+
+  private buildProjection(ner: unknown[][], srl: unknown[][], includeSrl: boolean): void {
     this.tokenToNode = [];
     this.nodesBySentence = [];
 
     for (let sentence = 0; sentence < this.graph.sentenceCount; sentence++) {
       const [globalStart, globalEnd] = this.graph.sentenceRange(sentence);
+      const sentenceLength = globalEnd - globalStart;
 
-      const spans = [...(ner[sentence] ?? [])]
-        .filter((span) => {
-          const [, , start, end] = span;
+      const spans = [
+        ...this.readSpans(ner[sentence], "ner"),
+        ...(includeSrl ? this.readSpans(srl[sentence], "srl") : []),
+      ]
+        .filter((span) => span.start >= 0 && span.end > span.start && span.end <= sentenceLength)
+        .sort((a, b) => a.start - b.start || b.end - a.end);
 
-          return (
-            Number.isInteger(start) &&
-            Number.isInteger(end) &&
-            start >= 0 &&
-            end > start &&
-            end <= globalEnd - globalStart
-          );
-        })
-        .sort((a, b) => a[2] - b[2] || b[3] - a[3]);
+      // Merge overlapping spans so each original token belongs
+      // to exactly one projected node.
+      const mergedSpans: Span[][] = [];
+
+      for (const span of spans) {
+        const previous = mergedSpans[mergedSpans.length - 1];
+
+        if (previous && span.start < Math.max(...previous.map((item) => item.end))) {
+          previous.push(span);
+        } else {
+          mergedSpans.push([span]);
+        }
+      }
 
       const nodes: ProjectedNode[] = [];
       let cursor = 0;
 
-      const addNode = (start: number, end: number, text: string, entityType?: string) => {
+      const addNode = (start: number, end: number, text: string, labels: string[] = []) => {
         const id = globalStart + start;
 
-        const node: ProjectedNode = {
+        nodes.push({
           id,
           start: id,
           end: globalStart + end,
           text,
-          entityType,
-        };
-
-        nodes.push(node);
+          labels,
+        });
 
         for (let i = start; i < end; i++) {
           this.tokenToNode[globalStart + i] = id;
         }
-
-        if (entityType) {
-          this.wordMetadata[id] = {
-            lemma: text,
-            pos: entityType,
-          };
-        }
       };
 
-      for (const [text, label, start, end] of spans) {
+      for (const group of mergedSpans) {
+        const start = Math.min(...group.map((span) => span.start));
+        const end = Math.max(...group.map((span) => span.end));
+
         if (start < cursor) continue;
+
         while (cursor < start) {
           const globalIndex = globalStart + cursor;
-          const word = this.graph.tokens[globalIndex];
-
-          addNode(cursor, cursor + 1, word);
-
+          addNode(cursor, cursor + 1, this.graph.tokens[globalIndex]);
           cursor++;
         }
-        const entityText = text || this.graph.tokens.slice(globalStart + start, globalStart + end).join(" ");
 
-        addNode(start, end, entityText, label);
+        const labels = [...new Set(group.map((span) => span.label).filter(Boolean))];
 
+        // Preserve HanLP's NER surface text when the node is
+        // exactly one NER span. For merged spans, use the full
+        // original token sequence.
+        const exactNerSpan = group.find((span) => span.source === "ner" && span.start === start && span.end === end);
+
+        const text = exactNerSpan?.text || this.graph.tokens.slice(globalStart + start, globalStart + end).join(" ");
+
+        addNode(start, end, text, labels);
         cursor = end;
       }
-      while (cursor < globalEnd - globalStart) {
+
+      while (cursor < sentenceLength) {
         const globalIndex = globalStart + cursor;
-        const word = this.graph.tokens[globalIndex];
-        addNode(cursor, cursor + 1, word);
+        addNode(cursor, cursor + 1, this.graph.tokens[globalIndex]);
         cursor++;
       }
 
@@ -298,10 +351,40 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     }
   }
 
-  private getNode(id: number): ProjectedNode | undefined {
-    const sentenceNodes = this.nodesBySentence[this.sentenceIndex];
+  /**
+   * HanLP span format:
+   * [surface, label, begin, end]
+   *
+   * Recursively finds spans to tolerate additional array nesting.
+   */
+  private readSpans(input: unknown, source: "ner" | "srl"): Span[] {
+    const result: Span[] = [];
 
-    return sentenceNodes?.find((node) => node.id === id);
+    const visit = (value: unknown): void => {
+      if (!Array.isArray(value)) return;
+
+      if (value.length >= 4 && typeof value[2] === "number" && typeof value[3] === "number") {
+        result.push({
+          text: String(value[0] ?? ""),
+          label: String(value[1] ?? ""),
+          start: value[2],
+          end: value[3],
+          source,
+        });
+        return;
+      }
+
+      for (const child of value) {
+        visit(child);
+      }
+    };
+
+    visit(input);
+    return result;
+  }
+
+  private getNode(id: number): ProjectedNode | undefined {
+    return this.nodesBySentence[this.sentenceIndex]?.find((node) => node.id === id);
   }
 
   /* --------------------------- internals --------------------------- */
@@ -311,7 +394,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     for (const edge of this.graph.edges(sentence)) {
       const originalHead = this.graph.globalIndex(sentence, edge.head);
-
       const originalChild = this.graph.globalIndex(sentence, edge.child);
 
       const head = this.tokenToNode[originalHead];
@@ -319,7 +401,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
       if (head === undefined || child === undefined) continue;
 
-      // Discard edges internal to a collapsed entity.
+      // Remove edges internal to the same collapsed phrase.
       if (head === child) continue;
 
       inputs.push({
@@ -344,7 +426,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     for (const node of nodes) {
       const p = live[node.id];
-
       if (!p) continue;
 
       // Swap axes: original Y becomes X, original X becomes Y.
@@ -361,14 +442,16 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     for (const node of nodes) {
       const p = live[node.id];
-
       if (!p) continue;
 
       this.words.place(node.id, p.px, p.py);
     }
   }
 
-  private measureExtent(nodes: ProjectedNode[]): { width: number; height: number } {
+  private measureExtent(nodes: ProjectedNode[]): {
+    width: number;
+    height: number;
+  } {
     const live = this.layout.live;
 
     let maxX = 0;
@@ -397,7 +480,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.wordContainer.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {
       el.style.transition = "none";
-
       this.wordEls[Number(el.dataset.index)] = el;
     });
   }

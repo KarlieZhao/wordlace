@@ -572,3 +572,24 @@ h1 {
   opacity: 1 !important;
   background-color: var(--connected-background)
 }
+
+
+.dependency-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.srl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+}
+
+.srl-toggle input {
+  cursor: pointer;
+}
