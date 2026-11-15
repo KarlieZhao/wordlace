@@ -26,6 +26,7 @@ export const REPRESENTATION_NAMES: Record<DepRepresentation, string> = {
 /* ------------------------------------------------------------------ */
 
 export const POS_LABELS: Record<string, string> = {
+  // universal dep (UPOS)
   ADJ: "adjective",
   ADP: "preposition",
   ADV: "adverb",
@@ -43,12 +44,57 @@ export const POS_LABELS: Record<string, string> = {
   SYM: "symbol",
   VERB: "verb",
   X: "other",
+
+  // Penn treebank:
+  CC: "coordinating conjunction",
+  CD: "cardinal number",
+  DT: "determiner",
+  EX: "existential there",
+  FW: "foreign word",
+  IN: "preposition or subordinating conjunction",
+  JJ: "adjective",
+  JJR: "comparative adjective",
+  JJS: "superlative adjective",
+  LS: "list item marker",
+  MD: "modal verb",
+  NN: "singular or mass noun",
+  NNS: "plural noun",
+  NNP: "singular proper noun",
+  NNPS: "plural proper noun",
+  PDT: "predeterminer",
+  POS: "possessive ending",
+  PRP: "personal pronoun",
+  PRP$: "possessive pronoun",
+  RB: "adverb",
+  RBR: "comparative adverb",
+  RBS: "superlative adverb",
+  RP: "particle",
+  TO: "infinitive marker",
+  UH: "interjection",
+  VB: "base-form verb",
+  VBD: "past-tense verb",
+  VBG: "gerund or present participle",
+  VBN: "past participle",
+  VBP: "non-third-person singular present verb",
+  VBZ: "third-person singular present verb",
+  WDT: "wh-determiner",
+  WP: "wh-pronoun",
+  WP$: "possessive wh-pronoun",
+  WRB: "wh-adverb",
+
+  // Additional PTB punctuation tags
+  "``": "opening quotation mark",
+  "''": "closing quotation mark",
+  "-LRB-": "left parenthesis",
+  "-RRB-": "right parenthesis",
+  ",": "comma",
+  ".": "sentence-ending punctuation",
+  ":": "colon or semicolon",
 };
 
 /* ------------------------------------------------------------------ */
 /* DM                                                                  */
 /* ------------------------------------------------------------------ */
-
 
 export const DM_LABELS: Record<string, string> = {
   compound: "compound",
@@ -81,7 +127,6 @@ export const DM_LABELS: Record<string, string> = {
 /* ------------------------------------------------------------------ */
 /* PAS  (labels look like "verb_ARG1", "prep_MOD", ...)                */
 /* ------------------------------------------------------------------ */
-
 
 const PAS_PREDICATES: Record<string, string> = {
   adj: "adjective",

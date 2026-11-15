@@ -10,7 +10,7 @@ import hanlp
 HERE = os.path.dirname(os.path.realpath(__file__))
 
 HanLP = hanlp.load(
-    hanlp.pretrained.mtl.EN_TOK_LEM_POS_NER_SRL_UDEP_SDP_CON_MODERNBERT_BASE
+    hanlp.pretrained.mtl.EN_TOK_LEM_POS_NER_SRL_UDEP_SDP_CON_MODERNBERT_LARGE
     # CLOSE_TOK_POS_NER_SRL_DEP_SDP_CON_ELECTRA_SMALL_ZH
     # EN_TOK_LEM_POS_NER_SRL_UDEP_SDP_CON_MODERNBERT_BASE <= english
     # UD_ONTONOTES_TOK_POS_LEM_FEA_NER_SRL_DEP_SDP_CON_XLMR_BASE <= multilingual

@@ -3,14 +3,8 @@ import { CONNECTIVITY, REPRESENTATIONS } from "./config";
 
 export type RawDeps = Partial<Record<"sdp/dm" | "sdp/pas" | "sdp/psd", DepSentence[]>>;
 
-/**
- * Pure data model (no DOM): tokens, sentence offsets and dependency edges.
- * "Global index" = position of a token in the flattened token list.
- */
 export class DependencyGraph {
-  /** Original-case tokens, flattened across sentences. */
   tokens: string[] = [];
-  /** Lower-cased tokens, same indexing as `tokens`. */
   words: string[] = [];
 
   private sentences: Sentences = [];

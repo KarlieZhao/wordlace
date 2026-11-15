@@ -82,11 +82,11 @@ export class SubwayLayer {
     const vectorSVG = document.querySelector(".vector-edges");
     if (!vectorSVG) return;
 
-    const word= document.createElement("div");
+    const word = document.createElement("div");
     word.classList.add("the-word");
     word.innerHTML = this.words.getText(focus);
     this.root.appendChild(word);
-    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(${-2.5}rem)`
+    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(${-2.5}rem)`;
 
     const spine = document.createElement("div");
     spine.className = "subway-spine";
@@ -97,7 +97,7 @@ export class SubwayLayer {
       this.root.appendChild(this.buildRow(row, height));
     }
     this.root.classList.add("is-visible");
-   
+
     spine.style.left = `${this.root.getBoundingClientRect().left}px`;
     spine.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
     spine.style.height = `${this.root.clientHeight}px`;
@@ -154,7 +154,7 @@ export class SubwayLayer {
     return rows;
   }
 
-  private buildRow(row: SubwayRow,  height: number): HTMLElement {
+  private buildRow(row: SubwayRow, height: number): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
     wrap.style.height = `${height + 15}px`;
@@ -187,7 +187,7 @@ export class SubwayLayer {
 
     const metadata = document.createElement("span");
     metadata.className = "subway-metadata";
-    metadata.textContent = `${row.metadata.lemma}, ${POS_LABELS[row.metadata.pos]}`;
+    metadata.innerHTML = `<b>${row.metadata.lemma}</b><br/> ${POS_LABELS[row.metadata.pos] ?? row.metadata.pos}`;
 
     wordWrapper.append(word, metadata);
 
