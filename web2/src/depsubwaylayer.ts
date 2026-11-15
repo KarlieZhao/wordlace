@@ -97,27 +97,56 @@ export class SubwayLayer {
     word.classList.add("the-word");
     word.textContent = this.words.getText(focus);
 
-    this.root.appendChild(word);
+    const spineTop = document.createElement("div");
+    spineTop.className = "subway-spine spine-top";
 
-    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(-2.5rem)`;
+    const spineBottom = document.createElement("div");
+    spineBottom.className = "subway-spine spine-btm";
 
-    const spine = document.createElement("div");
-    spine.className = "subway-spine";
-    this.root.appendChild(spine);
-
-    for (const row of this.buildRows(focus)) {
+    const rows = this.buildRows(focus); // already sorted by word index
+    const renderRow = (row: SubwayRow): HTMLElement => {
       const labelCount = row.links.reduce((n, link) => n + link.labels.length, 0);
       const gap = row.links.length > 1 ? LINE_GAP : 0;
       const height = Math.max(ROW_MIN_HEIGHT, labelCount * LABEL_LINE_HEIGHT + gap + 5);
 
-      this.root.appendChild(this.buildRow(row, height));
+      return this.buildRow(row, height);
+    };
+    const above: SubwayRow[] = [],
+      below: SubwayRow[] = [];
+
+    rows.forEach((r) => {
+      if (r.other < focus) above.push(r);
+      else below.push(r);
+    });
+
+    // words before the selected word: above
+    for (const row of above) {
+      this.root.appendChild(renderRow(row));
+    }
+
+    const topHeight = this.root.clientHeight;
+    spineTop.style.height = `${topHeight}px`;
+    // selected word
+    this.root.appendChild(word);
+    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(-2.5rem)`;
+
+    // words after the selected word: below
+    for (const row of below) {
+      this.root.appendChild(renderRow(row));
     }
 
     this.root.classList.add("is-visible");
 
-    spine.style.left = `${this.root.getBoundingClientRect().left}px`;
-    spine.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
-    spine.style.height = `${this.root.clientHeight}px`;
+    const rootBbox = this.root.getBoundingClientRect();
+    spineTop.style.left = `${rootBbox.left}px`;
+    spineBottom.style.left = `${rootBbox.left}px`;
+    spineTop.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
+    const wordBbox = word.getBoundingClientRect();
+    spineBottom.style.top = `${wordBbox.top + wordBbox.height + 15}px`;
+    spineBottom.style.height = `${this.root.clientHeight - topHeight}px`;
+
+    if (above.length > 0) this.root.appendChild(spineTop);
+    if (below.length > 0) this.root.appendChild(spineBottom);
   }
 
   private buildRows(focus: number): SubwayRow[] {
@@ -161,7 +190,7 @@ export class SubwayLayer {
   private buildRow(row: SubwayRow, height: number): HTMLElement {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
-    wrap.style.height = `${height + 15}px`;
+    wrap.style.height = `${height}px`;
     wrap.style.marginTop = `${height / 2}px`;
 
     const branch = document.createElement("div");

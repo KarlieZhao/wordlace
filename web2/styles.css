@@ -228,6 +228,7 @@ h1 {
   font-family: "Inika", serif;
   font-weight: 600;
   color: var(--highlight-background-alpha);
+  padding-top: 2.4rem;
 }
 
 
