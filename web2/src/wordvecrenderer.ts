@@ -159,12 +159,10 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     return this.lockedToken;
   }
 
-  /** True if an original token belongs to the currently locked phrase. */
   isLockedToken(token: number): boolean {
     return this.lockedToken !== null && this.tokenToNode[token] === this.lockedToken;
   }
 
-  /** Enable or disable SRL-based phrase collapsing. */
   setUseSrl(enabled: boolean): void {
     this.useSrl = enabled;
 

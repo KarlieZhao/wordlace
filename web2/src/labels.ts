@@ -125,7 +125,7 @@ export const DM_LABELS: Record<string, string> = {
 };
 
 /* ------------------------------------------------------------------ */
-/* PAS  (labels look like "verb_ARG1", "prep_MOD", ...)                */
+/* PAS        */
 /* ------------------------------------------------------------------ */
 
 const PAS_PREDICATES: Record<string, string> = {

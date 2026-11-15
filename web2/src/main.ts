@@ -87,44 +87,17 @@ const highlightConnectedSpans = (indices: ReadonlySet<number> | null) => {
 
 const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
 
-// ================ SRL CONTROL ====================
-
-const controls = document.createElement("div");
-controls.className = "dependency-controls";
-
-const srlLabel = document.createElement("label");
-srlLabel.className = "srl-toggle";
-
-const srlCheckbox = document.createElement("input");
-srlCheckbox.type = "checkbox";
-srlCheckbox.checked = false;
-
-const srlText = document.createElement("span");
-srlText.textContent = "Use SRL";
-
-srlLabel.append(srlCheckbox, srlText);
-controls.appendChild(srlLabel);
-
-const graphContainer = document.querySelector(".dep-graph-container") ?? document.querySelector(".right-section");
-
-if (graphContainer?.parentElement) {
-  graphContainer.parentElement.insertBefore(controls, graphContainer);
-} else {
-  leftContainer.before(controls);
-}
-
+// control eventlisteners
+const controls = document.querySelector(".top-bar") as HTMLDivElement;
+const srlCheckbox = controls.querySelector("#srl-toggle-input") as HTMLInputElement;
 srlCheckbox.addEventListener("change", () => {
   renderer.setUseSrl(srlCheckbox.checked);
   resetTextHighlight();
 });
 
-// ================ TEXT ====================
-
 function populateLeftContainer(data: any) {
   if (!leftContainer) return;
-
   let offset = 0;
-
   leftContainer.innerHTML = data.tok
     .map((sentenceArr: string[], i: number) => {
       const spans = sentenceArr

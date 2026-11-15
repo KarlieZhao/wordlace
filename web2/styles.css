@@ -273,7 +273,7 @@ h1 {
 }
 
 .top-bar {
-  display: none;
+  /* display: none; */
   flex-direction: row;
   gap: 10px;
   width: max-content;
@@ -293,6 +293,8 @@ h1 {
   transition: opacity 1s ease,
     transform 1s ease,
     z-index 0.2s ease,
+    top 0.3s ease,
+    left 0.3s ease,
     color 1s ease;
   transform: translate(-50%, -50%);
   cursor: pointer;
