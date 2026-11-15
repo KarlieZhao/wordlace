@@ -212,13 +212,14 @@ h1 {
 }
 
 .subway-section-container {
-  flex: 2;
+  flex: 3;
   height: 100%;
   background-color: var(--background-left);
   padding-top: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding-right: 2rem;
 }
 
 .the-word {
@@ -293,8 +294,6 @@ h1 {
   transition: opacity 1s ease,
     transform 1s ease,
     z-index 0.2s ease,
-    top 0.3s ease,
-    left 0.3s ease,
     color 1s ease;
   transform: translate(-50%, -50%);
   cursor: pointer;
@@ -387,9 +386,14 @@ h1 {
   font-size: 12px;
   font-weight: 300;
   white-space: nowrap;
-  padding-bottom: 4px;
-  transform: translateY(10px);
 }
+
+.subway-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 
 .subway-connector {
   display: flex;
@@ -413,30 +417,25 @@ h1 {
   .subway-labels {
     text-align: right;
     padding-right: 1em;
-    transform: translateY(20px);
   }
 }
 
-.subway-branch--from {
-  .subway-line {
-    background: var(--subway-line);
-  }
-
-  .subway-labels {
-    color: var(--label-text);
-  }
+.subway-line--from {
+  background: var(--subway-line);
 }
 
+.subway-labels--from {
+  color: var(--label-text);
+  transform: translateY(20px);
+}
 
-.subway-branch--to {
+.subway-line--to {
+  background: var(--subway-line-2);
+}
 
-  .subway-line {
-    background: var(--subway-line-2);
-  }
-
-  .subway-labels {
-    color: var(--label-text-2);
-  }
+.subway-labels--to {
+  color: var(--label-text-2);
+  transform: translateY(-20px);
 }
 
 
@@ -446,7 +445,6 @@ h1 {
   .subway-labels {
     text-align: left;
     padding-left: 1em;
-    transform: translateY(20px);
   }
 
   .subway-connector {

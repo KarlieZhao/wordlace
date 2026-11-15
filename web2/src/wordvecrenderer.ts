@@ -164,16 +164,32 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   }
 
   setUseSrl(enabled: boolean): void {
-    this.useSrl = enabled;
+    if (this.useSrl === enabled || !this.loaded) return;
 
-    if (!this.loaded) return;
+    this.useSrl = enabled;
 
     this.lockedToken = null;
     this.hover.clear();
     this.subway.setHoveredWord(null);
 
-    this.rebuildProjection();
-    this.render(this.sentenceIndex);
+    const elements = this.wordEls.filter(Boolean);
+
+    elements.forEach((el) => {
+      el.style.transition = "opacity 180ms ease";
+      el.style.opacity = "0";
+    });
+
+    window.setTimeout(() => {
+      this.rebuildProjection();
+      this.render(this.sentenceIndex);
+
+      requestAnimationFrame(() => {
+        this.wordEls.forEach((el) => {
+          if (!el) return;
+          el.style.opacity = "1";
+        });
+      });
+    }, 180);
   }
 
   hoverToken(token: number | null): void {
@@ -207,7 +223,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.showOnly(indices);
 
-    const { points } = this.layout.sentenceTargetsFor(indices, (id) => this.targetYById[id]);
+    const { points } = this.layout.sentenceTargetsFor(indices, (id) => this.targetYById[id], this.useSrl);
 
     points.forEach((point, i) => {
       this.layout.live[indices[i]] = point;
@@ -231,36 +247,32 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     );
 
     this.cacheWordEls();
-
     this.layout.build(this.graph.tokens.length);
-
     this.targetYById = this.layout.computeTargetY(this.graph.connectivity());
-
-    // Place collapsed phrases at the average vertical position
-    // of their original constituent tokens.
-    for (const node of projectedNodes) {
-      if (node.end - node.start <= 1) continue;
-
-      let total = 0;
-
-      for (let i = node.start; i < node.end; i++) {
-        total += this.targetYById[i];
-      }
-
-      this.targetYById[node.id] = total / (node.end - node.start);
-    }
-
-    // Keep original metadata untouched. Phrase metadata is only
-    // used by the subway visualization.
     this.displayMetadata = this.wordMetadata.map((item) => ({ ...item }));
 
-    for (const node of projectedNodes) {
-      if (node.end - node.start <= 1) continue;
+    if (this.useSrl) {
+      for (const node of projectedNodes) {
+        if (node.end - node.start <= 1) continue;
+        let total = 0;
+        for (let i = node.start; i < node.end; i++) {
+          total += this.targetYById[i];
+        }
+        this.targetYById[node.id] = total / (node.end - node.start);
 
-      this.displayMetadata[node.id] = {
-        lemma: node.text,
-        pos: node.labels.join(" / "),
-      };
+        this.displayMetadata[node.id] = {
+          lemma: node.text,
+          pos: node.labels.join(" / "),
+        };
+      }
+    } else {
+      for (const node of projectedNodes) {
+        if (node.end - node.start <= 1) continue;
+        this.displayMetadata[node.id] = {
+          lemma: node.text,
+          pos: node.labels.join(" / "),
+        };
+      }
     }
 
     this.subway.loadMetadata(this.displayMetadata);

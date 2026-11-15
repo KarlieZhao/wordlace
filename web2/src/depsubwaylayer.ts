@@ -3,18 +3,22 @@ import type { EdgeLayer } from "./edgelayer";
 import { POS_LABELS } from "./labels";
 import type { WordLayer } from "./wordlayer";
 
+interface SubwayLink {
+  direction: "from" | "to";
+  labels: string[];
+}
+
 interface SubwayRow {
   other: number;
   word: string;
-  labels: string[];
+  links: SubwayLink[];
   side: "left" | "right";
-  direction: "from" | "to";
   metadata: WordMetadata;
 }
 
 const LABEL_LINE_HEIGHT = 20;
 const ROW_MIN_HEIGHT = 40;
-
+const LINE_GAP = 8;
 export class SubwayLayer {
   readonly root: HTMLElement;
 
@@ -102,7 +106,9 @@ export class SubwayLayer {
     this.root.appendChild(spine);
 
     for (const row of this.buildRows(focus)) {
-      const height = Math.max(ROW_MIN_HEIGHT, row.labels.length * LABEL_LINE_HEIGHT + 5);
+      const labelCount = row.links.reduce((n, link) => n + link.labels.length, 0);
+      const gap = row.links.length > 1 ? LINE_GAP : 0;
+      const height = Math.max(ROW_MIN_HEIGHT, labelCount * LABEL_LINE_HEIGHT + gap + 5);
 
       this.root.appendChild(this.buildRow(row, height));
     }
@@ -115,65 +121,40 @@ export class SubwayLayer {
   }
 
   private buildRows(focus: number): SubwayRow[] {
-    const byOther = [];
+    const side: "left" | "right" = "right";
+
+    const grouped = new Map<number, { links: Map<"from" | "to", string[]>; metadata: WordMetadata }>();
 
     for (const edgeIndex of this.edges.incident(focus)) {
       const [head, child] = this.edges.endpoints(edgeIndex);
       const other = head === focus ? child : head;
-
       const direction: "from" | "to" = focus === child ? "from" : "to";
+      const label = this.edges.relationLabel(edgeIndex);
 
-      const side: "left" | "right" = direction === "from" ? "right" : "left";
+      let group = grouped.get(other);
+      if (!group) {
+        group = {
+          links: new Map(),
+          metadata: this.metadata?.[other] ?? { lemma: "", pos: "" },
+        };
+        grouped.set(other, group);
+      }
 
-      byOther.push({
-        wordIndex: other,
-        label: this.edges.relationLabel(edgeIndex),
-        side,
-        direction,
-        metadata: this.metadata?.[other] ?? {
-          lemma: "",
-          pos: "",
-        },
-      });
+      const labels = group.links.get(direction);
+      if (labels) labels.push(label);
+      else group.links.set(direction, [label]);
     }
 
-    const groupedRows = new Map<
-      string,
-      {
-        wordIndex: number;
-        labels: string[];
-        side: "left" | "right";
-        direction: "from" | "to";
-        metadata: WordMetadata;
-      }
-    >();
-
-    byOther.forEach((row) => {
-      const key = `${row.wordIndex}-${row.direction}`;
-      const group = groupedRows.get(key);
-
-      if (group) {
-        group.labels.push(row.label);
-      } else {
-        groupedRows.set(key, {
-          wordIndex: row.wordIndex,
-          labels: [row.label],
-          side: row.side,
-          direction: row.direction,
-          metadata: row.metadata,
-        });
-      }
-    });
-
-    return [...groupedRows.values()]
-      .sort((a, b) => a.wordIndex - b.wordIndex)
-      .map((group) => ({
-        other: group.wordIndex,
-        word: this.words.getText(group.wordIndex),
-        labels: group.labels,
-        side: group.side,
-        direction: group.direction,
+    return [...grouped.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([other, group]) => ({
+        other,
+        word: this.words.getText(other),
+        side,
         metadata: group.metadata,
+        links: (["from", "to"] as const)
+          .filter((direction) => group.links.has(direction))
+          .map((direction) => ({ direction, labels: group.links.get(direction)! })),
       }));
   }
 
@@ -181,18 +162,15 @@ export class SubwayLayer {
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
     wrap.style.height = `${height + 15}px`;
+    wrap.style.marginTop = `${height / 2}px`;
 
     const branch = document.createElement("div");
-    branch.className = `subway-branch subway-branch--${row.side} ` + `subway-branch--${row.direction}`;
+    branch.className = `subway-branch subway-branch--${row.side}`;
+    const fromLink = row.links.find((link) => link.direction === "from");
+    const toLink = row.links.find((link) => link.direction === "to");
 
-    const labels = document.createElement("div");
-    labels.className = "subway-labels";
-
-    for (const text of row.labels) {
-      const span = document.createElement("span");
-      span.textContent = text;
-      labels.appendChild(span);
-    }
+    const labelsAbove = fromLink ? this.buildLabels(fromLink) : "";
+    const labelsBelow = toLink ? this.buildLabels(toLink) : "";
 
     const connector = document.createElement("div");
     connector.className = "subway-connector";
@@ -200,8 +178,17 @@ export class SubwayLayer {
     const dot = document.createElement("span");
     dot.className = "subway-dot";
 
-    const line = document.createElement("div");
-    line.className = "subway-line";
+    const lineWidth = getLongestLabelWidth(row.links.flatMap((l) => l.labels)) + 30;
+
+    const lines = document.createElement("div");
+    lines.className = "subway-lines";
+
+    for (const link of row.links) {
+      const line = document.createElement("div");
+      line.className = `subway-line subway-line--${link.direction}`;
+      line.style.width = `${lineWidth}px`;
+      lines.appendChild(line);
+    }
 
     const wordWrapper = document.createElement("div");
     wordWrapper.className = "subway-word-wrapper";
@@ -222,22 +209,31 @@ export class SubwayLayer {
     metadata.append(lemma, document.createElement("br"), pos);
     wordWrapper.append(word, metadata);
 
-    branch.append(labels, connector);
+    // if (row.side === "right") {
+    connector.append(dot, lines, wordWrapper);
+    // } else {
+    //   connector.append(wordWrapper, lines, dot);
+    // }
+
+    branch.append(labelsAbove, connector);
+    if (labelsBelow) branch.appendChild(labelsBelow);
     wrap.appendChild(branch);
-
-    const longestLabelWidth = getLongestLabelWidth(row.labels) + 30;
-    line.style.width = `${longestLabelWidth}px`;
-
-    if (row.side === "right") {
-      connector.append(dot, line, wordWrapper);
-    } else {
-      connector.append(wordWrapper, line, dot);
-    }
 
     return wrap;
   }
-}
+  private buildLabels(link: SubwayLink): HTMLElement {
+    const container = document.createElement("div");
+    container.className = `subway-labels subway-labels--${link.direction}`;
 
+    for (const text of link.labels) {
+      const span = document.createElement("span");
+      span.textContent = text;
+      container.appendChild(span);
+    }
+
+    return container;
+  }
+}
 function getLongestLabelWidth(texts: string[]): number {
   const measureContainer = document.createElement("div");
   measureContainer.className = "subway-labels";

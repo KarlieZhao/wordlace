@@ -1,6 +1,6 @@
 import type { DepRepresentation } from "./basedependency";
 
-export const TOKEN_SPACING_X = 1;
+export const TOKEN_SPACING_X = 40;
 export const TOKEN_SPACING_Y = 13;
 export const BAND_GAP = 20;
 

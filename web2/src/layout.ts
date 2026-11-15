@@ -14,53 +14,45 @@ export class Layout {
   }
 
   build(tokenCount: number): void {
-    this.liveList = Array.from({ length: tokenCount }, () => ({
-      px: TOP_PADDING,
-      py: 0,
-    }));
+    this.liveList = Array.from({ length: tokenCount }, () => ({ px: 0, py: 0 }));
   }
 
   computeTargetY(scores: number[]): number[] {
     return scores.map((v) => v * TOKEN_SPACING_Y + TOKEN_TOP_PAD);
   }
 
-  sentenceTargets(start: number, end: number, targetY: (token: number) => number): { points: Point[]; width: number } {
+  sentenceTargets(
+    start: number,
+    end: number,
+    targetY: (token: number) => number,
+    useSrl = false,
+  ): { points: Point[]; width: number } {
     return this.sentenceTargetsFor(
       Array.from({ length: end - start }, (_, i) => start + i),
       targetY,
+      useSrl,
     );
   }
 
-  sentenceTargetsFor(indices: number[], targetY: (token: number) => number): { points: Point[]; width: number } {
+  sentenceTargetsFor(
+    indices: number[],
+    targetY: (token: number) => number,
+    useSrl = false,
+  ): { points: Point[]; width: number } {
     const points: Point[] = [];
     let x = TOP_PADDING;
 
     for (const id of indices) {
-      points.push({
-        px: x,
-        py: targetY(id) + LEFT_PADDING,
-      });
-
-      x += this.widthOf(id) + TOKEN_SPACING_X;
+      points.push({ px: x, py: targetY(id) + LEFT_PADDING });
+      x += TOKEN_SPACING_X * (useSrl ? 1.6 : 1);
     }
-
-    return {
-      points,
-      width: x - TOKEN_SPACING_X + TOP_PADDING,
-    };
+    return { points, width: x - TOKEN_SPACING_X };
   }
 
-  setLive(start: number, targets: Point[]): void {
-    targets.forEach((t, k) => {
-      this.liveList[start + k] = t;
-    });
-  }
-
-  private widthOf(index: number): number {
-    const el = this.wordContainer.querySelector(`[data-index="${index}"]`);
-
-    return el ? el.getBoundingClientRect().width : 0;
-  }
+  // private getWordElWidth(index: number): number {
+  //   const el = this.wordContainer.querySelector(`[data-index="${index}"]`);
+  //   return el ? el.getBoundingClientRect().width : 0;
+  // }
 }
 
 export function originX(parent: HTMLElement | null): {
