@@ -18,17 +18,23 @@ export const LABEL_LINE_HEIGHT = 13;
 export const REPRESENTATIONS: readonly DepRepresentation[] = ["dm", "pas", "psd"];
 
 export const TOP_PADDING = 50;
-export const LEFT_PADDING = 100;
+export const LEFT_PADDING = 0;
 
 // dependency edges
 export const CURVE_STEP = 0.35;
 export const DEP_COLORS = {
-  "dm-from": "#6899b8",
-  "dm-to": "#c46580",
-  "pas-from": "#457c9f",
-  "pas-to": "#a12d4e",
-  "psd-from": "#1C4E6E",
-  "psd-to": "#7B0828",
+  "dm-neutral": "#9eb0a8",
+  "pas-neutral": "#889790",
+  "psd-neutral": "#788a82",
+
+  "dm-from": "#64bcf3",
+  "dm-to": "#ffb164",
+
+  "pas-from": "#4399ce",
+  "pas-to": "#dd7b39",
+
+  "psd-from": "#1a6fa4",
+  "psd-to": "#c4661e",
 
   // "dm-from": "#b0c580",
   // "dm-to": "#f6c696",

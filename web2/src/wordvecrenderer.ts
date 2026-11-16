@@ -47,11 +47,14 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   private targetYById: number[] = [];
   private wordEls: HTMLElement[] = [];
 
-  /** Original global token ID -> projected node ID. */
+  // original token id -> projected node id
   private tokenToNode: number[] = [];
 
-  /** Projected nodes, grouped by sentence. */
+  //  project nodes grouped by sentence
   private nodesBySentence: ProjectedNode[][] = [];
+
+  private roleByToken: (string | null)[] = [];
+  private colorByRole = false;
 
   private wordClickCallback: (sentence: number, token: number) => void;
 
@@ -144,6 +147,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.srlSpans = raw.srl ?? [];
 
     this.rebuildProjection();
+    this.buildRoleMap();
+    this.applyRoles();
     this.loaded = true;
   }
 
@@ -157,6 +162,9 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   get lockedTokenIndex(): number | null {
     return this.lockedToken;
+  }
+  get tokenRoles(): readonly (string | null)[] {
+    return this.roleByToken;
   }
 
   isLockedToken(token: number): boolean {
@@ -172,23 +180,22 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.hover.clear();
     this.subway.setHoveredWord(null);
 
-    const elements = this.wordEls.filter(Boolean);
+    // const elements = this.wordEls.filter(Boolean);
 
-    elements.forEach((el) => {
-      el.style.transition = "opacity 180ms ease";
-      el.style.opacity = "0";
-    });
+    // elements.forEach((el) => {
+    //   el.style.opacity = "0";
+    // });
 
     window.setTimeout(() => {
       this.rebuildProjection();
       this.render(this.sentenceIndex);
 
-      requestAnimationFrame(() => {
-        this.wordEls.forEach((el) => {
-          if (!el) return;
-          el.style.opacity = "1";
-        });
-      });
+      // requestAnimationFrame(() => {
+      //   this.wordEls.forEach((el) => {
+      //     if (!el) return;
+      //     el.style.opacity = "1";
+      //   });
+      // });
     }, 180);
   }
 
@@ -236,6 +243,44 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   /* --------------------------- projection --------------------------- */
 
+  private buildRoleMap(): void {
+    this.roleByToken = new Array(this.graph.tokens.length).fill(null);
+
+    for (let s = 0; s < this.graph.sentenceCount; s++) {
+      const [globalStart] = this.graph.sentenceRange(s);
+
+      for (const span of this.readSpans(this.srlSpans[s], "srl")) {
+        if (!span.label) continue;
+
+        for (let i = span.start; i < span.end; i++) {
+          const g = globalStart + i;
+          if (this.roleByToken[g] === null) this.roleByToken[g] = span.label;
+        }
+      }
+    }
+  }
+
+  private applyRoles(): void {
+    const roles = new Map<number, string>();
+    for (const node of this.nodesBySentence.flat()) {
+      for (let i = node.start; i < node.end; i++) {
+        const role = this.roleByToken[i];
+        if (role) {
+          roles.set(node.id, role);
+          break;
+        }
+      }
+    }
+
+    this.words.setRoles(roles);
+    this.words.setRoleColoring(this.colorByRole);
+  }
+
+  setColorByRole(enabled: boolean): void {
+    this.colorByRole = enabled;
+    this.words.setRoleColoring(enabled);
+  }
+
   private rebuildProjection(): void {
     this.buildProjection(this.nerSpans, this.srlSpans, this.useSrl);
 
@@ -247,6 +292,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     );
 
     this.cacheWordEls();
+    this.applyRoles();
     this.layout.build(this.graph.tokens.length);
     this.targetYById = this.layout.computeTargetY(this.graph.connectivity());
     this.displayMetadata = this.wordMetadata.map((item) => ({ ...item }));
@@ -361,12 +407,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     }
   }
 
-  /**
-   * HanLP span format:
-   * [surface, label, begin, end]
-   *
-   * Recursively finds spans to tolerate additional array nesting.
-   */
   private readSpans(input: unknown, source: "ner" | "srl"): Span[] {
     const result: Span[] = [];
 

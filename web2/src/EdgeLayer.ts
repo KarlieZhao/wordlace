@@ -63,10 +63,9 @@ export class EdgeLayer {
 
     const defs = svgEl("defs");
 
-    for (const sentence of sentences) {
-      defs.appendChild(this.marker(sentence, "from"));
-      defs.appendChild(this.marker(sentence, "to"));
-    }
+    defs.appendChild(this.marker("from"));
+    defs.appendChild(this.marker("to"));
+    defs.appendChild(this.marker("neutral"));
 
     const arcs = svgEl("g");
     const groups = new Map<string, number[]>();
@@ -101,8 +100,8 @@ export class EdgeLayer {
         "data-head": head,
         "data-child": child,
         "data-relation": edge.relation,
-        stroke: DEP_COLORS[`${edge.representation}-from`],
-        "marker-end": `url(#wv-arrow-${sentence}-from)`,
+        stroke: DEP_COLORS[`${edge.representation}-neutral`],
+        "marker-end": `url(#wv-arrow-neural)`,
       });
 
       arcs.appendChild(path);
@@ -173,22 +172,22 @@ export class EdgeLayer {
   setColors(focusedWordIndex: number | null): void {
     if (focusedWordIndex === null) {
       this.items.forEach((item) => {
-        item.path.setAttribute("stroke", DEP_COLORS[`${item.edge.representation}-from`]);
+        item.path.setAttribute("stroke", DEP_COLORS[`${item.edge.representation}-neutral`]);
 
-        item.path.setAttribute("marker-end", `url(#wv-arrow-${item.sentence}-from)`);
+        item.path.setAttribute("marker-end", `url(#wv-arrow-neutral)`);
       });
 
       return;
     }
 
     this.hot.forEach((edgeIndex) => {
-      const { head, edge, path, sentence } = this.items[edgeIndex];
+      const { head, edge, path } = this.items[edgeIndex];
 
       const direction = head === focusedWordIndex ? "to" : "from";
 
       path.setAttribute("stroke", DEP_COLORS[`${edge.representation}-${direction}`]);
 
-      path.setAttribute("marker-end", `url(#wv-arrow-${sentence}-${direction})`);
+      path.setAttribute("marker-end", `url(#wv-arrow-${direction})`);
     });
   }
 
@@ -242,9 +241,9 @@ export class EdgeLayer {
     };
   }
 
-  private marker(sentence: number, direction: "from" | "to"): SVGMarkerElement {
+  private marker(direction: "from" | "to" | "neutral"): SVGMarkerElement {
     const marker = svgEl("marker", {
-      id: `wv-arrow-${sentence}-${direction}`,
+      id: `wv-arrow-${direction}`,
       viewBox: "0 0 10 10",
       refX: 10,
       refY: 5,

@@ -6,7 +6,7 @@
 :root {
   --text-darker: #1b1b1b;
   --text-main: #383838;
-  --text-dim: #777777;
+  --text-dim: #555;
   --highlight: #30506a;
   --background: #EEF0F2;
   --background-left: #d8dee4;
@@ -15,36 +15,42 @@
   --highlight-background-alpha: #de7008;
   --connected-background: #b6d8e2;
 
-  --label-text: #1C4E6E;
-  --label-text-2: #601414;
+  --label-text: #0e4d75;
+  --label-text-2: #904912;
 
-  --subway-line: #71a4ba;
-  --subway-line-2: #ba7171;
+  --subway-line: #64bcf3;
+  --subway-line-2: #ffb164;
+
+  --drop-shadow: rgba(0, 0, 0, 0.1);
+
+  --role-pred: #deb8c7;
+  --role-arg1: #83a2d4;
+  --role-arg2: #c0cf93;
+
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text-darker: #efefef;
+    --text-darker: #aaa;
+    /* #efefef; */
     --text-main: #e8e8e8;
     --text-dim: #999;
-    --highlight: #C7D4DF;
+    --highlight: #aaa;
+    /* #C7D4DF; */
     --background: rgb(23, 26, 27);
     --background-left: #182028;
 
-    --highlight-background: #914a07;
-    --highlight-background-alpha: #fd8e27;
-    --connected-background: #10445b;
+    --highlight-background: #7e670c;
+    --highlight-background-alpha: #efefef;
+    --connected-background: #383e40;
 
-    --label-text: #92ccef;
-    --label-text-2: #ed9393;
+    --label-text: #64bcf3;
+    --label-text-2: #ffb164;
 
-    --subway-line: #ddd2bd;
-    --subway-line-2: #904d4d;
+    --subway-line: #64bcf3;
+    --subway-line-2: #ffb164;
+    --drop-shadow: rgba(0, 0, 0, 0.2);
 
-  }
-
-  .left-section {
-    font-weight: 400;
   }
 
   .vector-word.wv-selected {
@@ -75,7 +81,8 @@
 }
 
 body {
-  font-family: "Signika Negative", sans-serif;
+  font-family: "Inika", serif;
+  /* font-family: "Signika Negative", sans-serif; */
   font-weight: 400;
   width: 100vw;
   height: 100vh;
@@ -126,10 +133,10 @@ h1 {
   color: var(--text-dim);
   /* padding: 3rem; */
   font-family: "Inika", serif;
-  font-weight: 500;
+  font-weight: 300;
   display: flex;
   flex-direction: column;
-  filter: drop-shadow(2px 0px 5px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(2px 0px 5px var(--drop-shadow));
   z-index: 1;
 
   div {
@@ -154,16 +161,19 @@ h1 {
     direction: ltr;
 
     span {
+      opacity: 0.8;
       transition: opacity 0.25s ease;
     }
 
     span.highlight {
       /* opacity: 1.0 !important; */
       /* color: var(--highlight); */
+      opacity: .9;
       background-color: var(--highlight-background);
     }
 
     span.highlight-locked {
+      opacity: 1;
       background-color: var(--highlight-background);
 
       /* background-color: var(--highlight-locked-background) !important; */
@@ -176,18 +186,17 @@ h1 {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   /* background: var(--background); */
   background: linear-gradient(-90deg, var(--background-left) 0%, var(--background) 70%);
   /* background-color: #fff; */
-  filter: drop-shadow(3px 0px 8px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(3px 0px 8px var(--drop-shadow));
 
   scrollbar-width: thin;
   scrollbar-color: var(--background-left) var(--background-left);
 }
 
-.right-section-container::-webkit-scrollbar {
+.right-section::-webkit-scrollbar {
   width: 6px;
 }
 
@@ -229,24 +238,19 @@ h1 {
   padding-top: 2.4rem;
 }
 
-
 .right-section {
-  width: max-content;
-  min-width: 100%;
-  height: max-content;
-  /* padding: 0 0 10rem 2rem; */
-  position: relative;
-
-  /* height: 100%; */
+  width: 100%;
+  height: 100%;
   display: flex;
-  align-items: center;
+  /* align-items: center; */
+  justify-content: center;
+  overflow: auto;
 }
 
-
 .dep-graph-container {
-  overflow: hidden;
-  /* position: absolute; */
-  min-height: 0;
+  height: max-content;
+  width: max-content;
+  position: relative;
   margin-top: 100px;
   width: max-content;
 }
@@ -273,12 +277,16 @@ h1 {
 }
 
 .top-bar {
-  /* display: none; */
+  position: fixed;
+  width: 100%;
+  padding: 1rem;
+  background: var(--background-left);
+  color: var(--text-dim);
   flex-direction: row;
   gap: 10px;
-  width: max-content;
-  position: fixed;
   z-index: 100;
+  font-weight: 400;
+  font-size: 10px;
 }
 
 .vector-word {
@@ -590,4 +598,51 @@ h1 {
 
 .srl-toggle input {
   cursor: pointer;
+}
+
+.wv-roles .vector-word[data-role] {
+  padding: 0 3px;
+}
+
+.wv-roles .vector-word[data-role="PRED"] {
+  color: var(--role-pred)
+}
+
+.wv-roles .vector-word[data-role="ARG0"] {
+  /* ARG0: the agent, i.e. the doer, causer, or experiencer. Usually the grammatical subject of an active sentence. */
+  color: var(--role-arg1);
+}
+
+.wv-roles .vector-word[data-role="ARG1"] {
+  /*ARG1: the patient/theme, i.e. the thing acted upon or affected. Usually the direct object. */
+  color: var(--role-arg2);
+}
+
+.wv-roles .vector-word[data-role="ARG2"] {
+  /* color: #c8f0c0; */
+}
+
+.wv-roles .vector-word[data-role^="ARG"]:not([data-role="ARG0"]):not([data-role="ARG1"]):not([data-role="ARG2"]) {
+  /* color: #e3c8ff; */
+}
+
+.wv-roles .vector-word[data-role^="ARGM"] {
+  /* color: #d9d9d9; */
+}
+
+/*========= LEFT SIDE ======= */
+
+#full-text.wv-roles {
+
+  span[data-role="PRED"] {
+    color: var(--role-pred);
+  }
+
+  span[data-role="ARG1"] {
+    color: var(--role-arg1);
+  }
+
+  span[data-role="ARG2"] {
+    color: var(--role-arg2);
+  }
 }

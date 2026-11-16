@@ -37,8 +37,6 @@ const highlightWordAndSentence = (wordSpan: HTMLElement, sentenceDiv: HTMLElemen
 const lockHighlightWord = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): void => {
   leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
     span.classList.remove("highlight-locked", "highlight", "highlighted-sentence");
-
-    span.style.opacity = "0.5";
   });
 
   wordSpan.classList.add("highlight-locked");
@@ -49,8 +47,6 @@ const lockHighlightWord = (wordSpan: HTMLElement, sentenceDiv: HTMLElement): voi
 const resetTextHighlight = (): void => {
   leftContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
     span.classList.remove("highlight", "highlight-locked", "highlighted-sentence", "connected-spans");
-
-    span.style.opacity = "1";
   });
 };
 
@@ -83,6 +79,23 @@ const highlightConnectedSpans = (indices: ReadonlySet<number> | null) => {
   }
 };
 
+const applyLeftRoles = () => {
+  const roles = renderer.tokenRoles;
+
+  tokenSpans.forEach((span, i) => {
+    if (!span) return;
+
+    const role = roles[i];
+
+    if (role) span.dataset.role = role;
+    else delete span.dataset.role;
+  });
+};
+
+const setLeftRoleColoring = (enabled: boolean) => {
+  leftContainer.classList.toggle("wv-roles", enabled);
+};
+
 // ================ RENDERER ====================
 
 const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
@@ -93,6 +106,12 @@ const srlCheckbox = controls.querySelector("#srl-toggle-input") as HTMLInputElem
 srlCheckbox.addEventListener("change", () => {
   renderer.setUseSrl(srlCheckbox.checked);
   resetTextHighlight();
+});
+
+const colorCodeByRole = controls.querySelector("#color-toggle-input") as HTMLInputElement;
+colorCodeByRole.addEventListener("change", () => {
+  renderer.setColorByRole(colorCodeByRole.checked);
+  setLeftRoleColoring(colorCodeByRole.checked);
 });
 
 function populateLeftContainer(data: any) {
@@ -192,7 +211,6 @@ function populateLeftContainer(data: any) {
     } else if (clickedOnLockedToken) {
       leftContainer.querySelectorAll("span").forEach((span) => {
         span.classList.remove("highlight-locked");
-        span.style.opacity = "1";
       });
     } else {
       lockHighlightWord(wordSpan, sentenceDiv);
@@ -218,7 +236,7 @@ async function init(): Promise<void> {
   populateLeftContainer(raw);
 
   await renderer.init(raw);
-
+  applyLeftRoles();
   renderer.render(0);
 }
 

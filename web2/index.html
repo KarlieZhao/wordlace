@@ -16,29 +16,6 @@
 </head>
 
 <body>
-  <div class="top-bar">
-
-    <!-- <label class="collapse-expand-view">
-      <input type="checkbox" id="collapse-expand-x">
-      <span>expand-x</span>
-    </label>
-
-    <label class="collapse-expand-view">
-      <input type="checkbox" id="collapse-expand-y">
-      <span>expand-y</span>
-    </label> -->
-
-    <label class="srl-toggle">
-      <input type="checkbox" id="srl-toggle-input">
-      <span>SRL</span>
-    </label>
-
-
-    <label class="srl-toggle">
-      <input type="checkbox" id="srl-toggle-input">
-      <span>Color code by semantic roles</span>
-    </label>
-  </div>
   <div class="main-container">
 
     <div class="left-section">
@@ -49,13 +26,25 @@
     </div>
 
     <div class="right-section-container">
+
+      <div class="top-bar">
+        <label class="srl-toggle">
+          <input type="checkbox" id="srl-toggle-input">
+          <span>SRL</span>
+        </label>
+        <label class="srl-toggle">
+          <input type="checkbox" id="color-toggle-input">
+          <span>Color code by semantic roles</span>
+        </label>
+      </div>
+
       <div class="right-section">
         <section class="dep-graph-container">
           <div class="word-plot"></div>
           <div class="vector-plot"></div>
         </section>
-
       </div>
+
     </div>
 
     <div class="subway-section-container">

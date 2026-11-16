@@ -151,10 +151,23 @@ export class WordLayer {
 
   setFocus(indices: ReadonlySet<number> | null): void {
     this.diffClass(this.hot, indices ?? new Set(), "wv-hot");
-
     this.root.classList.toggle("wv-focus", indices !== null);
 
     this.focusCb?.(indices);
+  }
+
+  setRoles(roles: ReadonlyMap<number, string>): void {
+    this.wordEls.forEach((el, i) => {
+      if (!el) return;
+
+      const role = roles.get(i);
+      if (role) el.dataset.role = role;
+      else delete el.dataset.role;
+    });
+  }
+
+  setRoleColoring(enabled: boolean): void {
+    this.root.classList.toggle("wv-roles", enabled);
   }
 
   private diffClass(current: Set<number>, next: ReadonlySet<number>, cls: string): void {
