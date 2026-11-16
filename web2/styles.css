@@ -93,6 +93,7 @@ h4 {
   font-weight: 800;
   color: var(--text-main);
   letter-spacing: -1.5px;
+  text-align: left;
 }
 
 h1 {
@@ -128,7 +129,8 @@ h1 {
   font-weight: 500;
   display: flex;
   flex-direction: column;
-
+  filter: drop-shadow(2px 0px 5px rgba(0, 0, 0, 0.1));
+  z-index: 1;
 
   div {
     cursor: pointer;
@@ -136,12 +138,6 @@ h1 {
 
   span {
     transition: background-color 0.23s ease;
-  }
-
-  .left-title {
-    cursor: default;
-    padding: 2rem;
-    height: 6rem;
   }
 
   .fulltext-scroll-container {
@@ -180,10 +176,12 @@ h1 {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   /* background: var(--background); */
   background: linear-gradient(-90deg, var(--background-left) 0%, var(--background) 70%);
+  /* background-color: #fff; */
+  filter: drop-shadow(3px 0px 8px rgba(0, 0, 0, 0.1));
 
   scrollbar-width: thin;
   scrollbar-color: var(--background-left) var(--background-left);
@@ -212,14 +210,14 @@ h1 {
 }
 
 .subway-section-container {
-  flex: 3;
+  width: 25vw;
   height: 100%;
   background-color: var(--background-left);
   padding-top: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-right: 2rem;
+  padding: 0 2rem 0 4rem;
 }
 
 .the-word {
@@ -239,7 +237,7 @@ h1 {
   /* padding: 0 0 10rem 2rem; */
   position: relative;
 
-  height: 100%;
+  /* height: 100%; */
   display: flex;
   align-items: center;
 }
@@ -347,7 +345,6 @@ h1 {
 .full-line-word.wv-locked {
     background-color: rgb(233, 190, 190);
 } */
-
 
 .dependency-subway.is-visible {
   display: block;

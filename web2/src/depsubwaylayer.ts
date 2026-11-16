@@ -128,7 +128,7 @@ export class SubwayLayer {
     spineTop.style.height = `${topHeight}px`;
     // selected word
     this.root.appendChild(word);
-    word.style.transform = `translateX(${-word.clientWidth / 2}px) translateY(-2.5rem)`;
+    word.style.transform = `translateX(${-Math.min(word.clientWidth / 2, 30)}px) translateY(-2.5rem)`;
 
     // words after the selected word: below
     for (const row of below) {
