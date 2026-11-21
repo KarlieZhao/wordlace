@@ -749,6 +749,7 @@ ARG5: "additional participant",
 
   #full-text {
     direction: ltr;
+    margin-bottom: 4rem;
 
     span {
       opacity: 0.8;
@@ -806,4 +807,30 @@ ARG5: "additional participant",
   justify-content: center;
   align-items: center;
   padding: 0 2rem 0 4rem;
+}
+
+.subway-line {
+  position: relative;
+}
+
+.subway-line--arrow-left::before,
+.subway-line--arrow-right::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  transform: translateY(-50%);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+
+.subway-line--arrow-left::before {
+  left: 0;
+  border-right: 8px solid var(--subway-line, currentColor);
+}
+
+.subway-line--arrow-right::after {
+  right: 0;
+  border-left: 8px solid var(--subway-line-2, currentColor);
 }

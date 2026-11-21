@@ -2,6 +2,7 @@ import type { WordMetadata } from "./basedependency";
 import type { EdgeLayer } from "./edgelayer";
 import { POS_LABELS } from "./labels";
 import type { WordLayer } from "./wordlayer";
+type LinePlacement = "above" | "below";
 
 interface SubwayLink {
   direction: "from" | "to";
@@ -107,13 +108,7 @@ export class SubwayLayer {
     spineBottom.className = "subway-spine spine-btm";
 
     const rows = this.buildRows(focus); // already sorted by word index
-    const renderRow = (row: SubwayRow): HTMLElement => {
-      const labelCount = row.links.reduce((n, link) => n + link.labels.length, 0);
-      const gap = row.links.length > 1 ? LINE_GAP : 0;
-      const height = Math.max(ROW_MIN_HEIGHT, labelCount * LABEL_LINE_HEIGHT + gap + 5);
 
-      return this.buildRow(row, height);
-    };
     const above: SubwayRow[] = [],
       below: SubwayRow[] = [];
 
@@ -124,7 +119,7 @@ export class SubwayLayer {
 
     // words before the selected word: above
     for (const row of above) {
-      this.root.appendChild(renderRow(row));
+      this.root.appendChild(this.buildRow(row));
     }
 
     const topHeight = this.root.clientHeight;
@@ -135,7 +130,7 @@ export class SubwayLayer {
 
     // words after the selected word: below
     for (const row of below) {
-      this.root.appendChild(renderRow(row));
+      this.root.appendChild(this.buildRow(row));
     }
 
     this.root.classList.add("is-visible");
@@ -190,7 +185,11 @@ export class SubwayLayer {
       }));
   }
 
-  private buildRow(row: SubwayRow, height: number): HTMLElement {
+  private buildRow(row: SubwayRow): HTMLElement {
+    const labelCount = row.links.reduce((n, link) => n + link.labels.length, 0);
+    const gap = row.links.length > 1 ? LINE_GAP : 0;
+    const height = Math.max(ROW_MIN_HEIGHT, labelCount * LABEL_LINE_HEIGHT + gap + 5);
+
     const wrap = document.createElement("div");
     wrap.className = "subway-row";
     wrap.style.height = `${height}px`;
@@ -216,6 +215,8 @@ export class SubwayLayer {
     for (const link of row.links) {
       const line = document.createElement("div");
       line.className = `subway-line subway-line--${link.direction}`;
+      // above: arrow on the left pointing left; below: arrow on the right pointing right
+      line.classList.add(link.direction === "from" ? "subway-line--arrow-left" : "subway-line--arrow-right");
       line.style.width = `${lineWidth}px`;
       lines.appendChild(line);
     }
@@ -247,6 +248,7 @@ export class SubwayLayer {
 
     return wrap;
   }
+
   private buildLabels(link: SubwayLink): HTMLElement {
     const container = document.createElement("div");
     container.className = `subway-labels subway-labels--${link.direction}`;
