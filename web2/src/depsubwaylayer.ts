@@ -19,6 +19,7 @@ interface SubwayRow {
 const LABEL_LINE_HEIGHT = 20;
 const ROW_MIN_HEIGHT = 40;
 const LINE_GAP = 8;
+
 export class SubwayLayer {
   readonly root: HTMLElement;
 
@@ -29,6 +30,7 @@ export class SubwayLayer {
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
   private metadata: WordMetadata[] | null = null;
+  private containerWidth: number = 0;
 
   constructor(
     container: HTMLElement,
@@ -61,6 +63,7 @@ export class SubwayLayer {
   }
 
   render(): void {
+    this.containerWidth = this.root.getBoundingClientRect().width;
     const focus = this.hoveredWord;
 
     this.root.innerHTML = "";
@@ -192,17 +195,13 @@ export class SubwayLayer {
     wrap.className = "subway-row";
     wrap.style.height = `${height}px`;
     wrap.style.marginTop = `${height / 2}px`;
+    wrap.style.marginBottom = `${height / 2}px`;
 
-    const branch = document.createElement("div");
-    branch.className = `subway-branch subway-branch--${row.side}`;
     const fromLink = row.links.find((link) => link.direction === "from");
     const toLink = row.links.find((link) => link.direction === "to");
 
-    const labelsAbove = fromLink ? this.buildLabels(fromLink) : "";
-    const labelsBelow = toLink ? this.buildLabels(toLink) : "";
-
     const connector = document.createElement("div");
-    connector.className = "subway-connector";
+    connector.classList.add("subway-connector", `subway-branch`, `subway-branch--${row.side}`);
 
     const dot = document.createElement("span");
     dot.className = "subway-dot";
@@ -212,12 +211,16 @@ export class SubwayLayer {
     const lines = document.createElement("div");
     lines.className = "subway-lines";
 
+    if (fromLink) lines.appendChild(this.buildLabels(fromLink));
+
     for (const link of row.links) {
       const line = document.createElement("div");
       line.className = `subway-line subway-line--${link.direction}`;
       line.style.width = `${lineWidth}px`;
       lines.appendChild(line);
     }
+
+    if (toLink) lines.appendChild(this.buildLabels(toLink));
 
     const wordWrapper = document.createElement("div");
     wordWrapper.className = "subway-word-wrapper";
@@ -228,8 +231,8 @@ export class SubwayLayer {
 
     const metadata = document.createElement("div");
     metadata.className = "subway-metadata";
-    metadata.style.width = `${200 - lineWidth}`;
-
+    const maxW = Math.max(100, this.containerWidth - lineWidth + 10);
+    metadata.style.width = `${maxW}px`;
     const lemma = document.createElement("b");
     lemma.textContent = row.metadata.lemma;
 
@@ -239,15 +242,8 @@ export class SubwayLayer {
     metadata.append(lemma, document.createElement("br"), pos);
     wordWrapper.append(word, metadata);
 
-    // if (row.side === "right") {
     connector.append(dot, lines, wordWrapper);
-    // } else {
-    //   connector.append(wordWrapper, lines, dot);
-    // }
-
-    branch.append(labelsAbove, connector);
-    if (labelsBelow) branch.appendChild(labelsBelow);
-    wrap.appendChild(branch);
+    wrap.appendChild(connector);
 
     return wrap;
   }
@@ -264,6 +260,7 @@ export class SubwayLayer {
     return container;
   }
 }
+
 function getLongestLabelWidth(texts: string[]): number {
   const measureContainer = document.createElement("div");
   measureContainer.className = "subway-labels";

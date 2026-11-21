@@ -121,6 +121,7 @@ h1 {
   font-weight: 600;
   color: var(--highlight-background-alpha);
   padding-top: 2.4rem;
+  max-width: 12rem;
 }
 
 .right-section {
@@ -370,21 +371,13 @@ h1 {
       var(--subway-line) 0%,
       var(--subway-line) 85%,
       transparent 100%);
-  /* transform: translateX(-5px); */
 }
 
 .subway-row {
   position: relative;
   width: 100%;
-}
-
-/* Horizontal-only positioning: bottom is set, top is left auto, so height
-   stays intrinsic to content while the branch bottom-aligns within its row. */
-.subway-branch {
-  position: absolute;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
+  height: max-content;
+  min-height: 50px;
 }
 
 .subway-labels {
@@ -433,7 +426,7 @@ h1 {
 
 .subway-labels--from {
   color: var(--label-text);
-  transform: translateY(20px);
+  /* transform: translateY(20px); */
 }
 
 .subway-line--to {
@@ -442,7 +435,7 @@ h1 {
 
 .subway-labels--to {
   color: var(--label-text-2);
-  transform: translateY(-20px);
+  /* transform: translateY(-20px); */
 }
 
 
