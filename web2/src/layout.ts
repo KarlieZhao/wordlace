@@ -2,7 +2,6 @@ import type { Point } from "./basedependency";
 import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y, TOP_PADDING, LEFT_PADDING } from "./config";
 
 const ROW_GAP = 8;
-const SIDE_PAD = 5;
 
 export type Size = { width: number; height: number };
 export type MeasureFn = (id: number, maxWidth: number) => Size;
@@ -51,7 +50,7 @@ export class Layout {
   ): { points: Point[]; width: number; crossExtent: number } {
     const minPitch = TOKEN_SPACING_X * (useSrl ? 1.6 : 1);
     const hasWidth = containerWidth > 0;
-    const usable = hasWidth ? Math.max(50, containerWidth - 2 * SIDE_PAD) : Infinity;
+    const usable = hasWidth ? Math.max(50, containerWidth) : Infinity;
 
     let y = TOP_PADDING;
     let maxRight = 0;
@@ -62,7 +61,7 @@ export class Layout {
 
       let x = targetY(id) + LEFT_PADDING;
       if (hasWidth) {
-        x = Math.min(Math.max(x, SIDE_PAD + half), containerWidth - SIDE_PAD - half);
+        x = Math.min(Math.max(x + half), containerWidth - half);
       }
 
       const point: Point = { px: y, py: x };

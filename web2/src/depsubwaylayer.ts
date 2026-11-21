@@ -226,8 +226,9 @@ export class SubwayLayer {
     word.className = "subway-word";
     word.textContent = row.word;
 
-    const metadata = document.createElement("span");
+    const metadata = document.createElement("div");
     metadata.className = "subway-metadata";
+    metadata.style.width = `${200 - lineWidth}`;
 
     const lemma = document.createElement("b");
     lemma.textContent = row.metadata.lemma;
