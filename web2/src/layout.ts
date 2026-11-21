@@ -1,6 +1,12 @@
 import type { Point } from "./basedependency";
 import { TOKEN_SPACING_X, TOKEN_TOP_PAD, TOKEN_SPACING_Y, TOP_PADDING, LEFT_PADDING } from "./config";
 
+const ROW_GAP = 8;
+const SIDE_PAD = 5;
+
+export type Size = { width: number; height: number };
+export type MeasureFn = (id: number, maxWidth: number) => Size;
+
 export class Layout {
   private liveList: Point[] = [];
   private readonly wordContainer: HTMLElement;
@@ -26,11 +32,13 @@ export class Layout {
     end: number,
     targetY: (token: number) => number,
     useSrl = false,
-  ): { points: Point[]; width: number } {
+    measure?: MeasureFn,
+  ): { points: Point[]; width: number; crossExtent: number } {
     return this.sentenceTargetsFor(
       Array.from({ length: end - start }, (_, i) => start + i),
       targetY,
       useSrl,
+      measure,
     );
   }
 
@@ -38,31 +46,44 @@ export class Layout {
     indices: number[],
     targetY: (token: number) => number,
     useSrl = false,
-  ): { points: Point[]; width: number } {
-    const points: Point[] = [];
-    let x = TOP_PADDING;
+    measure?: MeasureFn,
+    containerWidth: number = this.wordContainer.clientWidth,
+  ): { points: Point[]; width: number; crossExtent: number } {
+    const minPitch = TOKEN_SPACING_X * (useSrl ? 1.6 : 1);
+    const hasWidth = containerWidth > 0;
+    const usable = hasWidth ? Math.max(50, containerWidth - 2 * SIDE_PAD) : Infinity;
 
-    for (const id of indices) {
-      points.push({ px: x, py: targetY(id) + LEFT_PADDING });
-      x += TOKEN_SPACING_X * (useSrl ? 1.6 : 1);
-    }
-    return { points, width: x - TOKEN_SPACING_X };
+    let y = TOP_PADDING;
+    let maxRight = 0;
+
+    const points: Point[] = indices.map((id) => {
+      const { width, height } = measure ? measure(id, usable) : { width: 0, height: 0 };
+      const half = width / 2;
+
+      let x = targetY(id) + LEFT_PADDING;
+      if (hasWidth) {
+        x = Math.min(Math.max(x, SIDE_PAD + half), containerWidth - SIDE_PAD - half);
+      }
+
+      const point: Point = { px: y, py: x };
+
+      y += Math.max(minPitch, height + ROW_GAP);
+      maxRight = Math.max(maxRight, x + half);
+
+      return point;
+    });
+
+    return {
+      points,
+      width: y,
+      crossExtent: maxRight,
+    };
   }
-
-  // private getWordElWidth(index: number): number {
-  //   const el = this.wordContainer.querySelector(`[data-index="${index}"]`);
-  //   return el ? el.getBoundingClientRect().width : 0;
-  // }
 }
 
-export function originX(parent: HTMLElement | null): {
-  left: number;
-  top: number;
-} {
+export function originX(parent: HTMLElement | null): { left: number; top: number } {
   if (!parent) return { left: 0, top: 0 };
-
   const r = parent.getBoundingClientRect();
-
   return {
     left: parent.scrollLeft - r.left - parent.clientLeft,
     top: r.top + parent.clientTop - parent.scrollTop,

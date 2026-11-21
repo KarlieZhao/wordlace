@@ -38,7 +38,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
   private nerSpans: unknown[][] = [];
   private srlSpans: unknown[][] = [];
-  private useSrl = false;
+  private useSrl = true;
 
   private sentenceIndex = 0;
   private loaded = false;
@@ -150,6 +150,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.buildRoleMap();
     this.applyRoles();
     this.loaded = true;
+    this.render(0);
   }
 
   get sentenceCount(): number {
@@ -179,24 +180,10 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.lockedToken = null;
     this.hover.clear();
     this.subway.setHoveredWord(null);
-
-    // const elements = this.wordEls.filter(Boolean);
-
-    // elements.forEach((el) => {
-    //   el.style.opacity = "0";
-    // });
-
-    window.setTimeout(() => {
+    requestAnimationFrame(() => {
       this.rebuildProjection();
       this.render(this.sentenceIndex);
-
-      // requestAnimationFrame(() => {
-      //   this.wordEls.forEach((el) => {
-      //     if (!el) return;
-      //     el.style.opacity = "1";
-      //   });
-      // });
-    }, 180);
+    });
   }
 
   hoverToken(token: number | null): void {
@@ -230,7 +217,12 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.showOnly(indices);
 
-    const { points } = this.layout.sentenceTargetsFor(indices, (id) => this.targetYById[id], this.useSrl);
+    const { points } = this.layout.sentenceTargetsFor(
+      indices,
+      (id) => this.targetYById[id],
+      this.useSrl,
+      this.measureWord,
+    );
 
     points.forEach((point, i) => {
       this.layout.live[indices[i]] = point;
@@ -498,6 +490,18 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     }
   }
 
+  private measureWord = (id: number, maxWidth: number): { width: number; height: number } => {
+    const el = this.wordEls[id];
+    if (!el) return { width: 0, height: 0 };
+
+    el.style.width = "max-content";
+    el.style.maxWidth = `${maxWidth}px`;
+    el.style.whiteSpace = "normal";
+    el.style.overflowWrap = "anywhere";
+    el.style.textAlign = "center";
+    return { width: el.offsetWidth, height: el.offsetHeight };
+  };
+
   private measureExtent(nodes: ProjectedNode[]): {
     width: number;
     height: number;
@@ -513,8 +517,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
       if (!p || !el) continue;
 
-      maxX = Math.max(maxX, p.px + el.offsetHeight);
-      maxY = Math.max(maxY, p.py + el.offsetWidth);
+      maxX = Math.max(maxX, p.px + el.offsetWidth / 2);
+      maxY = Math.max(maxY, p.py + el.offsetHeight);
     }
 
     const PAD = 60;

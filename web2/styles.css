@@ -23,9 +23,10 @@
 
   --drop-shadow: rgba(0, 0, 0, 0.1);
 
-  --role-pred: #deb8c7;
-  --role-arg1: #83a2d4;
-  --role-arg2: #c0cf93;
+  --role-pred: #aa3866;
+  --role-arg0: #8f5a0b;
+  --role-arg1: #2961bc;
+  --role-arg2: #0b8f4f;
 
 }
 
@@ -50,6 +51,11 @@
     --subway-line: #64bcf3;
     --subway-line-2: #ffb164;
     --drop-shadow: rgba(0, 0, 0, 0.2);
+
+
+    --role-pred: #deb8c7;
+    --role-arg1: #83a2d4;
+    --role-arg2: #c0cf93;
 
   }
 
@@ -571,7 +577,8 @@ h1 {
 
 .highlighted-sentence {
   opacity: 1.0 !important;
-  color: var(--text-darker);
+  color: var(--text-main);
+  /* color: var(--text-darker); */
 }
 
 .connected-spans {
@@ -604,31 +611,33 @@ h1 {
   padding: 0 3px;
 }
 
+/*========= RIGHT SIDE ======= */
+
+/* ARG0: the agent, i.e. the doer, causer, or experiencer. Usually the grammatical subject of an active sentence. */
+/* ARG1: the patient/theme, i.e. the thing acted upon or affected. Usually the direct object. */
+/*
+ARG1: "participant",
+ARG2: "secondary participant",
+ARG3: "recipient / destination",
+ARG4: "source",
+ARG5: "additional participant",
+*/
 .wv-roles .vector-word[data-role="PRED"] {
   color: var(--role-pred)
 }
 
 .wv-roles .vector-word[data-role="ARG0"] {
-  /* ARG0: the agent, i.e. the doer, causer, or experiencer. Usually the grammatical subject of an active sentence. */
-  color: var(--role-arg1);
+  color: var(--role-arg0);
 }
 
 .wv-roles .vector-word[data-role="ARG1"] {
-  /*ARG1: the patient/theme, i.e. the thing acted upon or affected. Usually the direct object. */
-  color: var(--role-arg2);
+  color: var(--role-arg1);
 }
 
 .wv-roles .vector-word[data-role="ARG2"] {
-  /* color: #c8f0c0; */
+  color: var(--role-arg2);
 }
 
-.wv-roles .vector-word[data-role^="ARG"]:not([data-role="ARG0"]):not([data-role="ARG1"]):not([data-role="ARG2"]) {
-  /* color: #e3c8ff; */
-}
-
-.wv-roles .vector-word[data-role^="ARGM"] {
-  /* color: #d9d9d9; */
-}
 
 /*========= LEFT SIDE ======= */
 
@@ -636,6 +645,10 @@ h1 {
 
   span[data-role="PRED"] {
     color: var(--role-pred);
+  }
+
+  span[data-role="ARG0"] {
+    color: var(--role-arg0);
   }
 
   span[data-role="ARG1"] {

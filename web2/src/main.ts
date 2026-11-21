@@ -237,7 +237,6 @@ async function init(): Promise<void> {
 
   await renderer.init(raw);
   applyLeftRoles();
-  renderer.render(0);
 }
 
 init();
