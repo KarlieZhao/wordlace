@@ -184,12 +184,9 @@ export function populateLeftContainer(data: any) {
 
     if (isLocked && !clickedOnLockedToken) {
       showToken(sentence, token, wordSpan, sentenceDiv, true);
-    } else if (clickedOnLockedToken) {
-      fulltextContainer.querySelectorAll("span").forEach((span) => {
-        span.classList.remove("highlight-locked");
-      });
-    } else {
-      lockHighlightWord(wordSpan, sentenceDiv);
+      // } else if (clickedOnLockedToken) {
+      // } else {
+      //   lockHighlightWord(wordSpan, sentenceDiv);
     }
 
     renderer.onClickToken(token);

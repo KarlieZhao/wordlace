@@ -95,6 +95,7 @@ export class SubwayLayer {
 
   private draw(focus: number): void {
     const vectorSVG = document.querySelector(".vector-edges");
+    this.root.innerHTML = "";
     if (!vectorSVG) return;
 
     const word = document.createElement("div");
@@ -252,8 +253,8 @@ export class SubwayLayer {
   private buildLabels(link: SubwayLink): HTMLElement {
     const container = document.createElement("div");
     container.className = `subway-labels subway-labels--${link.direction}`;
-
-    for (const text of link.labels) {
+    const labels = [...new Set(link.labels)];
+    for (const text of labels) {
       const span = document.createElement("span");
       span.textContent = text;
       container.appendChild(span);

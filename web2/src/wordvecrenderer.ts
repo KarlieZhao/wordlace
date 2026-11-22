@@ -71,9 +71,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     centerContainer.addEventListener("click", (e) => {
       e.stopPropagation();
       if (e.target === e.currentTarget) {
-        this.lockedToken = null;
-        this.hover.setHoveredWord(null);
-        this.subway.setHoveredWord(null);
+        this.removeLockToken();
       }
     });
     this.lineContainer = this.container as HTMLDivElement;
@@ -169,6 +167,11 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     return this.roleByToken;
   }
 
+  removeLockToken() {
+    this.lockedToken = null;
+    this.hover.setHoveredWord(null);
+    this.subway.setHoveredWord(null);
+  }
   isLockedToken(token: number): boolean {
     return this.lockedToken !== null && this.tokenToNode[token] === this.lockedToken;
   }
@@ -200,8 +203,13 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.lockedToken = this.lockedToken === node ? null : node;
 
-    this.hover.setHoveredWord(node);
-    this.subway.setHoveredWord(node);
+    if (this.lockedToken !== null) {
+      this.hover.setHoveredWord(node);
+      this.subway.setHoveredWord(node);
+    } else {
+      this.removeLockToken();
+    }
+
     this.wordClickCallback(this.sentenceIndex, token);
   }
 
