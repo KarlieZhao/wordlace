@@ -7,7 +7,7 @@ export class WordLayer {
   private hot = new Set<number>();
 
   private hoverCb: ((token: number | null) => void) | null = null;
-  private clickCb: ((token: number | null) => void) | null = null;
+  private clickCb: ((token: number) => void) | null = null;
   private focusCb: ((indices: ReadonlySet<number> | null) => void) | null = null;
 
   private readonly root: HTMLElement;
@@ -18,7 +18,6 @@ export class WordLayer {
     const THRESHOLD = 40;
     let lastIndex = -1;
     let raf = 0;
-
     root.addEventListener("mousemove", (e) => {
       if (raf) return;
 
@@ -70,7 +69,6 @@ export class WordLayer {
 
     root.addEventListener("click", (e) => {
       const el = (e.target as Element | null)?.closest<HTMLElement>(".vector-word");
-
       if (el && this.root.contains(el)) {
         this.clickCb?.(Number(el.dataset.index));
       }
@@ -86,7 +84,7 @@ export class WordLayer {
     this.hoverCb = cb;
   }
 
-  onClick(cb: (token: number | null) => void): void {
+  onClick(cb: (token: number) => void): void {
     this.clickCb = cb;
   }
 

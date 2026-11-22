@@ -33,7 +33,7 @@ const main = document.querySelector<HTMLElement>(".main-container")!;
 const collapseCenter = main.querySelector("#collapse-button") as HTMLDivElement;
 const centerContainer = main.querySelector(".right-section-container") as HTMLDivElement;
 const centerContent = main.querySelector(".right-section") as HTMLDivElement;
-let centerIsCollapsed = false;
+export let centerIsCollapsed = false;
 
 collapseCenter.addEventListener("click", (e) => {
   e.stopPropagation();
@@ -77,10 +77,7 @@ colorCodeByRole.addEventListener("change", () => {
 // ================ INIT ====================
 
 async function init(): Promise<void> {
-  // console.log("what is the fucking issue???");
-
   const raw = await loadJson(dataURL);
-
   populateLeftContainer(raw);
 
   await renderer.init(raw);

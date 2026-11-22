@@ -67,6 +67,15 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.wordClickCallback = wordClickCallback;
 
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
+    const centerContainer = document.querySelector(".dep-graph-container") as HTMLDivElement;
+    centerContainer.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (e.target === e.currentTarget) {
+        this.lockedToken = null;
+        this.hover.setHoveredWord(null);
+        this.subway.setHoveredWord(null);
+      }
+    });
     this.lineContainer = this.container as HTMLDivElement;
 
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
@@ -118,15 +127,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       this.subway.render();
     });
 
-    this.words.onClick((token) => {
-      if (this.lockedToken === null || token === null) return;
-
-      this.hover.setHoveredWord(token);
-      this.subway.setHoveredWord(token);
-      this.subway.render();
-
-      this.wordClickCallback(this.sentenceIndex, token);
-    });
+    this.words.onClick((token) => this.onClickToken(token));
   }
 
   /* -------------------------- public API -------------------------- */
@@ -185,7 +186,6 @@ export class WordVecRenderer extends BaseDependencyRenderer {
       this.render(this.sentenceIndex);
     });
   }
-
   hoverToken(token: number | null): void {
     if (!this.loaded || this.lockedToken !== null) return;
 
@@ -202,6 +202,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
 
     this.hover.setHoveredWord(node);
     this.subway.setHoveredWord(node);
+    this.wordClickCallback(this.sentenceIndex, token);
   }
 
   render(index: number): void {
@@ -533,7 +534,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.wordEls = [];
 
     this.wordContainer.querySelectorAll<HTMLElement>("[data-index]").forEach((el) => {
-      el.style.transition = "none";
+      // el.style.transition = "none";
       this.wordEls[Number(el.dataset.index)] = el;
     });
   }

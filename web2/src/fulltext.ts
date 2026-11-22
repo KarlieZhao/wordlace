@@ -1,4 +1,4 @@
-import { renderer } from "./main";
+import { renderer, centerIsCollapsed } from "./main";
 const fulltextContainer = document.querySelector("#full-text") as HTMLDivElement;
 
 export let tokenSpans: HTMLElement[] = [];
@@ -20,6 +20,14 @@ function lockHighlightWord(wordSpan: HTMLElement, sentenceDiv: HTMLElement): voi
   });
 
   wordSpan.classList.add("highlight-locked");
+
+  sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
+}
+
+function highlightSentence(sentenceDiv: HTMLElement): void {
+  fulltextContainer.querySelectorAll<HTMLElement>("span").forEach((span) => {
+    span.classList.remove("highlight", "highlighted-sentence");
+  });
 
   sentenceDiv.querySelectorAll("span").forEach((span) => span.classList.add("highlighted-sentence"));
 }
@@ -156,8 +164,14 @@ export function populateLeftContainer(data: any) {
     const { sentence, token, wordSpan, sentenceDiv } = findClosestSentenceAndToken(event);
 
     if (sentence < 0 || token < 0 || !wordSpan || !sentenceDiv) return;
-
-    showToken(sentence, token, wordSpan, sentenceDiv);
+    if (centerIsCollapsed) {
+      showToken(sentence, token, wordSpan, sentenceDiv);
+      return;
+    }
+    if (sentence !== renderer.currentSentence) {
+      renderer.render(sentence);
+    }
+    highlightSentence(sentenceDiv);
   });
 
   fulltextContainer.addEventListener("click", (event) => {
@@ -179,13 +193,5 @@ export function populateLeftContainer(data: any) {
     }
 
     renderer.onClickToken(token);
-  });
-
-  fulltextContainer.addEventListener("pointerleave", () => {
-    if (renderer.lockedTokenIndex !== null) return;
-
-    fulltextContainer.querySelectorAll("span.highlight").forEach((span) => span.classList.remove("highlight"));
-
-    renderer.hoverToken(null);
   });
 }
