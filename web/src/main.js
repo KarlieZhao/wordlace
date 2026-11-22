@@ -1,8 +1,8 @@
 // TODO:
 // . translation
-//               - try legend/side note type
+//          - try legend/side note type
 // word Y positions: part of speech, word vector?
-// dual views would be cool
+// dual views would be cool?
 
 // TODO: add animation: highlight words one by one follow their order in the text
 // TODO: maybe worth trying an ai model
@@ -31,6 +31,7 @@ import { drawLinear } from "./braid";
 import { Translator } from "./translate";
 
 const POEM_FILES = [
+  "karlie_starting_tokens",
   // "karlie_notes2_tokens",
   "borges_art_poetry_full",
   "borges_two_english_poems",

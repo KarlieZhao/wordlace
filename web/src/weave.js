@@ -83,18 +83,18 @@ export class DependencyGraph {
 
   _buildTokenPositions(tokens, categoryMap) {
     const positions = {};
-    let x = PAD_L + tokens[0].word.length * 2;
-    let y = PAD_T;
+    let y = PAD_L + tokens[0].word.length * 2;
+    let x = PAD_T;
     let totalH = 0;
 
     tokens.forEach((t) => {
       if (t._key.split("_")[1] === "0" || x >= svgWidth - PAD_L) {
-        y += ROW_H;
-        x = PAD_L + t.word.length * 2;
+        x += ROW_H * 1.2;
+        y = PAD_L;
       }
-      positions[t._key] = { x, y: y + (categoryMap[t.pos] ?? PAD_L) };
-      x += t.word.length * 4 + 10;
-      totalH = y;
+      positions[t._key] = { x: x + categoryMap[t.pos] ?? PAD_L, y };
+      y += 15; //t.word.length * 5;
+      totalH = x;
     });
     return { positions, totalH };
   }
