@@ -8,7 +8,8 @@ import {
   highlightConnectedSpans,
   tokenSpans,
 } from "./fulltext";
-const dataURL = "/so-to-speak-en_tokens.json";
+const dataURL = "so-to-speak-en_tokens.json";
+// "Not_Even_This_tokens.json";
 
 export const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
 
