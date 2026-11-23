@@ -8,7 +8,8 @@ import {
   highlightConnectedSpans,
   tokenSpans,
 } from "./fulltext";
-const dataURL = "so-to-speak-en_tokens.json";
+const dataURL = "Not_Even_This_tokens.json";
+// "so-to-speak-en_tokens.json";
 // "Not_Even_This_tokens.json";
 
 export const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
@@ -69,6 +70,7 @@ wordRadio.addEventListener("change", () => {
 
 const colorCodeByRole = controls.querySelector("#color-toggle-input") as HTMLInputElement;
 const colorSpan = controls.querySelector("#color-option") as HTMLSpanElement;
+const playSpan = controls.querySelector("#play-option") as HTMLSpanElement;
 colorCodeByRole.addEventListener("change", () => {
   colorSpan.textContent = colorCodeByRole.checked ? "semantic role" : "none";
   renderer.setColorByRole(colorCodeByRole.checked);

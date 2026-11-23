@@ -3,7 +3,7 @@ const fulltextContainer = document.querySelector("#full-text") as HTMLDivElement
 
 export let tokenSpans: HTMLElement[] = [];
 let connectedSpans: HTMLElement[] = [];
-
+let currentHoverSentence: number | null = null;
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 const cacheTokenSpans = () => {
@@ -84,6 +84,21 @@ export function highlightConnectedSpans(indices: ReadonlySet<number> | null) {
   }
 }
 
+
+
+
+let playbackTimer: ReturnType<typeof setTimeout> | null = null;
+let playbackIndex = 0;
+
+const stopPlayback = () => {
+  if (playbackTimer !== null) {
+    clearTimeout(playbackTimer);
+    playbackTimer = null;
+  }
+  playbackIndex = 0;
+};
+
+
 export function populateLeftContainer(data: any) {
   if (!fulltextContainer) return;
   let offset = 0;
@@ -158,20 +173,50 @@ export function populateLeftContainer(data: any) {
     }
   };
 
+  const playTokens = (sentenceDiv: HTMLElement) => {
+    stopPlayback();
+
+    const spans = [...sentenceDiv.querySelectorAll<HTMLElement>("span[data-token]")];
+    let index = 0;
+
+    const playNext = () => {
+      if (index >= spans.length || renderer.lockedTokenIndex !== null) {
+        stopPlayback();
+        return;
+      }
+
+      const wordSpan = spans[index];
+      const sentence = Number(sentenceDiv.dataset.sentence);
+      const token = Number(wordSpan.dataset.token);
+
+      showToken(sentence, token, wordSpan, sentenceDiv);
+      index++;
+      playbackTimer = setTimeout(playNext, 800);
+    };
+
+    playNext();
+  };
+
   fulltextContainer.addEventListener("pointerover", (event) => {
     if (renderer.lockedTokenIndex !== null) return;
 
     const { sentence, token, wordSpan, sentenceDiv } = findClosestSentenceAndToken(event);
-
     if (sentence < 0 || token < 0 || !wordSpan || !sentenceDiv) return;
+
+    if (sentence === currentHoverSentence) return;
+    else currentHoverSentence = sentence;
+    
     if (centerIsCollapsed) {
       showToken(sentence, token, wordSpan, sentenceDiv);
       return;
     }
+
     if (sentence !== renderer.currentSentence) {
       renderer.render(sentence);
     }
+
     highlightSentence(sentenceDiv);
+    playTokens(sentenceDiv);
   });
 
   fulltextContainer.addEventListener("click", (event) => {
