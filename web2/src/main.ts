@@ -1,44 +1,46 @@
 import { loadJson } from "./utils";
 import { WordVecRenderer } from "./wordvecrenderer";
-import {
-  populateLeftContainer,
-  resetTextHighlight,
-  highlightWordAndSentenceFromIndex,
-  setLeftRoleColoring,
-  highlightConnectedSpans,
-  tokenSpans,
-} from "./fulltext";
+import { FullTextPanel } from "./fulltext";
+
 const dataURL = "Not_Even_This_tokens.json";
 // "so-to-speak-en_tokens.json";
 // "Not_Even_This_tokens.json";
 
-export const renderer = new WordVecRenderer(highlightWordAndSentenceFromIndex, highlightConnectedSpans);
+// ================ DOM ====================
 
-export const applyLeftRoles = () => {
-  const roles = renderer.tokenRoles;
+function query<T extends HTMLElement>(root: ParentNode, selector: string): T {
+  const el = root.querySelector<T>(selector);
+  if (!el) throw new Error(`Missing element: ${selector}`);
+  return el;
+}
 
-  tokenSpans.forEach((span, i) => {
-    if (!span) return;
+const main = query<HTMLElement>(document, ".main-container");
+const controls = query<HTMLDivElement>(document, ".bottom-bar");
 
-    const role = roles[i];
+const fulltextContainer = query<HTMLDivElement>(document, "#full-text");
+const collapseButton = query<HTMLDivElement>(main, "#collapse-button");
+const centerContainer = query<HTMLDivElement>(main, ".right-section-container");
+const centerContent = query<HTMLDivElement>(main, ".right-section");
+const autoPlay = query<HTMLInputElement>(main, "#play-toggle-input");
 
-    if (role) span.dataset.role = role;
-    else delete span.dataset.role;
-  });
-};
+const srlRadio = query<HTMLInputElement>(controls, "#srl-toggle-input");
+const wordRadio = query<HTMLInputElement>(controls, "#srl-toggle-input-word");
+const colorCodeByRole = query<HTMLInputElement>(controls, "#color-toggle-input");
+const colorLabel = query<HTMLSpanElement>(controls, "#color-option");
 
-// control eventlisteners
-const controls = document.querySelector(".bottom-bar") as HTMLDivElement;
-const slrRadio = controls.querySelector("#srl-toggle-input") as HTMLInputElement;
-const wordRadio = controls.querySelector("#srl-toggle-input-word") as HTMLInputElement;
-const main = document.querySelector<HTMLElement>(".main-container")!;
-const collapseCenter = main.querySelector("#collapse-button") as HTMLDivElement;
-const centerContainer = main.querySelector(".right-section-container") as HTMLDivElement;
-const centerContent = main.querySelector(".right-section") as HTMLDivElement;
+// Unchecks the autoplay box whenever playback stops (hover, click, end of text, ...)
+const leftPanel = new FullTextPanel(fulltextContainer, () => {
+  autoPlay.checked = false;
+});
+
+export const renderer = new WordVecRenderer(leftPanel.lockWord, leftPanel.highlightConnected);
+leftPanel.attach(renderer);
+
+// ================ CENTER PANEL COLLAPSE ====================
+
 export let centerIsCollapsed = false;
 
-collapseCenter.addEventListener("click", (e) => {
-  e.stopPropagation();
+function collapseCenter(): void {
   centerIsCollapsed = true;
   main.classList.add("center-collapsed");
   setTimeout(() => {
@@ -46,9 +48,9 @@ collapseCenter.addEventListener("click", (e) => {
     centerContainer.classList.add("disabled");
     centerContainer.style.pointerEvents = "all";
   }, 450);
-});
+}
 
-centerContainer.addEventListener("click", () => {
+function expandCenter(): void {
   if (!centerIsCollapsed) return;
   centerIsCollapsed = false;
   main.classList.remove("center-collapsed");
@@ -56,35 +58,41 @@ centerContainer.addEventListener("click", () => {
     centerContent.classList.remove("disabled");
     centerContainer.classList.remove("disabled");
   }, 400);
+}
+
+collapseButton.addEventListener("click", (e) => {
+  e.stopPropagation();
+  collapseCenter();
+});
+centerContainer.addEventListener("click", expandCenter);
+
+// ================ CONTROLS ====================
+
+[srlRadio, wordRadio].forEach((radio) =>
+  radio.addEventListener("change", () => {
+    renderer.setUseSrl(srlRadio.checked);
+    leftPanel.resetHighlight();
+  }),
+);
+
+autoPlay.addEventListener("change", (e) => {
+  e.stopPropagation();
+  if (autoPlay.checked) leftPanel.startAutoplay();
+  else leftPanel.pauseAutoplay();
 });
 
-slrRadio.addEventListener("change", () => {
-  renderer.setUseSrl(slrRadio.checked);
-  resetTextHighlight();
-});
-
-wordRadio.addEventListener("change", () => {
-  renderer.setUseSrl(slrRadio.checked);
-  resetTextHighlight();
-});
-
-const colorCodeByRole = controls.querySelector("#color-toggle-input") as HTMLInputElement;
-const colorSpan = controls.querySelector("#color-option") as HTMLSpanElement;
-const playSpan = controls.querySelector("#play-option") as HTMLSpanElement;
 colorCodeByRole.addEventListener("change", () => {
-  colorSpan.textContent = colorCodeByRole.checked ? "semantic role" : "none";
-  renderer.setColorByRole(colorCodeByRole.checked);
-  setLeftRoleColoring(colorCodeByRole.checked);
+  const coloring = colorCodeByRole.checked;
+  colorLabel.textContent = coloring ? "semantic role" : "none";
+  renderer.setColorByRole(coloring);
+  leftPanel.setRoleColoring(coloring);
 });
-
-// ================ INIT ====================
 
 async function init(): Promise<void> {
   const raw = await loadJson(dataURL);
-  populateLeftContainer(raw);
-
+  leftPanel.populate(raw);
   await renderer.init(raw);
-  applyLeftRoles();
+  leftPanel.applyRoles(renderer.tokenRoles);
 }
 
 init();

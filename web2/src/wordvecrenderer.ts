@@ -1,10 +1,11 @@
-import { BaseDependencyRenderer, type WordMetadata } from "./basedependency";
+import { computeCurve, type CurveGeometry, type WordMetadata } from "./basedependency";
 import { SubwayLayer } from "./depsubwaylayer";
 import { DependencyGraph } from "./depgraph";
 import { EdgeLayer, type EdgeInput } from "./edgelayer";
 import { HoverController } from "./hovercontroll";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
+import { escapeXml, POS_COLOR_MAP } from "./utils";
 
 interface Span {
   start: number;
@@ -22,9 +23,9 @@ interface ProjectedNode {
   labels: string[];
 }
 
-export class WordVecRenderer extends BaseDependencyRenderer {
+export class WordVecRenderer {
   private readonly wordContainer: HTMLDivElement;
-  private readonly lineContainer: HTMLDivElement;
+  private readonly vectorContainer: HTMLDivElement | null;
 
   private readonly graph = new DependencyGraph();
   private readonly layout: Layout;
@@ -62,25 +63,23 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     wordClickCallback: (sentence: number, token: number) => void,
     focusCallback: (indices: ReadonlySet<number> | null) => void,
   ) {
-    super(".vector-plot");
-
-    this.wordClickCallback = wordClickCallback;
-
+    this.vectorContainer = document.querySelector(".vector-plot") as HTMLDivElement;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
+    const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
     const centerContainer = document.querySelector(".dep-graph-container") as HTMLDivElement;
+
+    // exit listener
     centerContainer.addEventListener("click", (e) => {
       e.stopPropagation();
       if (e.target === e.currentTarget) {
         this.removeLockToken();
       }
     });
-    this.lineContainer = this.container as HTMLDivElement;
-
-    const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
+    this.wordClickCallback = wordClickCallback;
 
     this.layout = new Layout(this.wordContainer);
     this.words = new WordLayer(this.wordContainer);
-    this.edges = new EdgeLayer(this.lineContainer, (i) => this.layout.live[i]);
+    this.edges = new EdgeLayer(this.vectorContainer, (i) => this.layout.live[i]);
     this.hover = new HoverController(this.words, this.edges);
 
     this.words.onFocusChange((indices) => {
@@ -88,9 +87,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
         focusCallback(null);
         return;
       }
-
       const originalIndices = new Set<number>();
-
       for (const id of indices) {
         const node = this.getNode(id);
         if (!node) continue;
@@ -150,6 +147,7 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.applyRoles();
     this.loaded = true;
     this.render(0);
+    this.setColorByRole(false);
   }
 
   get sentenceCount(): number {
@@ -242,7 +240,19 @@ export class WordVecRenderer extends BaseDependencyRenderer {
     this.buildEdges(index, nodes);
   }
 
-  /* --------------------------- projection --------------------------- */
+  /* --------------------------- private --------------------------- */
+
+  protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {
+    return computeCurve(...args);
+  }
+
+  protected static posColor(posTag: string | undefined): string {
+    return posTag && posTag in POS_COLOR_MAP ? POS_COLOR_MAP[posTag] : "#666";
+  }
+
+  protected static escape(value: string): string {
+    return escapeXml(value);
+  }
 
   private buildRoleMap(): void {
     this.roleByToken = new Array(this.graph.tokens.length).fill(null);
@@ -280,6 +290,8 @@ export class WordVecRenderer extends BaseDependencyRenderer {
   setColorByRole(enabled: boolean): void {
     this.colorByRole = enabled;
     this.words.setRoleColoring(enabled);
+
+    this.wordContainer?.classList.toggle("single-color", !enabled);
   }
 
   private rebuildProjection(): void {

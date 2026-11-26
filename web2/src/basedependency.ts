@@ -1,5 +1,3 @@
-import { escapeXml, POS_COLOR_MAP } from "./utils";
-
 export type Vectors = Record<string, [number, number]>;
 export type Point = { px: number; py: number };
 
@@ -11,7 +9,7 @@ export type RenderMode = 0 | 1;
 export type Axis = "x" | "y";
 type DepRelation = [number, string];
 export type DepSentence = DepRelation[][];
-export type DepRepresentation = "dm" | "pas" | "psd" ;
+export type DepRepresentation = "dm" | "pas" | "psd";
 
 export interface DepEdge {
   id: string;
@@ -38,7 +36,6 @@ export interface ForceNode {
   anchorY: number;
   targetY: number;
 }
-
 
 export interface ForceLink {
   source: number | ForceNode;
@@ -140,27 +137,4 @@ export function computeCurve(
     midx: xHead + dx * 0.5 + px * bulge,
     midy: yHead + dy * 0.5 + py * bulge,
   };
-}
-
-export abstract class BaseDependencyRenderer {
-  container: HTMLDivElement | null;
-
-  constructor(containerSelector: string = "#en-visualizer") {
-    this.container = document.querySelector(containerSelector);
-    if (!this.container) {
-      throw new Error(`${containerSelector} container not found`);
-    }
-  }
-
-  protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {
-    return computeCurve(...args);
-  }
-
-  protected static posColor(posTag: string | undefined): string {
-    return posTag && posTag in POS_COLOR_MAP ? POS_COLOR_MAP[posTag] : "#666";
-  }
-
-  protected static escape(value: string): string {
-    return escapeXml(value);
-  }
 }
