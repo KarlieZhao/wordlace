@@ -2,8 +2,7 @@ import { loadJson } from "./utils";
 import { WordVecRenderer } from "./wordvecrenderer";
 import { FullTextPanel } from "./fulltext";
 
-const dataURL = "Not_Even_This_tokens.json";
-// "so-to-speak-en_tokens.json";
+const dataURL = "so-to-speak-en_tokens.json";
 // "Not_Even_This_tokens.json";
 
 // ================ DOM ====================
