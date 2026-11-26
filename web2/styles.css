@@ -345,8 +345,8 @@ h1 {
   font-family: "Inika", serif;
   white-space: nowrap;
   transition: opacity 1s ease,
-    transform 1s ease,
-    color 1s ease;
+    transform .6s ease,
+    color .6s ease;
   transform: translate(-50%, -50%);
   cursor: pointer;
 
@@ -584,7 +584,6 @@ h1 {
 
 .single-color .vector-word.wv-selected {
   color: var(--highlight-background-alpha);
-
 }
 
 .word-plot.wv-focus .vector-word:not(.wv-hot) {

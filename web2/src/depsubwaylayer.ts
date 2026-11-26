@@ -2,7 +2,6 @@ import type { WordMetadata } from "./basedependency";
 import type { EdgeLayer } from "./edgelayer";
 import { POS_LABELS } from "./labels";
 import type { WordLayer } from "./wordlayer";
-type LinePlacement = "above" | "below";
 
 interface SubwayLink {
   direction: "from" | "to";
@@ -26,7 +25,7 @@ export class SubwayLayer {
 
   private readonly words: WordLayer;
   private readonly edges: EdgeLayer;
-  private readonly getWordPos: (index: number) => { left: number; top: number; width: number };
+  // private readonly getWordPos: (index: number) => { left: number; top: number; width: number };
 
   private sentenceWords: number[] = [];
   private hoveredWord: number | null = null;
@@ -37,14 +36,18 @@ export class SubwayLayer {
     container: HTMLElement,
     words: WordLayer,
     edges: EdgeLayer,
-    getWordPos: (index: number) => { left: number; top: number; width: number },
+    // getWordPos: (index: number) => { left: number; top: number; width: number },
   ) {
     this.root = container;
     this.root.classList.add("dependency-subway");
 
     this.words = words;
     this.edges = edges;
-    this.getWordPos = getWordPos;
+    // this.getWordPos = getWordPos;
+
+    window.addEventListener("resize", () => {
+      this.resize();
+    });
   }
 
   loadMetadata(metadata: WordMetadata[]): void {
@@ -133,19 +136,38 @@ export class SubwayLayer {
     for (const row of below) {
       this.root.appendChild(this.buildRow(row));
     }
-
     this.root.classList.add("is-visible");
+    this.placeSpine(spineTop, spineBottom, word);
 
-    const rootBbox = this.root.getBoundingClientRect();
-    spineTop.style.left = `${rootBbox.left}px`;
-    spineBottom.style.left = `${rootBbox.left}px`;
-    spineTop.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
-    const wordBbox = word.getBoundingClientRect();
-    spineBottom.style.top = `${wordBbox.top + wordBbox.height + 15}px`;
-    spineBottom.style.height = `${this.root.clientHeight - topHeight}px`;
+    if (above.length > 0) {
+      this.root.appendChild(spineTop);
+    }
+    if (below.length > 0) {
+      spineBottom.style.height = `${this.root.clientHeight - topHeight}px`;
+      this.root.appendChild(spineBottom);
+    }
+  }
 
-    if (above.length > 0) this.root.appendChild(spineTop);
-    if (below.length > 0) this.root.appendChild(spineBottom);
+  private resize() {
+    const spineTop = this.root.querySelector(".spine-top") as null | HTMLDivElement;
+    const spineBottom = this.root.querySelector(".spine-btm") as null | HTMLDivElement;
+    if (!spineTop && !spineBottom) return;
+    this.placeSpine(spineTop, spineBottom);
+  }
+
+  private placeSpine(
+    spineTop: null | HTMLDivElement,
+    spineBottom: null | HTMLDivElement,
+    word: HTMLDivElement | null = this.root.querySelector(".the-word"),
+  ) {
+    if (spineTop) {
+      // spineTop.style.left = `${rootBbox.left}px`;
+      spineTop.style.top = `${(window.innerHeight - this.root.clientHeight) / 2}px`;
+    }
+    if (spineBottom && word) {
+      const wordBbox = word.getBoundingClientRect();
+      spineBottom.style.top = `${wordBbox.top + wordBbox.height + 15}px`;
+    }
   }
 
   private buildRows(focus: number): SubwayRow[] {

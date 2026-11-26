@@ -100,19 +100,19 @@ export class WordVecRenderer {
       focusCallback(originalIndices);
     });
 
-    const getHoveredWordPos = (index: number) => {
-      const el = this.wordEls[index];
+    // const getHoveredWordPos = (index: number) => {
+    //   const el = this.wordEls[index];
 
-      if (!el) return { left: 0, top: 0, width: 0 };
+    //   if (!el) return { left: 0, top: 0, width: 0 };
 
-      return {
-        left: parseFloat(el.style.left) - el.offsetWidth / 2,
-        top: parseFloat(el.style.top),
-        width: el.offsetWidth,
-      };
-    };
+    //   return {
+    //     left: parseFloat(el.style.left) - el.offsetWidth / 2,
+    //     top: parseFloat(el.style.top),
+    //     width: el.offsetWidth,
+    //   };
+    // };
 
-    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges, getHoveredWordPos);
+    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges); //getHoveredWordPos
 
     this.words.onHover((token) => {
       if (this.lockedToken !== null) return;
