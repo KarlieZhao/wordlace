@@ -38,6 +38,11 @@ class Highlighter {
     this.markSentence(sentenceDiv);
   }
 
+  hoverSentence(sentenceDiv: HTMLElement): void {
+    this.clearHovered();
+    this.clearSentence();
+    this.markSentence(sentenceDiv);
+  }
   lock(span: HTMLElement, sentenceDiv: HTMLElement): void {
     this.clearHovered();
     this.clearLocked();
@@ -150,18 +155,19 @@ export class FullTextPanel {
   private readonly highlighter = new Highlighter();
   private readonly autoplayer: Autoplayer;
   private container: HTMLElement;
+  private readonly isCenterCollapsed: () => boolean;
 
-  constructor(container: HTMLElement, onAutoplayStopped: () => void) {
+  constructor(container: HTMLElement, isCenterCollapsed: () => boolean, onAutoplayStopped: () => void) {
     this.autoplayer = new Autoplayer(
       () => this.entries.length,
       (index) => this.playEntry(index),
       onAutoplayStopped,
     );
     this.container = container;
+    this.isCenterCollapsed = isCenterCollapsed;
     container.addEventListener("pointerover", this.onPointerOver);
     container.addEventListener("click", this.onClick);
   }
-
   // ----- setup -----
 
   attach(renderer: WordVecRenderer): void {
@@ -235,6 +241,15 @@ export class FullTextPanel {
 
   // ----- internals -----
 
+  private showSentence(entry: TokenEntry): void {
+    const renderer = this.renderer;
+    if (!renderer) return;
+
+    if (entry.sentence !== renderer.currentSentence) {
+      renderer.render(entry.sentence);
+    }
+    this.highlighter.hoverSentence(entry.sentenceDiv);
+  }
   private showToken(entry: TokenEntry, lock = false): void {
     const renderer = this.renderer;
     if (!renderer) return;
@@ -274,7 +289,12 @@ export class FullTextPanel {
     if (!entry) return;
 
     this.pauseAt(entry);
-    this.showToken(entry);
+
+    if (this.isCenterCollapsed()) {
+      this.showToken(entry); // center hidden: show the single token
+    } else {
+      this.showSentence(entry); // center visible: just show the whole sentence
+    }
   };
 
   private onClick = (event: MouseEvent): void => {

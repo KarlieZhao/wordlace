@@ -28,9 +28,13 @@ const colorCodeByRole = query<HTMLInputElement>(controls, "#color-toggle-input")
 const colorLabel = query<HTMLSpanElement>(controls, "#color-option");
 
 // Unchecks the autoplay box whenever playback stops (hover, click, end of text, ...)
-const leftPanel = new FullTextPanel(fulltextContainer, () => {
-  autoPlay.checked = false;
-});
+const leftPanel = new FullTextPanel(
+  fulltextContainer,
+  () => centerIsCollapsed,
+  () => {
+    autoPlay.checked = false;
+  },
+);
 
 export const renderer = new WordVecRenderer(leftPanel.lockWord, leftPanel.highlightConnected);
 leftPanel.attach(renderer);
