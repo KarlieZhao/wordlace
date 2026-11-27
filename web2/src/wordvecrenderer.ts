@@ -28,6 +28,7 @@ export interface FocusInfo {
 }
 
 export class WordVecRenderer {
+  private container: HTMLDivElement;
   private readonly wordContainer: HTMLDivElement;
   private readonly vectorContainer: HTMLDivElement | null;
 
@@ -61,8 +62,10 @@ export class WordVecRenderer {
   private roleByToken: (string | null)[] = [];
   private colorByRole = false;
   private focusNode: number | null = null;
+  private centerOnFocus = true;
 
   constructor(focusCallback: (focus: FocusInfo | null) => void) {
+    this.container = document.querySelector(".right-section") as HTMLDivElement;
     this.vectorContainer = document.querySelector(".vector-plot") as HTMLDivElement;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
@@ -96,6 +99,8 @@ export class WordVecRenderer {
         for (let i = node.start; i < node.end; i++) target.add(i);
       }
 
+      if (this.centerOnFocus) this.centerOnNode(this.focusNode);
+
       focusCallback({ key, connected });
     });
 
@@ -104,7 +109,12 @@ export class WordVecRenderer {
     this.words.onHover((token) => {
       if (this.lockedToken !== null) return;
 
-      this.setFocusNode(token);
+      this.centerOnFocus = false;
+      try {
+        this.setFocusNode(token);
+      } finally {
+        this.centerOnFocus = true;
+      }
       this.subway.render();
     });
 
@@ -235,6 +245,20 @@ export class WordVecRenderer {
 
   /* --------------------------- private --------------------------- */
 
+  private centerOnNode(node: number | null): void {
+    if (node === null) return;
+
+    const el = this.wordEls[node];
+    if (!el || !this.container) return;
+
+    const elBbox = el.getBoundingClientRect();
+    const containerBbox = this.container.getBoundingClientRect();
+
+    const relativeTop = elBbox.top - containerBbox.top + this.container.scrollTop;
+    const targetTop = relativeTop - this.container.clientHeight / 2 + elBbox.height / 2;
+
+    this.container.scrollTo({ top: targetTop, behavior: "smooth" });
+  }
   private nodeRole(node: ProjectedNode): string | null {
     for (let i = node.start; i < node.end; i++) {
       const role = this.roleByToken[i];

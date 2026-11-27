@@ -81,8 +81,18 @@ centerContainer.addEventListener("click", expandCenter);
 
 autoPlay.addEventListener("change", (e) => {
   e.stopPropagation();
-  if (autoPlay.checked) leftPanel.startAutoplay();
-  else leftPanel.pauseAutoplay();
+  // bit of a hack, but seems to work ok
+  centerContainer
+    .querySelectorAll(".word-plot div")
+    .forEach((div) => div.classList.toggle("hover-disabled", autoPlay.checked));
+
+  if (autoPlay.checked) {
+    leftPanel.startAutoplay();
+    document.body.style.cursor = "not-allowed";
+  } else {
+    leftPanel.pauseAutoplay();
+    document.body.style.cursor = "default";
+  }
 });
 
 colorCodeByRole.addEventListener("change", () => {

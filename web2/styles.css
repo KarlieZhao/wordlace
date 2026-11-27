@@ -127,7 +127,7 @@ h1 {
   align-items: center;
   justify-content: center;
   width: 2rem;
-  height: 2rem;
+  aspect-ratio: 1;
   border: 1px solid var(--icons);
   border-radius: 50%;
   cursor: pointer;
@@ -620,7 +620,7 @@ h1 {
 .highlighted-sentence {
   opacity: 1.0 !important;
   color: var(--text-main);
-  font-weight: 500;
+  /* font-weight: 500; */
   /* color: var(--text-darker); */
 }
 
@@ -631,7 +631,11 @@ h1 {
 
 .key-word {
   background-color: var(--connected-background);
-  color: var(--highlight-background-alpha)
+  color: var(--highlight-background-alpha);
+}
+
+.wv-roles .key-word {
+  color: currentColor;
 }
 
 
@@ -878,4 +882,8 @@ ARG5: "additional participant",
 .subway-line--arrow-right::after {
   right: 0;
   border-left: 8px solid var(--subway-line-2, currentColor);
+}
+
+.hover-disabled {
+  pointer-events: none !important;
 }

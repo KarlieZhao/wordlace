@@ -133,6 +133,8 @@ export class FullTextPanel {
   private readonly highlighter = new Highlighter();
   private readonly autoplayer: Autoplayer;
   private container: HTMLElement;
+  private parent: HTMLDivElement;
+  private containerBbox: { top: number } = { top: 0 };
   private readonly isCenterCollapsed: () => boolean;
 
   constructor(container: HTMLElement, isCenterCollapsed: () => boolean, onAutoplayStopped: () => void) {
@@ -145,6 +147,8 @@ export class FullTextPanel {
     this.isCenterCollapsed = isCenterCollapsed;
     container.addEventListener("pointerover", this.onPointerOver);
     container.addEventListener("click", this.onClick);
+    this.parent = document.querySelector(".fulltext-scroll-container") as HTMLDivElement;
+    this.containerBbox = this.parent.getBoundingClientRect();
   }
   // ----- setup -----
 
@@ -210,8 +214,14 @@ export class FullTextPanel {
 
     const firstKey = focus.key.values().next().value as number | undefined;
     const sentenceDiv = firstKey === undefined ? null : (this.entries[firstKey]?.sentenceDiv ?? null);
+    const keys = this.spansOf(focus.key);
+    this.highlighter.setFocus(keys, this.spansOf(focus.connected), sentenceDiv);
 
-    this.highlighter.setFocus(this.spansOf(focus.key), this.spansOf(focus.connected), sentenceDiv);
+    const elBbox = keys[0].getBoundingClientRect();
+
+    const relativeTop = elBbox.top - this.containerBbox.top + this.parent.scrollTop;
+    const targetTop = relativeTop - this.parent.clientHeight / 2 + elBbox.height / 2;
+    this.parent.scrollTo({ top: targetTop, behavior: "smooth" });
   };
 
   private spansOf(indices: ReadonlySet<number>): HTMLElement[] {
