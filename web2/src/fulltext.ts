@@ -179,7 +179,9 @@ export class FullTextPanel {
   }
 
   // ----- autoplay -----
-
+  isAutoPlaying() {
+    return this.autoplayer?.isPlaying || false;
+  }
   startAutoplay(): void {
     this.autoplayer.start();
   }

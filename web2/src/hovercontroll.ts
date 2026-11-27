@@ -17,18 +17,6 @@ export class HoverController {
       this.clear();
       return;
     }
-    this.focusWord(token);
-  }
-
-  clear(): void {
-    if (this.key === null) return;
-    this.key = null;
-    this.words.setFocus(null);
-    this.edges.setFocus(null);
-    // this.edges.hideLabels();
-  }
-
-  private focusWord(token: number): void {
     if (!this.enter(`w${token}`)) return;
 
     const edgeSet = new Set(this.edges.incident(token));
@@ -42,7 +30,14 @@ export class HoverController {
     this.words.setSelected(token);
     this.words.setFocus(wordSet);
     this.edges.setFocus(edgeSet);
-    // this.edges.showLabels(edgeSet);
+  }
+
+  clear(): void {
+    if (this.key === null) return;
+    this.key = null;
+    this.words.setFocus(null);
+    this.edges.setFocus(null);
+    // this.edges.hideLabels();
   }
 
   private enter(key: string): boolean {

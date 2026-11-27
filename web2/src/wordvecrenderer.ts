@@ -64,7 +64,7 @@ export class WordVecRenderer {
   private focusNode: number | null = null;
   private centerOnFocus = true;
 
-  constructor(focusCallback: (focus: FocusInfo | null) => void) {
+  constructor(focusCallback: (focus: FocusInfo | null) => void, isAutoPlaying: () => boolean = () => false) {
     this.container = document.querySelector(".right-section") as HTMLDivElement;
     this.vectorContainer = document.querySelector(".vector-plot") as HTMLDivElement;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
@@ -77,7 +77,6 @@ export class WordVecRenderer {
         this.removeLockToken();
       }
     });
-
     this.layout = new Layout(this.wordContainer);
     this.words = new WordLayer(this.wordContainer);
     this.edges = new EdgeLayer(this.vectorContainer, (i) => this.layout.live[i]);
@@ -107,7 +106,8 @@ export class WordVecRenderer {
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges);
 
     this.words.onHover((token) => {
-      if (this.lockedToken !== null) return;
+      console.log(isAutoPlaying());
+      if (this.lockedToken !== null || isAutoPlaying()) return;
 
       this.centerOnFocus = false;
       try {
@@ -200,8 +200,8 @@ export class WordVecRenderer {
   }
 
   hoverToken(token: number | null): void {
+    // hovering from fulltext autoplayer
     if (!this.loaded || this.lockedToken !== null) return;
-
     this.setFocusNode(token === null ? null : this.tokenToNode[token]);
   }
 
@@ -266,11 +266,13 @@ export class WordVecRenderer {
     }
     return null;
   }
+
   private setFocusNode(node: number | null): void {
     this.focusNode = node;
     this.hover.setHoveredWord(node);
     this.subway.setHoveredWord(node);
   }
+
   protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {
     return computeCurve(...args);
   }
