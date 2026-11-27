@@ -6,6 +6,7 @@ import { HoverController } from "./hovercontroll";
 import { Layout } from "./layout";
 import { WordLayer } from "./wordlayer";
 import { escapeXml, POS_COLOR_MAP } from "./utils";
+import { LinkageAudio } from "./audio";
 
 interface Span {
   start: number;
@@ -64,13 +65,18 @@ export class WordVecRenderer {
   private focusNode: number | null = null;
   private centerOnFocus = true;
 
+  // audio
+  private readonly audio = new LinkageAudio();
+  private readonly isAutoPlaying: () => boolean;
+  private lastAudioNode: number | null = null;
+
   constructor(focusCallback: (focus: FocusInfo | null) => void, isAutoPlaying: () => boolean = () => false) {
     this.container = document.querySelector(".right-section") as HTMLDivElement;
     this.vectorContainer = document.querySelector(".vector-plot") as HTMLDivElement;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
     const centerContainer = document.querySelector(".dep-graph-container") as HTMLDivElement;
-
+    this.isAutoPlaying = isAutoPlaying;
     centerContainer.addEventListener("click", (e) => {
       e.stopPropagation();
       if (e.target === e.currentTarget) {
@@ -106,12 +112,13 @@ export class WordVecRenderer {
     this.subway = new SubwayLayer(subwayContainer, this.words, this.edges);
 
     this.words.onHover((token) => {
-      console.log(isAutoPlaying());
-      if (this.lockedToken !== null || isAutoPlaying()) return;
+      if (this.lockedToken !== null || !token || isAutoPlaying()) return;
 
       this.centerOnFocus = false;
       try {
+        const node = this.tokenToNode[token] ?? token;
         this.setFocusNode(token);
+        this.playLinkages(node);
       } finally {
         this.centerOnFocus = true;
       }
@@ -200,9 +207,24 @@ export class WordVecRenderer {
   }
 
   hoverToken(token: number | null): void {
-    // hovering from fulltext autoplayer
     if (!this.loaded || this.lockedToken !== null) return;
-    this.setFocusNode(token === null ? null : this.tokenToNode[token]);
+
+    const node = token === null ? null : this.tokenToNode[token];
+    this.setFocusNode(node);
+
+    if (node === null || node === undefined) {
+      this.lastAudioNode = null;
+      return;
+    }
+    this.playLinkages(node);
+  }
+
+  setFocusNode(node: number | null): void {
+    this.focusNode = node;
+    this.hover.setHoveredWord(node);
+    this.subway.setHoveredWord(node);
+    this.words.setSelected(node);
+    // if(node===null)
   }
 
   onClickToken(token: number): void {
@@ -210,8 +232,10 @@ export class WordVecRenderer {
 
     this.lockedToken = this.lockedToken === node ? null : node;
 
-    if (this.lockedToken !== null) this.setFocusNode(node);
-    else this.removeLockToken();
+    if (this.lockedToken !== null) {
+      this.setFocusNode(node);
+      this.playLinkages(node);
+    } else this.removeLockToken();
   }
 
   render(index: number): void {
@@ -245,6 +269,27 @@ export class WordVecRenderer {
 
   /* --------------------------- private --------------------------- */
 
+  private playLinkages(node: number): void {
+    // phrases span several tokens; don't retrigger while the autoplayer walks through one
+    if (node === this.lastAudioNode) return;
+    this.lastAudioNode = node;
+
+    const distances: number[] = [];
+    for (const edgeIndex of this.edges.incident(node)) {
+      const [head, child] = this.edges.endpoints(edgeIndex);
+      const other = head === node ? child : head;
+      distances.push(Math.abs(other - node)); // node ids are global start-token indices
+    }
+    this.audio.play(distances);
+  }
+
+  unlockAudio(): void {
+    this.audio.unlock();
+  }
+
+  setAudioEnabled(enabled: boolean): void {
+    this.audio.setEnabled(enabled);
+  }
   private centerOnNode(node: number | null): void {
     if (node === null) return;
 
@@ -265,12 +310,6 @@ export class WordVecRenderer {
       if (role) return role;
     }
     return null;
-  }
-
-  private setFocusNode(node: number | null): void {
-    this.focusNode = node;
-    this.hover.setHoveredWord(node);
-    this.subway.setHoveredWord(node);
   }
 
   protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {

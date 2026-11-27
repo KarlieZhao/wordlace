@@ -26,7 +26,8 @@ const srlRadio = query<HTMLInputElement>(controls, "#srl-toggle-input");
 const wordRadio = query<HTMLInputElement>(controls, "#srl-toggle-input-word");
 const colorCodeByRole = query<HTMLInputElement>(controls, "#color-toggle-input");
 const colorLabel = query<HTMLSpanElement>(controls, "#color-option");
-
+const soundSwitch = query<HTMLInputElement>(controls, "#sound-toggle-input");
+const soundSwitchLabel = query<HTMLSpanElement>(controls, "#sound-option");
 // Unchecks the autoplay box whenever playback stops (hover, click, end of text, ...)
 const leftPanel = new FullTextPanel(
   fulltextContainer,
@@ -94,6 +95,12 @@ colorCodeByRole.addEventListener("change", () => {
   renderer.setColorByRole(coloring);
   leftPanel.setRoleColoring(coloring);
 });
+
+soundSwitch.addEventListener("change", () => {
+  renderer.unlockAudio();
+  soundSwitchLabel.textContent = soundSwitch.checked ? "on" : "off";
+});
+// =====================
 
 async function init(): Promise<void> {
   const raw = await loadJson(dataURL);

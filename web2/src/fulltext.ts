@@ -26,8 +26,9 @@ class Highlighter {
   private key: HTMLElement[] = [];
   private connected: HTMLElement[] = [];
   private sentenceSpans: HTMLElement[] = [];
+  private sentenceDiv: HTMLDivElement | null = null;
 
-  setFocus(key: HTMLElement[], connected: HTMLElement[], sentenceDiv: HTMLElement | null): void {
+  setFocus(key: HTMLElement[], connected: HTMLElement[], sentenceDiv: HTMLDivElement | null): void {
     this.clearAll();
     this.key = key;
     this.connected = connected;
@@ -36,7 +37,7 @@ class Highlighter {
     if (sentenceDiv) this.markSentence(sentenceDiv);
   }
 
-  hoverSentence(sentenceDiv: HTMLElement): void {
+  hoverSentence(sentenceDiv: HTMLDivElement): void {
     this.clearKey();
     this.clearSentence();
     this.markSentence(sentenceDiv);
@@ -48,7 +49,9 @@ class Highlighter {
     this.clearConnected();
   }
 
-  private markSentence(sentenceDiv: HTMLElement): void {
+  private markSentence(sentenceDiv: HTMLDivElement): void {
+    sentenceDiv.classList.add("highlight-sentence");
+    this.sentenceDiv = sentenceDiv;
     this.sentenceSpans = [...sentenceDiv.querySelectorAll<HTMLElement>("span")];
     this.sentenceSpans.forEach((span) => span.classList.add(CLS.sentence));
   }
@@ -59,6 +62,7 @@ class Highlighter {
   }
 
   private clearSentence(): void {
+    this.sentenceDiv?.classList.remove("highlight-sentence");
     this.sentenceSpans.forEach((span) => span.classList.remove(CLS.sentence));
     this.sentenceSpans = [];
   }
@@ -215,7 +219,8 @@ export class FullTextPanel {
     }
 
     const firstKey = focus.key.values().next().value as number | undefined;
-    const sentenceDiv = firstKey === undefined ? null : (this.entries[firstKey]?.sentenceDiv ?? null);
+    const sentenceDiv =
+      firstKey === undefined ? null : ((this.entries[firstKey]?.sentenceDiv as HTMLDivElement) ?? null);
     const keys = this.spansOf(focus.key);
     this.highlighter.setFocus(keys, this.spansOf(focus.connected), sentenceDiv);
 
@@ -241,9 +246,10 @@ export class FullTextPanel {
     if (!renderer) return;
 
     if (entry.sentence !== renderer.currentSentence) {
+      renderer.setFocusNode(null);
       renderer.render(entry.sentence);
     }
-    this.highlighter.hoverSentence(entry.sentenceDiv);
+    this.highlighter.hoverSentence(entry.sentenceDiv as HTMLDivElement);
   }
 
   private showToken(entry: TokenEntry): void {

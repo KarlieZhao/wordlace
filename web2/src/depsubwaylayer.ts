@@ -32,6 +32,8 @@ export class SubwayLayer {
   private metadata: WordMetadata[] | null = null;
   private containerWidth: number = 0;
 
+  private noteContainer: HTMLDivElement;
+
   constructor(
     container: HTMLElement,
     words: WordLayer,
@@ -39,6 +41,7 @@ export class SubwayLayer {
     // getWordPos: (index: number) => { left: number; top: number; width: number },
   ) {
     this.root = container;
+    this.noteContainer = this.root.parentElement?.querySelector(".notes") as HTMLDivElement;
     this.root.classList.add("dependency-subway");
 
     this.words = words;
@@ -68,16 +71,15 @@ export class SubwayLayer {
 
   render(): void {
     this.containerWidth = this.root.getBoundingClientRect().width;
-    const focus = this.hoveredWord;
-
     this.root.innerHTML = "";
-
-    if (focus === null) {
+    if (this.hoveredWord === null) {
       this.root.classList.remove("is-visible");
+      this.noteContainer.classList.remove("hidden");
       return;
     }
-
-    this.draw(focus);
+    this.root.classList.add("is-visible");
+    this.noteContainer.classList.add("hidden");
+    this.draw(this.hoveredWord);
   }
 
   private defaultWord(): number | null {
@@ -98,7 +100,6 @@ export class SubwayLayer {
 
   private draw(focus: number): void {
     const vectorSVG = document.querySelector(".vector-edges");
-    this.root.innerHTML = "";
     if (!vectorSVG) return;
 
     const word = document.createElement("div");
@@ -136,7 +137,6 @@ export class SubwayLayer {
     for (const row of below) {
       this.root.appendChild(this.buildRow(row));
     }
-    this.root.classList.add("is-visible");
     this.placeSpine(spineTop, spineBottom, word);
 
     if (above.length > 0) {

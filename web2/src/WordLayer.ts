@@ -137,7 +137,7 @@ export class WordLayer {
     }
   }
 
-  setSelected(indice: number): void {
+  setSelected(indice: number | null): void {
     this.wordEls.forEach((el, i) => {
       if (el) el.classList.toggle("wv-selected", indice === i);
     });

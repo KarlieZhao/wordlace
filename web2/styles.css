@@ -5,6 +5,7 @@
   --text-darker: #1b1b1b;
   --text-main: #383838;
   --text-dim: #555;
+  --text-dimmer: #999;
   --highlight: #30506a;
   --background: #EEF0F2;
   --background-left: #d8dee4;
@@ -126,7 +127,8 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  width: 30px;
+  height: 30px;
   aspect-ratio: 1;
   border: 1px solid var(--icons);
   border-radius: 50%;
@@ -396,6 +398,18 @@ h1 {
 .full-line-word.wv-locked {
     background-color: rgb(233, 190, 190);
 } */
+.notes.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.notes {
+  position: absolute;
+  color: var(--text-dimmer);
+  opacity: 1;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
 
 .dependency-subway.is-visible {
   display: block;
@@ -712,6 +726,10 @@ ARG5: "additional participant",
   }
 }
 
+.highlight-sentence {
+  background-color: var(--button-highlight);
+}
+
 
 /*====== LAYOUT ====== */
 
@@ -796,7 +814,7 @@ ARG5: "additional participant",
 
   .fulltext-scroll-container {
     direction: rtl;
-    padding: 2rem;
+    padding: 1rem;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--background-left) var(--background);
