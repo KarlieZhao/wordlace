@@ -219,11 +219,12 @@ export class FullTextPanel {
     const keys = this.spansOf(focus.key);
     this.highlighter.setFocus(keys, this.spansOf(focus.connected), sentenceDiv);
 
-    const elBbox = keys[0].getBoundingClientRect();
-
-    const relativeTop = elBbox.top - this.containerBbox.top + this.parent.scrollTop;
-    const targetTop = relativeTop - this.parent.clientHeight / 2 + elBbox.height / 2;
-    this.parent.scrollTo({ top: targetTop, behavior: "smooth" });
+    if (!this.isCenterCollapsed()) {
+      const elBbox = keys[0].getBoundingClientRect();
+      const relativeTop = elBbox.top - this.containerBbox.top + this.parent.scrollTop;
+      const targetTop = relativeTop - this.parent.clientHeight / 2 + elBbox.height / 2;
+      this.parent.scrollTo({ top: targetTop, behavior: "smooth" });
+    }
   };
 
   private spansOf(indices: ReadonlySet<number>): HTMLElement[] {
