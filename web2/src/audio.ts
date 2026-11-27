@@ -8,7 +8,7 @@ export interface LinkageAudioOptions {
   higherWhenFarther: boolean;
 }
 
-const PENTATONIC = [0, 2, 4, 7, 9]; // major pentatonic: any combination sounds consonant
+const PENTATONIC = [0, 2, 4, 7, 9];
 
 export class LinkageAudio {
   private ctx: AudioContext | null = null;
@@ -29,7 +29,6 @@ export class LinkageAudio {
     };
   }
 
-  /** Call from a user gesture (e.g. the autoplay button click). Browsers block audio until then. */
   unlock(): void {
     if (!this.ctx) {
       this.ctx = new AudioContext();
@@ -44,7 +43,6 @@ export class LinkageAudio {
     this.enabled = enabled;
   }
 
-  /** One sine note per distance (distance = |token index difference|). */
   play(distances: number[]): void {
     if (!this.enabled || !this.ctx || !this.master || distances.length === 0) return;
 
