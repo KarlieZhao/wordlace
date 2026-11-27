@@ -630,6 +630,10 @@ h1 {
   background-color: var(--connected-background)
 }
 
+.highlight-locked {
+  color: var(--highlight-background-alpha)
+}
+
 
 .dependency-controls {
   display: flex;

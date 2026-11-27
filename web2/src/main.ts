@@ -73,8 +73,10 @@ centerContainer.addEventListener("click", expandCenter);
 
 [srlRadio, wordRadio].forEach((radio) =>
   radio.addEventListener("change", () => {
-    renderer.setUseSrl(srlRadio.checked);
     leftPanel.resetHighlight();
+    void renderer.setUseSrl(srlRadio.checked).then(() => {
+      leftPanel.applyRoles(renderer.tokenRoles);
+    });
   }),
 );
 

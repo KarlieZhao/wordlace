@@ -161,8 +161,27 @@ export class WordVecRenderer {
   get lockedTokenIndex(): number | null {
     return this.lockedToken;
   }
+
   get tokenRoles(): readonly (string | null)[] {
-    return this.roleByToken;
+    // word
+    if (!this.useSrl) return this.roleByToken;
+
+    // slr
+    const roles: (string | null)[] = new Array(this.graph.tokens.length).fill(null);
+    for (const node of this.nodesBySentence.flat()) {
+      const role = this.nodeRole(node);
+      if (!role) continue;
+      for (let i = node.start; i < node.end; i++) roles[i] = role;
+    }
+    return roles;
+  }
+
+  private nodeRole(node: ProjectedNode): string | null {
+    for (let i = node.start; i < node.end; i++) {
+      const role = this.roleByToken[i];
+      if (role) return role;
+    }
+    return null;
   }
 
   removeLockToken() {
@@ -174,17 +193,21 @@ export class WordVecRenderer {
     return this.lockedToken !== null && this.tokenToNode[token] === this.lockedToken;
   }
 
-  setUseSrl(enabled: boolean): void {
-    if (this.useSrl === enabled || !this.loaded) return;
+  setUseSrl(enabled: boolean): Promise<void> {
+    if (this.useSrl === enabled || !this.loaded) return Promise.resolve();
 
     this.useSrl = enabled;
 
     this.lockedToken = null;
     this.hover.clear();
     this.subway.setHoveredWord(null);
-    requestAnimationFrame(() => {
-      this.rebuildProjection();
-      this.render(this.sentenceIndex);
+
+    return new Promise((resolve) => {
+      requestAnimationFrame(() => {
+        this.rebuildProjection();
+        this.render(this.sentenceIndex);
+        resolve();
+      });
     });
   }
   hoverToken(token: number | null): void {
@@ -274,13 +297,8 @@ export class WordVecRenderer {
   private applyRoles(): void {
     const roles = new Map<number, string>();
     for (const node of this.nodesBySentence.flat()) {
-      for (let i = node.start; i < node.end; i++) {
-        const role = this.roleByToken[i];
-        if (role) {
-          roles.set(node.id, role);
-          break;
-        }
-      }
+      const role = this.nodeRole(node);
+      if (role) roles.set(node.id, role);
     }
 
     this.words.setRoles(roles);
