@@ -22,6 +22,10 @@ interface ProjectedNode {
   text: string;
   labels: string[];
 }
+export interface FocusInfo {
+  key: ReadonlySet<number>;
+  connected: ReadonlySet<number>;
+}
 
 export class WordVecRenderer {
   private readonly wordContainer: HTMLDivElement;
@@ -56,26 +60,20 @@ export class WordVecRenderer {
 
   private roleByToken: (string | null)[] = [];
   private colorByRole = false;
+  private focusNode: number | null = null;
 
-  private wordClickCallback: (sentence: number, token: number) => void;
-
-  constructor(
-    wordClickCallback: (sentence: number, token: number) => void,
-    focusCallback: (indices: ReadonlySet<number> | null) => void,
-  ) {
+  constructor(focusCallback: (focus: FocusInfo | null) => void) {
     this.vectorContainer = document.querySelector(".vector-plot") as HTMLDivElement;
     this.wordContainer = document.querySelector(".word-plot") as HTMLDivElement;
     const subwayContainer = document.querySelector(".dependency-subway-container") as HTMLElement;
     const centerContainer = document.querySelector(".dep-graph-container") as HTMLDivElement;
 
-    // exit listener
     centerContainer.addEventListener("click", (e) => {
       e.stopPropagation();
       if (e.target === e.currentTarget) {
         this.removeLockToken();
       }
     });
-    this.wordClickCallback = wordClickCallback;
 
     this.layout = new Layout(this.wordContainer);
     this.words = new WordLayer(this.wordContainer);
@@ -87,38 +85,26 @@ export class WordVecRenderer {
         focusCallback(null);
         return;
       }
-      const originalIndices = new Set<number>();
+
+      const key = new Set<number>();
+      const connected = new Set<number>();
       for (const id of indices) {
         const node = this.getNode(id);
         if (!node) continue;
 
-        for (let i = node.start; i < node.end; i++) {
-          originalIndices.add(i);
-        }
+        const target = id === this.focusNode ? key : connected;
+        for (let i = node.start; i < node.end; i++) target.add(i);
       }
 
-      focusCallback(originalIndices);
+      focusCallback({ key, connected });
     });
 
-    // const getHoveredWordPos = (index: number) => {
-    //   const el = this.wordEls[index];
-
-    //   if (!el) return { left: 0, top: 0, width: 0 };
-
-    //   return {
-    //     left: parseFloat(el.style.left) - el.offsetWidth / 2,
-    //     top: parseFloat(el.style.top),
-    //     width: el.offsetWidth,
-    //   };
-    // };
-
-    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges); //getHoveredWordPos
+    this.subway = new SubwayLayer(subwayContainer, this.words, this.edges);
 
     this.words.onHover((token) => {
       if (this.lockedToken !== null) return;
 
-      this.hover.setHoveredWord(token);
-      this.subway.setHoveredWord(token);
+      this.setFocusNode(token);
       this.subway.render();
     });
 
@@ -176,19 +162,11 @@ export class WordVecRenderer {
     return roles;
   }
 
-  private nodeRole(node: ProjectedNode): string | null {
-    for (let i = node.start; i < node.end; i++) {
-      const role = this.roleByToken[i];
-      if (role) return role;
-    }
-    return null;
-  }
-
   removeLockToken() {
     this.lockedToken = null;
-    this.hover.setHoveredWord(null);
-    this.subway.setHoveredWord(null);
+    this.setFocusNode(null);
   }
+
   isLockedToken(token: number): boolean {
     return this.lockedToken !== null && this.tokenToNode[token] === this.lockedToken;
   }
@@ -210,13 +188,11 @@ export class WordVecRenderer {
       });
     });
   }
+
   hoverToken(token: number | null): void {
     if (!this.loaded || this.lockedToken !== null) return;
 
-    const node = token === null ? null : this.tokenToNode[token];
-
-    this.hover.setHoveredWord(node);
-    this.subway.setHoveredWord(node);
+    this.setFocusNode(token === null ? null : this.tokenToNode[token]);
   }
 
   onClickToken(token: number): void {
@@ -224,14 +200,8 @@ export class WordVecRenderer {
 
     this.lockedToken = this.lockedToken === node ? null : node;
 
-    if (this.lockedToken !== null) {
-      this.hover.setHoveredWord(node);
-      this.subway.setHoveredWord(node);
-    } else {
-      this.removeLockToken();
-    }
-
-    this.wordClickCallback(this.sentenceIndex, token);
+    if (this.lockedToken !== null) this.setFocusNode(node);
+    else this.removeLockToken();
   }
 
   render(index: number): void {
@@ -265,6 +235,18 @@ export class WordVecRenderer {
 
   /* --------------------------- private --------------------------- */
 
+  private nodeRole(node: ProjectedNode): string | null {
+    for (let i = node.start; i < node.end; i++) {
+      const role = this.roleByToken[i];
+      if (role) return role;
+    }
+    return null;
+  }
+  private setFocusNode(node: number | null): void {
+    this.focusNode = node;
+    this.hover.setHoveredWord(node);
+    this.subway.setHoveredWord(node);
+  }
   protected static computeCurve(...args: Parameters<typeof computeCurve>): CurveGeometry {
     return computeCurve(...args);
   }

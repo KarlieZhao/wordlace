@@ -1,7 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Signika+Negative:wght@300..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inika:wght@400;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Buenard:wght@400..700&display=swap');
 
 :root {
   --text-darker: #1b1b1b;
@@ -12,7 +10,7 @@
   --background-left: #d8dee4;
 
   --highlight-background-alpha: #de7008;
-  --connected-background: #b6d8e2;
+  --connected-background: #ecf3c9;
   --icons: #97afc1;
 
   --label-text: #0e4d75;
@@ -622,15 +620,17 @@ h1 {
 .highlighted-sentence {
   opacity: 1.0 !important;
   color: var(--text-main);
+  font-weight: 500;
   /* color: var(--text-darker); */
 }
 
-.connected-spans {
+.connected-words {
   opacity: 1 !important;
-  background-color: var(--connected-background)
+  background-color: var(--connected-background);
 }
 
-.highlight-locked {
+.key-word {
+  background-color: var(--connected-background);
   color: var(--highlight-background-alpha)
 }
 
@@ -773,8 +773,10 @@ ARG5: "additional participant",
   overflow: hidden;
   background: var(--background);
   color: var(--text-dim);
-  font-family: "Inika", serif;
-  font-weight: 300;
+  /* font-family: "Inika", serif; */
+  font-family: "Buenard", serif;
+  font-size: 16px;
+  font-weight: 400;
   display: flex;
   flex-direction: column;
   filter: drop-shadow(2px 0px 5px var(--drop-shadow));

@@ -1,13 +1,11 @@
-import type { WordVecRenderer } from "./wordvecrenderer";
-
-const AUTOPLAY_DELAY_MS = 500;
+import type { FocusInfo, WordVecRenderer } from "./wordvecrenderer";
 
 const CLS = {
-  hover: "highlight",
-  locked: "highlight-locked",
+  key: "key-word",
+  connected: "connected-words",
   sentence: "highlighted-sentence",
-  connected: "connected-spans",
 } as const;
+const AUTOPLAY_DELAY_MS = 500;
 
 interface TokenData {
   tok: string[][];
@@ -25,42 +23,27 @@ type RoleMap = { readonly [index: number]: string | null | undefined };
 const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 class Highlighter {
-  private hovered: HTMLElement | null = null;
-  private locked: HTMLElement | null = null;
-  private sentenceSpans: HTMLElement[] = [];
+  private key: HTMLElement[] = [];
   private connected: HTMLElement[] = [];
+  private sentenceSpans: HTMLElement[] = [];
 
-  hover(span: HTMLElement, sentenceDiv: HTMLElement): void {
-    this.clearHovered();
-    this.clearSentence();
-    this.hovered = span;
-    span.classList.add(CLS.hover);
-    this.markSentence(sentenceDiv);
+  setFocus(key: HTMLElement[], connected: HTMLElement[], sentenceDiv: HTMLElement | null): void {
+    this.clearAll();
+    this.key = key;
+    this.connected = connected;
+    key.forEach((span) => span.classList.add(CLS.key));
+    connected.forEach((span) => span.classList.add(CLS.connected));
+    if (sentenceDiv) this.markSentence(sentenceDiv);
   }
 
   hoverSentence(sentenceDiv: HTMLElement): void {
-    this.clearHovered();
+    this.clearKey();
     this.clearSentence();
     this.markSentence(sentenceDiv);
-  }
-  lock(span: HTMLElement, sentenceDiv: HTMLElement): void {
-    this.clearHovered();
-    this.clearLocked();
-    this.clearSentence();
-    this.locked = span;
-    span.classList.add(CLS.locked);
-    this.markSentence(sentenceDiv);
-  }
-
-  setConnected(spans: HTMLElement[]): void {
-    this.clearConnected();
-    this.connected = spans;
-    spans.forEach((span) => span.classList.add(CLS.connected));
   }
 
   clearAll(): void {
-    this.clearHovered();
-    this.clearLocked();
+    this.clearKey();
     this.clearSentence();
     this.clearConnected();
   }
@@ -70,14 +53,9 @@ class Highlighter {
     this.sentenceSpans.forEach((span) => span.classList.add(CLS.sentence));
   }
 
-  private clearHovered(): void {
-    this.hovered?.classList.remove(CLS.hover);
-    this.hovered = null;
-  }
-
-  private clearLocked(): void {
-    this.locked?.classList.remove(CLS.locked);
-    this.locked = null;
+  private clearKey(): void {
+    this.key.forEach((span) => span.classList.remove(CLS.key));
+    this.key = [];
   }
 
   private clearSentence(): void {
@@ -224,22 +202,26 @@ export class FullTextPanel {
     });
   }
 
-  lockWord = (sentence: number, token: number): void => {
-    const entry = this.entries[token];
-    if (!entry || entry.sentence !== sentence) return;
-    this.highlighter.lock(entry.span, entry.sentenceDiv);
+  highlightFocus = (focus: FocusInfo | null): void => {
+    if (!focus) {
+      this.highlighter.clearAll();
+      return;
+    }
+
+    const firstKey = focus.key.values().next().value as number | undefined;
+    const sentenceDiv = firstKey === undefined ? null : (this.entries[firstKey]?.sentenceDiv ?? null);
+
+    this.highlighter.setFocus(this.spansOf(focus.key), this.spansOf(focus.connected), sentenceDiv);
   };
 
-  highlightConnected = (indices: ReadonlySet<number> | null): void => {
+  private spansOf(indices: ReadonlySet<number>): HTMLElement[] {
     const spans: HTMLElement[] = [];
-    indices?.forEach((i) => {
+    indices.forEach((i) => {
       const entry = this.entries[i];
       if (entry) spans.push(entry.span);
     });
-    this.highlighter.setConnected(spans);
-  };
-
-  // ----- internals -----
+    return spans;
+  }
 
   private showSentence(entry: TokenEntry): void {
     const renderer = this.renderer;
@@ -250,7 +232,8 @@ export class FullTextPanel {
     }
     this.highlighter.hoverSentence(entry.sentenceDiv);
   }
-  private showToken(entry: TokenEntry, lock = false): void {
+
+  private showToken(entry: TokenEntry): void {
     const renderer = this.renderer;
     if (!renderer) return;
 
@@ -258,9 +241,6 @@ export class FullTextPanel {
       renderer.render(entry.sentence);
     }
     renderer.hoverToken(entry.token);
-
-    if (lock) this.highlighter.lock(entry.span, entry.sentenceDiv);
-    else this.highlighter.hover(entry.span, entry.sentenceDiv);
   }
 
   private playEntry(index: number): boolean {
@@ -304,13 +284,9 @@ export class FullTextPanel {
 
     this.pauseAt(entry);
 
-    const isLocked = renderer.lockedTokenIndex !== null;
-    const clickedOnLockedToken = entry.sentence === renderer.currentSentence && renderer.isLockedToken(entry.token);
-
-    if (isLocked && !clickedOnLockedToken) {
-      this.showToken(entry, true);
+    if (entry.sentence !== renderer.currentSentence) {
+      renderer.render(entry.sentence);
     }
-
     renderer.onClickToken(entry.token);
   };
 }

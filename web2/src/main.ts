@@ -35,8 +35,7 @@ const leftPanel = new FullTextPanel(
     autoPlay.checked = false;
   },
 );
-
-export const renderer = new WordVecRenderer(leftPanel.lockWord, leftPanel.highlightConnected);
+export const renderer = new WordVecRenderer(leftPanel.highlightFocus);
 leftPanel.attach(renderer);
 
 // ================ CENTER PANEL COLLAPSE ====================
