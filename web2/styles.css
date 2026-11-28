@@ -39,12 +39,12 @@
     --text-main: #e8e8e8;
     --text-dim: #999;
     --highlight: #aaa;
-    /* #C7D4DF; */
     --background: rgb(23, 26, 27);
     --background-left: #182028;
 
-    --highlight-background-alpha: #efefef;
-    --connected-background: #103744;
+    --highlight-background-alpha: #E4FF1A;
+
+    --connected-background: #38400d;
 
     --label-text: #64bcf3;
     --label-text-2: #ffb164;
@@ -63,9 +63,9 @@
     --role-arg2: hsl(164, 55%, 70%);
 
     --bottom-bar-bg: rgba(46, 60, 76, 0.533);
-    --icons: rgb(44, 59, 76);
+    --icons: rgb(76, 99, 127);
 
-    --button-highlight: #3c444e;
+    --button-highlight: #1e2630;
   }
 
   .vector-word.wv-selected {
@@ -147,6 +147,46 @@ h1 {
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
   border-left: 9px solid var(--icons);
+}
+
+.sound-icon {
+  fill: var(--icons);
+}
+
+.sound-icon.hidden {
+  display: none;
+}
+
+.sound-modes {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.sound-modes label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+
+  font-size: 14px;
+  color: var(--icons);
+  font-family: "Inika", serif;
+  border: 1px solid var(--icons);
+  cursor: pointer;
+  background-color: transparent;
+
+
+  input {
+    display: none;
+  }
+}
+
+.sound-modes label:hover,
+.sound-modes label:has(input:checked) {
+  background-color: var(--icons);
+  color: var(--highlight);
 }
 
 .play-button:has(input:checked) .play-icon {
@@ -706,6 +746,12 @@ ARG5: "additional participant",
 
 
 /*========= LEFT SIDE ======= */
+
+/* icons */
+svg.hidden {
+  display: none;
+}
+
 
 #full-text.wv-roles {
 

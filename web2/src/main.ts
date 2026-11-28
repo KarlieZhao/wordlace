@@ -27,8 +27,12 @@ const wordRadio = query<HTMLInputElement>(controls, "#srl-toggle-input-word");
 const colorCodeByRole = query<HTMLInputElement>(controls, "#color-toggle-input");
 const colorLabel = query<HTMLSpanElement>(controls, "#color-option");
 const soundSwitch = query<HTMLInputElement>(controls, "#sound-toggle-input");
-const soundSwitchLabel = query<HTMLSpanElement>(controls, "#sound-option");
-// Unchecks the autoplay box whenever playback stops (hover, click, end of text, ...)
+const soundSvg = query<HTMLSpanElement>(controls, "#sound-icon");
+const mutedSvg = query<HTMLSpanElement>(controls, "#muted-icon");
+
+const mode0Radio = query<HTMLInputElement>(controls, "#sound-mode-1-btn");
+const mode1Radio = query<HTMLInputElement>(controls, "#sound-mode-2-btn");
+
 const leftPanel = new FullTextPanel(
   fulltextContainer,
   () => centerIsCollapsed,
@@ -42,7 +46,7 @@ leftPanel.attach(renderer);
 // ================ CENTER PANEL COLLAPSE ====================
 
 export let centerIsCollapsed = false;
-
+let audioUnlocked = false;
 function collapseCenter(): void {
   centerIsCollapsed = true;
   main.classList.add("center-collapsed");
@@ -55,17 +59,24 @@ function collapseCenter(): void {
 
 function expandCenter(): void {
   if (!centerIsCollapsed) return;
-  centerIsCollapsed = false;
+  centerIsCollapsed = !centerIsCollapsed;
   main.classList.remove("center-collapsed");
   setTimeout(() => {
     centerContent.classList.remove("disabled");
     centerContainer.classList.remove("disabled");
   }, 400);
 }
-
+const expandSvg = collapseButton.querySelector("#expand-svg");
+const collapseSvg = collapseButton.querySelector("#collapse-svg");
 collapseButton.addEventListener("click", (e) => {
   e.stopPropagation();
-  collapseCenter();
+  if (centerIsCollapsed) {
+    expandCenter();
+  } else {
+    collapseCenter();
+  }
+  expandSvg?.classList.toggle("hidden", centerIsCollapsed);
+  collapseSvg?.classList.toggle("hidden", !centerIsCollapsed);
 });
 centerContainer.addEventListener("click", expandCenter);
 
@@ -83,6 +94,7 @@ centerContainer.addEventListener("click", expandCenter);
 autoPlay.addEventListener("change", (e) => {
   e.stopPropagation();
   if (autoPlay.checked) {
+    if (!audioUnlocked) renderer.unlockAudio();
     leftPanel.startAutoplay();
   } else {
     leftPanel.pauseAutoplay();
@@ -97,8 +109,15 @@ colorCodeByRole.addEventListener("change", () => {
 });
 
 soundSwitch.addEventListener("change", () => {
-  renderer.unlockAudio();
-  soundSwitchLabel.textContent = soundSwitch.checked ? "on" : "off";
+  renderer.setAudioEnabled(soundSwitch.checked);
+  soundSvg.classList.toggle("hidden", !soundSwitch.checked);
+  mutedSvg.classList.toggle("hidden", soundSwitch.checked);
+});
+
+[mode0Radio, mode1Radio].forEach((radio) => {
+  radio.addEventListener("change", () => {
+    renderer.setAudioMode(Number(radio.value) as 0 | 1);
+  });
 });
 // =====================
 

@@ -223,8 +223,8 @@ export class WordVecRenderer {
     this.focusNode = node;
     this.hover.setHoveredWord(node);
     this.subway.setHoveredWord(node);
+
     this.words.setSelected(node);
-    // if(node===null)
   }
 
   onClickToken(token: number): void {
@@ -285,6 +285,10 @@ export class WordVecRenderer {
 
   unlockAudio(): void {
     this.audio.unlock();
+  }
+
+  setAudioMode(mode: 0 | 1): void {
+    this.audio.setMode(mode);
   }
 
   setAudioEnabled(enabled: boolean): void {
